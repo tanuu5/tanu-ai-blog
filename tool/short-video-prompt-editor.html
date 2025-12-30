@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>動画プロンプトジェネレータ</title>
+    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .input-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            border: 2px solid #e9ecef;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .input-wrapper {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+            font-size: 14px;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+            font-family: inherit;
+        }
+
+        select {
+            cursor: pointer;
+            background-color: white;
+        }
+
+        .time-input {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .time-input input {
+            width: 80px;
+            text-align: center;
+        }
+
+        .time-separator {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+            padding: 8px 12px;
+            font-size: 12px;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .timeline {
+            margin-bottom: 30px;
+        }
+
+        .timeline-item {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+            transition: all 0.3s;
+        }
+
+        .timeline-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+        }
+
+        .timeline-time {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 18px;
+            min-width: 100px;
+            text-align: center;
+        }
+
+        .timeline-content {
+            flex: 1;
+        }
+
+        .timeline-description {
+            color: #495057;
+            line-height: 1.6;
+            margin-top: 5px;
+        }
+
+        .timeline-meta {
+            color: #6c757d;
+            font-size: 12px;
+            margin-top: 8px;
+        }
+
+        .timeline-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .output-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            border: 2px solid #e9ecef;
+        }
+
+        .output-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .output-header h3 {
+            color: #495057;
+            font-size: 18px;
+        }
+
+        .output-content {
+            background: #2d3748;
+            color: #a8dadc;
+            padding: 25px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 2;
+            white-space: pre-wrap;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        .btn-copy {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-copy:hover {
+            background: #218838;
+        }
+
+        .btn-copy.copied {
+            background: #20c997;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            .input-group {
+                flex-direction: column;
+            }
+
+            .timeline-item {
+                flex-direction: column;
+            }
+
+            .timeline-time {
+                width: 100%;
+            }
+        }
+
+        .footer {
+            margin-top: 50px;
+            padding-top: 30px;
+            border-top: 2px solid #e9ecef;
+            text-align: center;
+            color: #6c757d;
+            font-size: 13px;
+            line-height: 1.8;
+        }
+
+        .footer-name {
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .footer-powered {
+            margin-top: 8px;
+            font-size: 12px;
+            color: #adb5bd;
+        }
+
+        .footer-powered a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .footer-powered a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useMemo, useRef } = React;
+
+        function App() {
+            const [entries, setEntries] = useState([]);
+            const [seconds, setSeconds] = useState('0');
+            const [frames, setFrames] = useState('00');
+            const [description, setDescription] = useState('');
+            const [cameraAngle, setCameraAngle] = useState('');
+            const [cameraMovement, setCameraMovement] = useState('');
+            const [copyStatus, setCopyStatus] = useState(false);
+            const [editingId, setEditingId] = useState(null);
+            const fileInputRef = useRef(null);
+
+            const cameraAngles = [
+                { value: '', label: 'なし' },
+                { value: 'ロングショット', label: 'ロングショット（全体を映す）' },
+                { value: 'ミディアムショット', label: 'ミディアムショット（上半身）' },
+                { value: 'クローズアップ', label: 'クローズアップ（顔のアップ）' },
+                { value: 'エクストリームクローズアップ', label: 'エクストリームクローズアップ（目や手など）' },
+                { value: 'オーバーザショルダー', label: 'オーバーザショルダー（肩越し）' },
+                { value: 'POV', label: 'POV（主観視点）' },
+                { value: 'バードアイビュー', label: 'バードアイビュー（真上から俯瞰）' },
+                { value: 'ハイアングル', label: 'ハイアングル（上から見下ろす）' },
+                { value: 'ローアングル', label: 'ローアングル（下から見上げる）' },
+                { value: 'ダッチアングル', label: 'ダッチアングル（斜め）' }
+            ];
+
+            const cameraMovements = [
+                { value: '', label: 'なし' },
+                { value: 'パン', label: 'パン（左右に振る）' },
+                { value: 'ティルト', label: 'ティルト（上下に振る）' },
+                { value: 'ドリーイン', label: 'ドリーイン（被写体に近づく）' },
+                { value: 'ドリーアウト', label: 'ドリーアウト（被写体から遠ざかる）' },
+                { value: 'トラッキング', label: 'トラッキング（被写体を追う）' },
+                { value: 'ズームイン', label: 'ズームイン' },
+                { value: 'ズームアウト', label: 'ズームアウト' },
+                { value: '手持ちカメラ', label: '手持ちカメラ（揺れる）' },
+                { value: 'スタビライザー', label: 'スタビライザー（滑らかに移動）' },
+                { value: 'オービット', label: 'オービット（被写体の周りを回る）' }
+            ];
+
+            const addEntry = () => {
+                if (!description.trim()) {
+                    alert('シーンの内容を入力してください');
+                    return;
+                }
+
+                const normalizedSeconds = Math.max(0, parseInt(seconds) || 0);
+                const normalizedFrames = Math.min(Math.max(0, parseInt(frames) || 0), 99);
+
+                if (editingId !== null) {
+                    // 編集モード：既存エントリを更新
+                    setEntries(entries.map(entry => 
+                        entry.id === editingId 
+                            ? {
+                                ...entry,
+                                seconds: normalizedSeconds,
+                                frames: normalizedFrames,
+                                description: description.trim(),
+                                cameraAngle: cameraAngle,
+                                cameraMovement: cameraMovement
+                            }
+                            : entry
+                    ));
+                    setEditingId(null);
+                } else {
+                    // 新規追加モード
+                    const newEntry = {
+                        id: Date.now(),
+                        seconds: normalizedSeconds,
+                        frames: normalizedFrames,
+                        description: description.trim(),
+                        cameraAngle: cameraAngle,
+                        cameraMovement: cameraMovement
+                    };
+                    setEntries([...entries, newEntry]);
+                }
+
+                setSeconds('0');
+                setFrames('00');
+                setDescription('');
+                setCameraAngle('');
+                setCameraMovement('');
+            };
+
+            const deleteEntry = (id) => {
+                setEntries(entries.filter(entry => entry.id !== id));
+                if (editingId === id) {
+                    cancelEdit();
+                }
+            };
+
+            const editEntry = (entry) => {
+                setSeconds(String(entry.seconds));
+                setFrames(String(entry.frames).padStart(2, '0'));
+                setDescription(entry.description);
+                setCameraAngle(entry.cameraAngle || '');
+                setCameraMovement(entry.cameraMovement || '');
+                setEditingId(entry.id);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            };
+
+            const cancelEdit = () => {
+                setEditingId(null);
+                setSeconds('0');
+                setFrames('00');
+                setDescription('');
+                setCameraAngle('');
+                setCameraMovement('');
+            };
+
+            const sortedEntries = useMemo(() => {
+                return [...entries].sort((a, b) => {
+                    const timeA = a.seconds * 100 + Math.min(Math.max(a.frames, 0), 99);
+                    const timeB = b.seconds * 100 + Math.min(Math.max(b.frames, 0), 99);
+                    return timeA - timeB;
+                });
+            }, [entries]);
+
+            const generatePrompt = () => {
+                if (sortedEntries.length === 0) return '';
+
+                let prompt = '';
+
+                sortedEntries.forEach((entry, index) => {
+                    const normalizedFrames = Math.min(Math.max(entry.frames, 0), 99);
+                    const timeCode = `${entry.seconds}:${String(normalizedFrames).padStart(2, '0')}`;
+                    
+                    let line = `${timeCode} `;
+                    
+                    // カメラアングルとムーブメントを追加
+                    const cameraInfo = [];
+                    if (entry.cameraAngle) cameraInfo.push(entry.cameraAngle);
+                    if (entry.cameraMovement) cameraInfo.push(entry.cameraMovement);
+                    
+                    if (cameraInfo.length > 0) {
+                        line += `[${cameraInfo.join('、')}] `;
+                    }
+                    
+                    line += entry.description;
+                    
+                    prompt += line + '\n';
+                });
+
+                return prompt;
+            };
+
+            const copyToClipboard = () => {
+                const prompt = generatePrompt();
+                navigator.clipboard.writeText(prompt).then(() => {
+                    setCopyStatus(true);
+                    setTimeout(() => setCopyStatus(false), 2000);
+                });
+            };
+
+            const handleKeyPress = (e) => {
+                if (e.key === 'Enter' && e.ctrlKey) {
+                    addEntry();
+                }
+            };
+
+            const exportToJSON = () => {
+                const dataStr = JSON.stringify(entries, null, 2);
+                const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(dataBlob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `video-timeline-${new Date().getTime()}.json`;
+                link.click();
+                URL.revokeObjectURL(url);
+            };
+
+            const importFromJSON = (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const imported = JSON.parse(e.target.result);
+                        if (Array.isArray(imported)) {
+                            setEntries(imported);
+                            alert('JSONファイルを読み込みました！');
+                        } else {
+                            alert('無効なJSONファイル形式です');
+                        }
+                    } catch (error) {
+                        alert('JSONファイルの読み込みに失敗しました');
+                    }
+                };
+                reader.readAsText(file);
+                event.target.value = '';
+            };
+
+            const insertAtPosition = (targetSeconds, targetFrames) => {
+                const normalizedSeconds = Math.max(0, targetSeconds);
+                const normalizedFrames = Math.min(Math.max(0, targetFrames), 99);
+                setSeconds(String(normalizedSeconds));
+                setFrames(String(normalizedFrames).padStart(2, '0'));
+                setEditingId(null); // Cancel edit mode when inserting
+                document.querySelector('textarea').focus();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            };
+
+            return (
+                <div className="container">
+                    <h1>🎬 動画プロンプトジェネレータ</h1>
+                    <p className="subtitle">動画生成AIのためのタイムラインプロンプトを作成しましょう</p>
+
+                    <div className="input-section">
+                        {editingId !== null && (
+                            <div style={{
+                                background: '#d4edda',
+                                color: '#155724',
+                                padding: '12px 20px',
+                                borderRadius: '8px',
+                                marginBottom: '20px',
+                                border: '2px solid #c3e6cb',
+                                fontWeight: '600'
+                            }}>
+                                ✏️ 編集モード: シーンを編集中です
+                            </div>
+                        )}
+                        <div className="input-group">
+                            <div className="input-wrapper" style={{flex: '0 0 auto'}}>
+                                <label>⏱️ 時間指定</label>
+                                <div className="time-input">
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        value={seconds}
+                                        onChange={(e) => {
+                                            const val = parseInt(e.target.value) || 0;
+                                            setSeconds(String(Math.max(val, 0)));
+                                        }}
+                                        placeholder="秒"
+                                    />
+                                    <span className="time-separator">:</span>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        max="99"
+                                        value={frames}
+                                        onChange={(e) => {
+                                            const val = parseInt(e.target.value) || 0;
+                                            setFrames(String(Math.min(Math.max(val, 0), 99)));
+                                        }}
+                                        placeholder="フレーム"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="input-wrapper">
+                                <label>🎥 カメラアングル</label>
+                                <select
+                                    value={cameraAngle}
+                                    onChange={(e) => setCameraAngle(e.target.value)}
+                                >
+                                    {cameraAngles.map(angle => (
+                                        <option key={angle.value} value={angle.value}>
+                                            {angle.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="input-wrapper">
+                                <label>📹 カメラムーブメント</label>
+                                <select
+                                    value={cameraMovement}
+                                    onChange={(e) => setCameraMovement(e.target.value)}
+                                >
+                                    {cameraMovements.map(movement => (
+                                        <option key={movement.value} value={movement.value}>
+                                            {movement.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="input-group">
+                            <div className="input-wrapper">
+                                <label>📝 シーンの内容</label>
+                                <textarea
+                                    value={description}
+                                    onChange={(e) => setDescription(e.target.value)}
+                                    onKeyPress={handleKeyPress}
+                                    placeholder="例: @sama ステージで公演している"
+                                />
+                            </div>
+                        </div>
+
+                        <div style={{display: 'flex', gap: '10px'}}>
+                            <button className="btn-primary" onClick={addEntry}>
+                                {editingId !== null ? '✏️ シーンを更新' : '➕ シーンを追加 (Ctrl+Enter)'}
+                            </button>
+                            {editingId !== null && (
+                                <button className="btn-secondary" onClick={cancelEdit}>
+                                    ❌ キャンセル
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="timeline">
+                        <h3 style={{marginBottom: '15px', color: '#495057'}}>📹 タイムライン</h3>
+                        {sortedEntries.length === 0 ? (
+                            <div className="empty-state">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                </svg>
+                                <p>まだシーンが追加されていません</p>
+                                <p style={{fontSize: '12px', marginTop: '10px'}}>上のフォームからシーンを追加してください</p>
+                            </div>
+                        ) : (
+                            <>
+                                {sortedEntries.map((entry, index) => {
+                                    // フレームを0-99に正規化
+                                    const normalizedFrames = Math.min(Math.max(entry.frames, 0), 99);
+                                    const timeCode = `${entry.seconds}:${String(normalizedFrames).padStart(2, '0')}`;
+                                    const milliseconds = (entry.seconds * 1000 + normalizedFrames * 10).toFixed(0);
+                                    const cameraInfo = [];
+                                    if (entry.cameraAngle) cameraInfo.push(entry.cameraAngle);
+                                    if (entry.cameraMovement) cameraInfo.push(entry.cameraMovement);
+                                    
+                                    // 前のエントリとの間の時間を計算
+                                    let beforeSeconds = 0;
+                                    let beforeFrames = 0;
+                                    if (index > 0) {
+                                        const prevEntry = sortedEntries[index - 1];
+                                        // 前のエントリのフレームを正規化
+                                        const prevTotalFrames = prevEntry.seconds * 100 + Math.min(prevEntry.frames, 99);
+                                        // 現在のエントリのフレームを正規化
+                                        const currentTotalFrames = entry.seconds * 100 + Math.min(entry.frames, 99);
+                                        // 中間点を計算
+                                        const midTotalFrames = Math.floor((prevTotalFrames + currentTotalFrames) / 2);
+                                        beforeSeconds = Math.floor(midTotalFrames / 100);
+                                        beforeFrames = midTotalFrames % 100;
+                                    }
+
+                                    // 次のエントリとの間の時間を計算
+                                    let afterSeconds = entry.seconds;
+                                    let afterFrames = normalizedFrames + 10;
+                                    if (afterFrames >= 100) {
+                                        afterSeconds += 1;
+                                        afterFrames = afterFrames % 100;
+                                    }
+                                    
+                                    return (
+                                        <React.Fragment key={entry.id}>
+                                            {index === 0 && (entry.seconds > 0 || normalizedFrames > 0) ? (
+                                                <div style={{textAlign: 'center', margin: '10px 0'}}>
+                                                    <button 
+                                                        className="btn-secondary"
+                                                        onClick={() => insertAtPosition(0, 0)}
+                                                        style={{fontSize: '12px', padding: '8px 16px'}}
+                                                    >
+                                                        ⬆️ 最初に追加 (0:00)
+                                                    </button>
+                                                </div>
+                                            ) : null}
+                                            {index > 0 && (
+                                                <div style={{textAlign: 'center', margin: '10px 0'}}>
+                                                    <button 
+                                                        className="btn-secondary"
+                                                        onClick={() => insertAtPosition(beforeSeconds, beforeFrames)}
+                                                        style={{fontSize: '12px', padding: '8px 16px'}}
+                                                    >
+                                                        ⬆️ ここに追加 ({beforeSeconds}:{String(beforeFrames).padStart(2, '0')})
+                                                    </button>
+                                                </div>
+                                            )}
+                                            <div 
+                                                className="timeline-item"
+                                                style={{
+                                                    borderColor: editingId === entry.id ? '#28a745' : '#e9ecef',
+                                                    backgroundColor: editingId === entry.id ? '#f0fff4' : 'white',
+                                                    borderWidth: editingId === entry.id ? '3px' : '2px'
+                                                }}
+                                            >
+                                                <div className="timeline-time">{timeCode}</div>
+                                                <div className="timeline-content">
+                                                    {cameraInfo.length > 0 && (
+                                                        <div style={{
+                                                            color: '#667eea',
+                                                            fontWeight: '600',
+                                                            fontSize: '13px',
+                                                            marginBottom: '5px'
+                                                        }}>
+                                                            🎥 {cameraInfo.join(' • ')}
+                                                        </div>
+                                                    )}
+                                                    <div className="timeline-description">{entry.description}</div>
+                                                    <div className="timeline-meta">
+                                                        {milliseconds}ms
+                                                    </div>
+                                                </div>
+                                                <div className="timeline-actions">
+                                                    <button 
+                                                        className="btn-secondary" 
+                                                        onClick={() => editEntry(entry)}
+                                                        style={{
+                                                            backgroundColor: editingId === entry.id ? '#28a745' : '#6c757d',
+                                                            color: 'white'
+                                                        }}
+                                                    >
+                                                        ✏️ 編集
+                                                    </button>
+                                                    <button 
+                                                        className="btn-danger" 
+                                                        onClick={() => deleteEntry(entry.id)}
+                                                    >
+                                                        🗑️ 削除
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            {index === sortedEntries.length - 1 && (
+                                                <div style={{textAlign: 'center', margin: '10px 0'}}>
+                                                    <button 
+                                                        className="btn-secondary"
+                                                        onClick={() => insertAtPosition(afterSeconds, afterFrames)}
+                                                        style={{fontSize: '12px', padding: '8px 16px'}}
+                                                    >
+                                                        ⬇️ 最後に追加 ({afterSeconds}:{String(afterFrames).padStart(2, '0')})
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </React.Fragment>
+                                    );
+                                })}
+                            </>
+                        )}
+                    </div>
+
+                    {sortedEntries.length > 0 && (
+                        <div className="output-section">
+                            <div className="output-header">
+                                <h3>📋 生成されたプロンプト</h3>
+                                <button 
+                                    className={`btn-copy ${copyStatus ? 'copied' : ''}`}
+                                    onClick={copyToClipboard}
+                                >
+                                    {copyStatus ? '✅ コピーしました!' : '📄 コピー'}
+                                </button>
+                            </div>
+                            <div className="output-content">
+                                {generatePrompt()}
+                            </div>
+                        </div>
+                    )}
+
+                    <div style={{display: 'flex', justifyContent: 'center', gap: '10px', marginTop: '30px', paddingTop: '30px', borderTop: '2px solid #e9ecef'}}>
+                        <button 
+                            className="btn-secondary" 
+                            onClick={exportToJSON}
+                            disabled={entries.length === 0}
+                            style={{opacity: entries.length === 0 ? 0.5 : 1}}
+                        >
+                            💾 JSONエクスポート
+                        </button>
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept=".json"
+                            onChange={importFromJSON}
+                            style={{display: 'none'}}
+                        />
+                        <button 
+                            className="btn-secondary"
+                            onClick={() => fileInputRef.current?.click()}
+                        >
+                            📂 JSONインポート
+                        </button>
+                    </div>
+
+                    <div className="footer">
+                        <div>
+                            © {new Date().getFullYear()} <span className="footer-name">たぬ</span>. All rights reserved.
+                        </div>
+                        <div className="footer-powered">
+                            Powered by <a href="https://www.anthropic.com/claude" target="_blank" rel="noopener noreferrer">Claude Sonnet 4.5</a>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>

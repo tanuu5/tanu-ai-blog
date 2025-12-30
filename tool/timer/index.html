@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>あわポモドーロ - タイマー&タスク管理アプリ</title>
+    <meta name="description" content="ゆるポモドーロは、効率的な時間管理とタスクトラッキングを可能にするサイバーパンクスタイルのポモドーロタイマーアプリです。">
+    <meta name="keywords" content="ポモドーロ, タイマー, タスク管理, 生産性, サイバーパンク, Webアプリ">
+    <meta name="author" content="たぬ">
+    <meta property="og:title" content="ゆるポモドーロ - タイマー&タスク管理アプリ">
+    <meta property="og:description" content="効率的な時間管理とタスクトラッキングを可能にするサイバーパンクスタイルのポモドーロタイマーアプリ">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://tanu-ai.blog/tool/timer/">
+    <meta property="og:image" content="https://tanu-ai.blog/tool/timer/pomodoro-app-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="あわポモドーロアプリのスクリーンショット">
+    <link rel="canonical" href="https://tanu-ai.blog/tool/timer/">
+    <style>
+        /**
+         * あわポモドーロ - サイバーパンクスタイルのポモドーロタイマーアプリケーション
+         *
+         * @version 1.0.0
+         * @author たぬ
+         * @coauthor Claude 3.5
+         * @lastModified 2024-07-08
+         */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #000;
+            font-family: Arial, sans-serif;
+            color: #0ff;
+        }
+        .container {
+            width: 300px;
+            height: 600px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 20px;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+            overflow: hidden;
+            position: relative;
+        }
+        .water {
+            width: 100%;
+            height: 0%;
+            background: linear-gradient(0deg, rgba(0, 255, 255, 0.2) 0%, rgba(0, 0, 0, 0) 100%);
+            position: absolute;
+            bottom: 0;
+            transition: height 1s linear;
+        }
+        .water::before,
+        .water::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            background-repeat: repeat-x;
+            background-size: 200% 100%;
+            opacity: 0.5;
+        }
+        .water::before {
+            top: -15px;
+            height: 15px;
+            background-image: radial-gradient(ellipse at 50% 100%, transparent 50%, rgba(0, 255, 255, 0.3) 51%, transparent 75%);
+            animation: wave1 10s linear infinite;
+        }
+        .water::after {
+            top: -10px;
+            height: 10px;
+            background-image: radial-gradient(ellipse at 50% 100%, transparent 50%, rgba(0, 255, 255, 0.2) 51%, transparent 75%);
+            animation: wave2 7s linear infinite;
+        }
+        @keyframes wave1 {
+            0% { background-position: 0 0; }
+            100% { background-position: 200% 0; }
+        }
+        @keyframes wave2 {
+            0% { background-position: 200% 0; }
+            100% { background-position: 0 0; }
+        }
+        .timer {
+            position: absolute;
+            top: 20px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 48px;
+            color: #0ff;
+            text-shadow: 0 0 10px #0ff;
+        }
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+        }
+        .control-btn {
+            background: rgba(0, 255, 255, 0.2);
+            border: none;
+            color: #0ff;
+            padding: 15px 30px;
+            margin: 0 10px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: background 0.3s, transform 0.1s;
+            font-size: 18px;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+        }
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+        .control-btn:hover {
+            background: rgba(0, 255, 255, 0.4);
+        }
+        .bubble {
+            position: absolute;
+            background: radial-gradient(circle at 30% 30%, rgba(0, 255, 255, 0.8), rgba(0, 255, 255, 0.1));
+            border-radius: 50%;
+            animation: rise 10s ease-in infinite;
+            opacity: 0;
+        }
+        @keyframes rise {
+            0% {
+                transform: translateY(600px) scale(0);
+                opacity: 0;
+            }
+            20% {
+                opacity: 0.8;
+            }
+            100% {
+                transform: translateY(-100px) scale(1);
+                opacity: 0;
+            }
+        }
+        .task-container {
+            position: absolute;
+            top: 150px;  /* タスク入力欄の下に配置 */
+            left: 10px;
+            right: 10px;
+            bottom: 80px;
+            overflow: hidden;
+            z-index: 1;  /* タスク入力欄より下に配置 */
+        }
+        .task-input-container {
+            position: absolute;
+            top: 100px;
+            left: 10px;
+            right: 10px;
+            display: flex;
+            margin-bottom: 10px;
+            z-index: 2;  /* task-containerより上に配置 */
+        }
+        .task-input {
+            flex-grow: 1;
+            padding: 10px;
+            font-size: 16px;
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid #0ff;
+            color: #0ff;
+            border-radius: 5px 0 0 5px;
+        }
+        .add-task-btn {
+            padding: 10px;
+            font-size: 16px;
+            background: rgba(0, 255, 255, 0.2);
+            border: 1px solid #0ff;
+            color: #0ff;
+            cursor: pointer;
+            border-radius: 0 5px 5px 0;
+        }
+        .task-bubble {
+            width: 80px;
+            height: 80px;
+            background: radial-gradient(circle at 30% 30%, rgba(0, 255, 255, 0.4), rgba(0, 255, 255, 0.1));
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            font-size: 12px;
+            cursor: pointer;
+            word-break: break-word;
+            padding: 5px;
+            box-sizing: border-box;
+            transition: transform 0.3s, opacity 0.3s;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
+            position: absolute;
+            user-select: none;
+        }
+        .task-bubble:hover {
+            transform: scale(1.1);
+        }
+        .task-bubble.popping {
+            animation: pop 0.3s ease-out;
+        }
+        @keyframes pop {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.5; }
+            100% { transform: scale(0); opacity: 0; }
+        }
+        .custom-alert {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #0ff;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.4);
+            z-index: 1000;
+            display: none;
+        }
+        .custom-alert p {
+            margin: 0 0 20px;
+            font-size: 18px;
+        }
+        .custom-alert button {
+            background: rgba(0, 255, 255, 0.2);
+            border: none;
+            color: #0ff;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .custom-alert button:hover {
+            background: rgba(0, 255, 255, 0.4);
+        }
+        input[type="text"], input[type="number"], textarea {
+            font-size: 16px; /* 16px以上のフォントサイズを使用 */
+        }
+
+        @media (max-width: 600px) {
+            input[type="text"], input[type="number"], textarea {
+                font-size: 16px; /* モバイルでも16px以上を維持 */
+            }
+            body {
+                align-items: flex-start;
+            }
+            .container {
+                width: 100%;
+                height: 100%;
+                border-radius: 0;
+            }
+            .timer {
+                top: 5%;
+                font-size: 10vw;
+            }
+            .controls {
+                bottom: 5%;
+            }
+            .control-btn {
+                font-size: 4vw;
+            }
+            .task-container {
+                top: 20%;
+                left: 5%;
+                right: 5%;
+                bottom: 20%;
+            }
+            .task-input-container {
+                top: 15%;
+                left: 5%;
+                right: 5%;
+            }
+            .task-input, .add-task-btn {
+                font-size: 4vw;
+            }
+            .task-bubble {
+                width: 30vw;
+                height: 30vw;
+                font-size: 3vw; /* これを増やして文字サイズを大きくします */
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                text-align: center;
+                word-break: break-word;
+            }
+            .custom-alert p {
+                font-size: 4vw;
+            }
+            .custom-alert button {
+                font-size: 4vw;
+            }
+            @keyframes rise {
+                0% {
+                    transform: translateY(100vh) scale(0);
+                    opacity: 0;
+                }
+                20% {
+                    opacity: 0.8;
+                }
+                100% {
+                    transform: translateY(-100px) scale(1);
+                    opacity: 0;
+                }
+            }
+        }
+        @keyframes water-drain {
+            from { height: var(--water-height); }
+            to { height: 0%; }
+        }
+        .water.draining {
+            animation: water-drain 3s ease-in-out forwards;
+        }
+        /* デバッグパネル用のスタイルを追加 */
+        .debug-panel {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+            display: none;
+            z-index: 1000;
+        }
+        .debug-panel input {
+            width: 50px;
+            margin-right: 5px;
+        }
+        .debug-panel button {
+            background: rgba(0, 255, 255, 0.2);
+            border: none;
+            color: #0ff;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        /* キー入力フィードバック用のスタイル */
+        .key-feedback {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: #0ff;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            display: none;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="water"></div>
+        <div class="timer">25:00</div>
+        <div class="task-input-container">
+            <input type="text" class="task-input" placeholder="新しいタスク" maxlength="10">
+            <button class="add-task-btn">追加</button>
+        </div>
+        <div class="task-container"></div>
+        <div class="controls">
+            <button id="startBtn" class="control-btn">開始</button>
+            <button id="resetBtn" class="control-btn">リセット</button>
+        </div>
+
+        <!-- デバッグパネルを追加 -->
+        <div class="debug-panel">
+            <input type="number" id="debugMinutes" min="0" max="25" value="1">
+            <input type="number" id="debugSeconds" min="0" max="59" value="0">
+            <button id="setDebugTime">Set Time</button>
+        </div>
+    </div>
+    <div class="custom-alert">
+        <p>タスクは最大9個までです。</p>
+        <button onclick="closeCustomAlert()">OK</button>
+    </div>
+    <!-- キー入力フィードバック用の要素 -->
+    <div class="key-feedback"></div>
+
+    <script>
+        const timer = document.querySelector('.timer');
+        const water = document.querySelector('.water');
+        const startBtn = document.getElementById('startBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const container = document.querySelector('.container');
+        const taskContainer = document.querySelector('.task-container');
+        const taskInput = document.querySelector('.task-input');
+        const addTaskBtn = document.querySelector('.add-task-btn');
+        const customAlert = document.querySelector('.custom-alert');
+        // デバッグパネル関連の変数
+        const debugPanel = document.querySelector('.debug-panel');
+        const debugMinutesInput = document.getElementById('debugMinutes');
+        const debugSecondsInput = document.getElementById('debugSeconds');
+        const setDebugTimeBtn = document.getElementById('setDebugTime');
+        const keyFeedback = document.querySelector('.key-feedback');
+
+        // デバッグモードのトグル関数
+        function toggleDebugMode(event) {
+            // キーボードショートカットのチェック（イベントリスナーからの呼び出し用）
+            if (event && event instanceof KeyboardEvent) {
+                // キー入力をコンソールに出力
+                console.log('Key pressed:', event.key, 'Ctrl:', event.ctrlKey, 'Alt:', event.altKey, 'Meta:', event.metaKey);
+                
+                // Windows/Linux: Ctrl + Alt + D
+                // Mac: Command + Option + D
+                if ((event.key === 'd' || event.key === 'D') && 
+                    (event.ctrlKey || event.metaKey) && 
+                    (event.altKey || event.getModifierState('Alt') || event.getModifierState('AltGraph'))) {
+                    event.preventDefault(); // デフォルトのブラウザ動作を防止
+                } else {
+                    // 正しいキーの組み合わせでない場合は関数を終了
+                    return;
+                }
+            }
+
+            // デバッグパネルの表示/非表示を切り替え
+            debugPanel.style.display = debugPanel.style.display === 'none' ? 'block' : 'none';
+            
+            // フィードバックを表示
+            showFeedback('デバッグパネルの表示/非表示を切り替えました');
+        }
+
+        // デバッグ時間をセットする関数
+        function setDebugTime() {
+            const minutes = parseInt(debugMinutesInput.value);
+            const seconds = parseInt(debugSecondsInput.value);
+            timeLeft = minutes * 60 + seconds;
+            updateTimer();
+            const progress = 1 - timeLeft / (25 * 60);
+            water.style.height = `${progress * 100}%`;
+            
+            // 時間設定のフィードバックを表示
+            showFeedback(`タイマーを ${minutes}分 ${seconds}秒に設定しました`);
+        }
+
+        // フィードバックを表示する関数
+        function showFeedback(message) {
+            keyFeedback.textContent = message;
+            keyFeedback.style.display = 'block';
+            setTimeout(() => {
+                keyFeedback.style.display = 'none';
+            }, 3000);
+        }
+
+
+        // イベントリスナーの追加
+        document.addEventListener('keydown', toggleDebugMode);
+        setDebugTimeBtn.addEventListener('click', setDebugTime);
+
+        let timeLeft = 25 * 60;
+        let timerInterval;
+        let isRunning = false;
+        let taskBubbles = [];
+
+        function updateTimer() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            timer.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function startTimer() {
+            if (!isRunning) {
+                if (timeLeft === 0) {
+                    // タイマーが0の場合、25分にリセット
+                    timeLeft = 25 * 60;
+                    updateTimer();
+                }
+                isRunning = true;
+                timerInterval = setInterval(() => {
+                    if (timeLeft > 0) {
+                        timeLeft--;
+                        updateTimer();
+                        const progress = 1 - timeLeft / (25 * 60);
+                        water.style.height = `${progress * 100}%`;
+                    } else {
+                        stopTimer();
+                    }
+                }, 1000);
+                startBtn.textContent = '一時停止';
+            } else {
+                stopTimer();
+            }
+        }
+
+        function stopTimer() {
+            clearInterval(timerInterval);
+            isRunning = false;
+            startBtn.textContent = '開始';
+        }
+
+        function resetTimer() {
+            stopTimer();
+            timeLeft = 25 * 60;
+            updateTimer();
+            drainWater();
+        }
+
+        function drainWater() {
+            const currentHeight = water.style.height;
+            water.style.setProperty('--water-height', currentHeight);
+            water.classList.add('draining');
+            setTimeout(() => {
+                water.style.height = '0%';
+                water.classList.remove('draining');
+            }, 3000);
+        }
+
+        function createBubble() {
+            const bubble = document.createElement('div');
+            bubble.classList.add('bubble');
+            const size = Math.random() * 20 + 10;
+            bubble.style.width = `${size}px`;
+            bubble.style.height = `${size}px`;
+            bubble.style.left = `${Math.random() * 100}%`;
+            bubble.style.animationDuration = `${Math.random() * 5 + 5}s`;
+            
+            const waterHeight = parseFloat(water.style.height) || 0;
+            const startPosition = 600 - (600 * waterHeight / 100);
+            bubble.style.animationDelay = `${Math.random() * 2}s`;
+            bubble.style.bottom = `${startPosition}px`;
+            
+            container.appendChild(bubble);
+            setTimeout(() => {
+                bubble.remove();
+            }, 10000);
+        }
+
+        function createBubbles() {
+            if (isRunning) {
+                const waterHeight = parseFloat(water.style.height) || 0;
+                if (waterHeight > 0) {
+                    const bubbleCount = Math.floor(waterHeight / 10) + 1;
+                    for (let i = 0; i < bubbleCount; i++) {
+                        setTimeout(createBubble, Math.random() * 1000);
+                    }
+                }
+            }
+        }
+
+        // タスク追加関数
+        function addTask(taskText) {
+            if (taskBubbles.length >= 9) {
+                showCustomAlert();
+                return;
+            }
+            if (taskText.toLowerCase() === 'デバッグ') {
+                toggleDebugMode();
+                return;
+            }
+            const taskBubble = document.createElement('div');
+            taskBubble.classList.add('task-bubble');
+            taskBubble.textContent = taskText;
+            taskContainer.appendChild(taskBubble);
+            taskBubble.classList.add('task-bubble');
+            taskBubble.textContent = taskText;
+
+            // 文字数に応じてフォントサイズを調整
+            adjustFontSize(taskBubble);
+    
+            taskContainer.appendChild(taskBubble);
+
+    
+
+            const bubbleData = {
+                element: taskBubble,
+                x: Math.random() * (taskContainer.clientWidth - 80),
+                y: Math.random() * (taskContainer.clientHeight - 80),
+                vx: (Math.random() - 0.5) * 0.5,
+                vy: (Math.random() - 0.5) * 0.5,
+                radius: 40
+            };
+
+            taskBubbles.push(bubbleData);
+
+            taskBubble.addEventListener('click', () => {
+                taskBubble.classList.add('popping');
+                setTimeout(() => {
+                    taskBubble.remove();
+                    taskBubbles = taskBubbles.filter(b => b.element !== taskBubble);
+                }, 300);
+            });
+        }
+        // イベントリスナー
+        setDebugTimeBtn.addEventListener('click', setDebugTime);
+
+        function adjustFontSize(element) {
+            const maxFontSize = 0.7; // vw単位での最大フォントサイズ
+            const minFontSize = 0.7; // vwユニットでの最小フォントサイズ
+            const textLength = element.textContent.length;
+            
+            let fontSize = maxFontSize - (textLength - 1) * 0.2; // 文字数が増えるごとにフォントサイズを小さくする
+            fontSize = Math.max(fontSize, minFontSize); // 最小サイズを下回らないようにする
+            
+            element.style.fontSize = `${fontSize}vw`;
+        }
+
+        function updateBubblePositions() {
+            const containerWidth = taskContainer.clientWidth;
+            const containerHeight = taskContainer.clientHeight;
+            const isMobile = window.innerWidth <= 600;
+            const bubbleSize = isMobile ? Math.min(containerWidth, containerHeight) * 0.3 : 80;
+
+            taskBubbles.forEach(bubble => {
+                bubble.x += bubble.vx;
+                bubble.y += bubble.vy;
+
+                if (bubble.x < 0 || bubble.x > containerWidth - bubbleSize) {
+                    bubble.vx *= -1;
+                    bubble.x = Math.max(0, Math.min(bubble.x, containerWidth - bubbleSize));
+                }
+                if (bubble.y < 0 || bubble.y > containerHeight - bubbleSize) {
+                    bubble.vy *= -1;
+                    bubble.y = Math.max(0, Math.min(bubble.y, containerHeight - bubbleSize));
+                }
+                if (isMobile) {
+                    bubble.element.style.width = `${bubbleSize}px`;
+                    bubble.element.style.height = `${bubbleSize}px`;
+                    adjustFontSize(bubble.element);
+                }
+
+                // 衝突判定
+                taskBubbles.forEach(otherBubble => {
+                    if (bubble !== otherBubble) {
+                        const dx = bubble.x - otherBubble.x;
+                        const dy = bubble.y - otherBubble.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+
+                        if (distance < bubbleSize) {
+                            // 衝突時の速度更新
+                            const angle = Math.atan2(dy, dx);
+                            const sin = Math.sin(angle);
+                            const cos = Math.cos(angle);
+
+                            // 回転した速度
+                            const vx1 = bubble.vx * cos + bubble.vy * sin;
+                            const vy1 = bubble.vy * cos - bubble.vx * sin;
+                            const vx2 = otherBubble.vx * cos + otherBubble.vy * sin;
+                            const vy2 = otherBubble.vy * cos - otherBubble.vx * sin;
+
+                            // 衝突後の速度
+                            bubble.vx = vx2 * cos - vy1 * sin;
+                            bubble.vy = vy1 * cos + vx2 * sin;
+                            otherBubble.vx = vx1 * cos - vy2 * sin;
+                            otherBubble.vy = vy2 * cos + vx1 * sin;
+
+                            // 重なりを解消
+                            const overlap = bubbleSize - distance;
+                            const moveX = (overlap / 2) * cos;
+                            const moveY = (overlap / 2) * sin;
+                            bubble.x += moveX;
+                            bubble.y += moveY;
+                            otherBubble.x -= moveX;
+                            otherBubble.y -= moveY;
+                        }
+                    }
+                });
+
+                bubble.element.style.left = `${bubble.x}px`;
+                bubble.element.style.top = `${bubble.y}px`;
+                if (isMobile) {
+                    bubble.element.style.width = `${bubbleSize}px`;
+                    bubble.element.style.height = `${bubbleSize}px`;
+                    bubble.element.style.fontSize = '2.5vw'; // モバイルでの文字サイズ調整
+                }
+            });
+
+            requestAnimationFrame(updateBubblePositions);
+        }
+
+        function handleAddTask() {
+            const taskText = taskInput.value.trim();
+            if (taskText !== '') {
+                addTask(taskText);
+                taskInput.value = '';
+            }
+        }
+
+        function showCustomAlert() {
+            customAlert.style.display = 'block';
+        }
+
+        function closeCustomAlert() {
+            customAlert.style.display = 'none';
+        }
+
+        function handleResize() {
+            const vh = window.innerHeight * 0.01;
+            document.documentElement.style.setProperty('--vh', `${vh}px`);
+        }
+
+        taskInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                handleAddTask();
+            }
+        });
+
+        addTaskBtn.addEventListener('click', handleAddTask);
+        startBtn.addEventListener('click', startTimer);
+        resetBtn.addEventListener('click', resetTimer);
+        window.addEventListener('resize', handleResize);
+        window.addEventListener('orientationchange', handleResize);
+
+        setInterval(createBubbles, 2000);
+        handleResize();
+        updateTimer();
+        updateBubblePositions();
+
+        document.addEventListener('DOMContentLoaded', (event) => {
+            // iOSデバイスの検出
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            
+            if (isIOS) {
+                // 入力フィールドにフォーカスが当たった時の処理
+                document.querySelector('.task-input').addEventListener('focus', function() {
+                    // 現在のビューポートの設定を保存
+                    const viewport = document.querySelector('meta[name="viewport"]');
+                    const originalContent = viewport.getAttribute('content');
+                    
+                    // ズームを無効にする
+                    viewport.setAttribute('content', originalContent + ', maximum-scale=1.0');
+                    
+                    // フォーカスが外れた時に元の設定に戻す
+                    this.addEventListener('blur', function() {
+                        viewport.setAttribute('content', originalContent);
+                    }, { once: true });
+                });
+            }
+        });
+    </script>
+</body>
+</html>

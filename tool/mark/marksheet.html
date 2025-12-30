@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>マークシート</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .question-item {
+            margin-bottom: 20px;
+        }
+        .options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        @media (max-width: 576px) {
+            .container {
+                padding: 10px;
+            }
+            .form-control {
+                width: 100%;
+            }
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div id="currentDate"></div>
+            <div class="form-group mb-0">
+                <label for="elapsedTime">経過時間 (分):</label>
+                <input type="text" class="form-control d-inline-block w-auto ml-2" id="elapsedTime" readonly>
+            </div>
+        </div>
+        <h1 id="sheetTitle" class="text-center">マークシート</h1>
+        <div id="markSheet"></div>
+        <div class="form-group mt-4">
+            <label for="jumpToQuestion">問題番号にジャンプ</label>
+            <input type="number" class="form-control d-inline-block w-auto ml-2" id="jumpToQuestion" min="1" placeholder="例: 5">
+            <button class="btn btn-secondary ml-2" onclick="jumpToQuestion()">ジャンプ</button>
+        </div>
+        <div class="d-flex justify-content-between mt-4">
+            <button class="btn btn-primary" onclick="countCorrectAnswers()">正解数をカウント</button>
+        </div>
+        <!-- <div id="realTimeResult" class="mt-3"></div> -->
+        <div id="result" class="mt-3 text-danger"></div>
+    </div>
+
+    <script>
+        let timerInterval;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const sheetTitle = urlParams.get('sheetTitle');
+            const questionCount = urlParams.get('questionCount');
+            const passingScore = urlParams.get('passingScore');
+            const startTime = parseInt(urlParams.get('startTime'), 10);
+            const markSheet = document.getElementById('markSheet');
+            const currentDate = document.getElementById('currentDate');
+            const titleElement = document.getElementById('sheetTitle');
+            const elapsedTimeElement = document.getElementById('elapsedTime');
+
+            // タイトルを設定
+            titleElement.innerText = sheetTitle || 'マークシート';
+
+            // 日付を自動表示
+            const today = new Date();
+            currentDate.innerText = `日付: ${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日`;
+
+            // 経過時間を計算して表示
+            timerInterval = setInterval(() => {
+                const now = Date.now();
+                const elapsedTime = Math.floor((now - startTime) / 60000); // 分単位
+                elapsedTimeElement.value = `${elapsedTime} 分`;
+            }, 1000);
+
+            for (let i = 1; i <= questionCount; i++) {
+                const questionItem = document.createElement('div');
+                questionItem.className = 'question-item';
+                questionItem.innerHTML = `
+                    <h5>No.${i}</h5>
+                    <div class="options">
+                        ${['A', 'B', 'C', 'D', 'E', 'F', 'G'].map(option => `
+                            <label>
+                                <input type="checkbox" name="q${i}" value="${option}"> ${option}
+                            </label>
+                        `).join('')}
+                    </div>
+                    <div>
+                        <label>
+                            <input type="radio" name="q${i}Answer" value="correct" onchange="updateRealTimeResult()"> 正解
+                        </label>
+                        <label>
+                            <input type="radio" name="q${i}Answer" value="incorrect" onchange="updateRealTimeResult()"> 不正解
+                        </label>
+                    </div>
+                    <div>
+                        <label>自由入力:</label>
+                        <input type="text" class="form-control" name="q${i}FreeText">
+                    </div>
+                `;
+                markSheet.appendChild(questionItem);
+            }
+
+            // リアルタイム正解数を更新
+            updateRealTimeResult();
+        });
+
+        function jumpToQuestion() {
+            const questionNumber = document.getElementById('jumpToQuestion').value;
+            const questionItem = document.querySelector(`.question-item:nth-of-type(${questionNumber})`);
+            if (questionItem) {
+                questionItem.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        function updateRealTimeResult() {
+            const questionCount = new URLSearchParams(window.location.search).get('questionCount');
+            let correctCount = 0;
+
+            for (let i = 1; i <= questionCount; i++) {
+                if (document.querySelector(`input[name="q${i}Answer"][value="correct"]`).checked) {
+                    correctCount++;
+                }
+            }
+
+            const realTimeResult = document.getElementById('realTimeResult');
+            const correctPercentage = (correctCount / questionCount) * 100;
+            realTimeResult.innerText = `リアルタイム正解数: ${correctCount} / ${questionCount} (${correctPercentage.toFixed(2)}%)`;
+        }
+
+        function countCorrectAnswers() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const questionCount = urlParams.get('questionCount');
+            const passingScore = urlParams.get('passingScore');
+            let correctCount = 0;
+            let unansweredQuestions = [];
+
+            for (let i = 1; i <= questionCount; i++) {
+                const correctChecked = document.querySelector(`input[name="q${i}Answer"][value="correct"]`).checked;
+                const incorrectChecked = document.querySelector(`input[name="q${i}Answer"][value="incorrect"]`).checked;
+                
+                if (!correctChecked && !incorrectChecked) {
+                    unansweredQuestions.push(i);
+                } else if (correctChecked) {
+                    correctCount++;
+                }
+            }
+
+            const result = document.getElementById('result');
+
+            if (unansweredQuestions.length > 0) {
+                result.innerText = `答え合わせが漏れている設問があります: No.${unansweredQuestions.join(", ")}`
+                return;
+            }
+
+            clearInterval(timerInterval);
+            const correctPercentage = (correctCount / questionCount) * 100;
+            const passOrFail = correctPercentage >= passingScore ? '合格！' : '不合格';
+            result.innerText = `正解数: ${correctCount} / ${questionCount} (${correctPercentage.toFixed(2)}%) - ${passOrFail}`;
+        }
+    </script>
+</body>
+</html>

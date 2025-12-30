@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QRコード分割生成＆合体アプリ (保存機能付き)</title>
+    <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        input {
+            width: 80%;
+            max-width: 400px;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        #qr-container {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+            width: 80%;
+            max-width: 600px;
+        }
+
+        canvas {
+            border: 2px solid #333;
+            border-radius: 5px;
+        }
+
+        #merged-container {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        footer {
+            margin-top: 30px;
+            text-align: center;
+            color: #777;
+        }
+
+        footer a {
+            color: #4CAF50;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>QRコード分割生成＆合体アプリ (保存機能付き)</h1>
+    <input type="text" id="qr-text" placeholder="QRコードに含めるテキストを入力">
+    <div>
+        <button onclick="generateQR()">QRコード生成</button>
+        <button onclick="mergeQR()">合体して表示</button>
+    </div>
+
+    <div id="qr-container">
+        <div>
+            <canvas id="left-qr"></canvas><br>
+            <button onclick="saveImage('left-qr', 'left_qr.png')">左側保存</button>
+        </div>
+        <div>
+            <canvas id="right-qr"></canvas><br>
+            <button onclick="saveImage('right-qr', 'right_qr.png')">右側保存</button>
+        </div>
+    </div>
+
+    <div id="merged-container">
+        <canvas id="merged-qr"></canvas>
+    </div>
+
+    <footer>
+        <footer>
+            <p>© 2024 QR Code App | <a href="https://github.com/davidshimjs/qrcodejs" target="_blank">qrcode.js</a>を使用</p>
+            <p>制作: たぬ | コーディング支援: ChatGPT-4o</p>
+        </footer>
+        
+    </footer>
+
+    <script>
+        function generateQR() {
+            const text = document.getElementById('qr-text').value;
+
+            const qr = new QRCode(document.createElement('div'), {
+                text: text,
+                width: 256,
+                height: 256,
+                correctLevel: QRCode.CorrectLevel.H
+            });
+
+            const qrCanvas = document.createElement('canvas');
+            qrCanvas.width = 256;
+            qrCanvas.height = 256;
+            const ctx = qrCanvas.getContext('2d');
+            ctx.drawImage(qr._el.firstChild, 0, 0);
+
+            const leftCanvas = document.getElementById('left-qr');
+            const rightCanvas = document.getElementById('right-qr');
+
+            const ctxLeft = leftCanvas.getContext('2d');
+            const ctxRight = rightCanvas.getContext('2d');
+            const halfWidth = qrCanvas.width / 2;
+
+            leftCanvas.width = halfWidth;
+            leftCanvas.height = qrCanvas.height;
+            rightCanvas.width = halfWidth;
+            rightCanvas.height = qrCanvas.height;
+
+            ctxLeft.clearRect(0, 0, leftCanvas.width, leftCanvas.height);
+            ctxRight.clearRect(0, 0, rightCanvas.width, rightCanvas.height);
+
+            ctxLeft.drawImage(qrCanvas, 0, 0, halfWidth, qrCanvas.height, 0, 0, halfWidth, qrCanvas.height);
+            ctxRight.drawImage(qrCanvas, halfWidth, 0, halfWidth, qrCanvas.height, 0, 0, halfWidth, qrCanvas.height);
+        }
+
+        function mergeQR() {
+            const leftCanvas = document.getElementById('left-qr');
+            const rightCanvas = document.getElementById('right-qr');
+            const mergedCanvas = document.getElementById('merged-qr');
+            const ctxMerged = mergedCanvas.getContext('2d');
+
+            mergedCanvas.width = leftCanvas.width + rightCanvas.width;
+            mergedCanvas.height = leftCanvas.height;
+
+            ctxMerged.clearRect(0, 0, mergedCanvas.width, mergedCanvas.height);
+
+            ctxMerged.drawImage(leftCanvas, 0, 0);
+            ctxMerged.drawImage(rightCanvas, leftCanvas.width, 0);
+        }
+
+        function saveImage(canvasId, filename) {
+            const canvas = document.getElementById(canvasId);
+            const link = document.createElement('a');
+            link.href = canvas.toDataURL('image/png');
+            link.download = filename;
+            link.click();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>シード値ジェネレーター</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+        input[type="text"] {
+            padding: 10px;
+            width: calc(100% - 20px);
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .output {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Bedrock Edition <br>シード値ジェネレーター</h2>
+        <input type="text" id="inputString" placeholder="文字列を入力してください">
+        <button onclick="generateSeed()">シード値を生成</button>
+        <div class="output" id="outputSeed"></div>
+    </div>
+
+    <script>
+        // 指定された文字列をBedrock Editionの32ビットシード値に変換する関数
+        function stringToSeedBedrock(inputString) {
+            let h = 0; // ハッシュ値を0に初期化
+            // 入力文字列内の各文字について計算を行う
+            for (let i = 0; i < inputString.length; i++) {
+                // 文字コードを使用してハッシュ値を更新し、32ビットの範囲に収める
+                h = (h * 31 + inputString.charCodeAt(i)) >>> 0; // 32ビットの符号なし整数にするために右シフトを使用
+            }
+            // 値が正の範囲を超えた場合、符号付き32ビット整数に変換
+            if (h > 0x7FFFFFFF) {
+                h -= 0x100000000;
+            }
+            return h; // 計算されたシード値を返す
+        }
+
+        // 入力文字列からシード値を生成して表示する関数
+        function generateSeed() {
+            const inputString = document.getElementById('inputString').value; // 入力フィールドから値を取得
+            // 入力が空の場合、ユーザーに文字列を入力するよう促す
+            if (inputString.trim() === "") {
+                document.getElementById('outputSeed').innerText = "文字列を入力してください。";
+                return;
+            }
+            // 入力文字列からシード値を生成
+            const seed = stringToSeedBedrock(inputString);
+            // 生成されたシード値を出力エリアに表示
+            document.getElementById('outputSeed').innerText = `生成されたシード値: ${seed}`;
+        }
+    </script>
+</body>
+</html>

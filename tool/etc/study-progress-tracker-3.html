@@ -1,0 +1,1426 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>お勉強用進捗管理</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 10px;
+            background-color: #f0f0f0;
+            font-size: 16px;
+            line-height: 1.5;
+            -webkit-text-size-adjust: 100%;
+        }
+
+        h1,
+        h2,
+        h3 {
+            color: #333;
+        }
+
+        .subject {
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .chapter {
+            margin-bottom: 15px;
+        }
+
+        .checkbox-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .checkbox-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .checkbox {
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+        }
+
+        .time-input {
+            width: 50px;
+            height: 30px;
+            margin-top: 5px;
+            font-size: 16px;
+            text-align: center;
+        }
+
+        .date,
+        .total-time {
+            margin-left: 10px;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .add-button,
+        .delete-button {
+            margin-top: 10px;
+            padding: 10px 15px;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .add-button {
+            background-color: #4CAF50;
+        }
+
+        .delete-button {
+            background-color: #f44336;
+        }
+
+        .add-button:hover {
+            background-color: #45a049;
+        }
+
+        .delete-button:hover {
+            background-color: #d32f2f;
+        }
+
+        .subject-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        #xp-display,
+        #daily-challenge,
+        #achievements {
+            background-color: #00a6ff;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .progress-bar {
+            width: 100%;
+            background-color: #BBDEFB;
+            border-radius: 5px;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+
+        .progress {
+            height: 20px;
+            background-color: #FF9800;
+            border-radius: 5px;
+            transition: width 0.5s ease-in-out;
+        }
+
+        .progress-bar {
+            width: 100%;
+            background-color: #BBDEFB;
+            border-radius: 5px;
+            margin-top: 5px;
+        }
+
+        .progress {
+            width: 0;
+            height: 20px;
+            background-color: #FF9800;
+            border-radius: 5px;
+            transition: width 0.5s ease-in-out;
+        }
+
+        #achievements {
+            background-color: #FFF;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .achievement {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+
+        .achievement-icon {
+            width: 40px;
+            height: 40px;
+            background-color: #FFD700;
+            border-radius: 50%;
+            margin-right: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            font-size: 20px;
+        }
+
+        .achievement-locked {
+            opacity: 0.5;
+        }
+
+        .collapsible {
+            background-color: #f1f1f1;
+            color: #444;
+            cursor: pointer;
+            padding: 18px;
+            width: 100%;
+            border: none;
+            text-align: left;
+            outline: none;
+            font-size: 17px;
+        }
+
+        .active,
+        .collapsible:hover {
+            background-color: #e0e0e0;
+        }
+
+        .collapsible:after {
+            content: '\002B';
+            color: #777;
+            font-weight: bold;
+            float: right;
+            margin-left: 5px;
+        }
+
+        .active:after {
+            content: "\2212";
+        }
+
+        .content {
+            padding: 0 18px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.2s ease-out;
+            background-color: white;
+        }
+
+        .achievement-progress {
+            font-size: 0.9em;
+            color: #667;
+        }
+
+        .achievement-icon {
+            width: 40px;
+            height: 40px;
+            background-color: #FFD700;
+            border-radius: 50%;
+            margin-right: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            font-size: 20px;
+        }
+
+        .manual-check {
+            margin-left: auto;
+            padding: 5px 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .manual-check:hover {
+            background-color: #45a049;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        #reset-button {
+            background-color: #f44336;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #reset-button:hover {
+            background-color: #d32f2f;
+        }
+
+        /* デイリーチャレンジ用の新しいスタイル */
+        #daily-challenge {
+            background-color: #4CAF50;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        #daily-challenge h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+
+        #daily-challenge p {
+            margin: 5px 0;
+        }
+
+        #complete-challenge {
+            background-color: #FFF;
+            color: #4CAF50;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 10px;
+            transition: background-color 0.3s;
+        }
+
+        #complete-challenge:hover {
+            background-color: #E8F5E9;
+        }
+
+        #complete-challenge:disabled {
+            background-color: #A5D6A7;
+            color: #FFF;
+            cursor: not-allowed;
+        }
+
+        /* クイックナビゲーション */
+        #quick-nav {
+            position: fixed;
+            top: 50%;
+            right: 10px;
+            transform: translateY(-50%);
+            background-color: #f8f8f8;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            max-width: 200px;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        #quick-nav.collapsed #quick-nav-toggle {
+            margin-bottom: 0;
+        }
+
+        #quick-nav-toggle {
+            display: block;
+            width: 100%;
+            text-align: center;
+            cursor: pointer;
+            margin-bottom: 10px;
+            font-size: 20px;
+        }
+
+        #quick-nav h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+
+        #quick-nav ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        #quick-nav.collapsed h3,
+        #quick-nav.collapsed ul {
+            display: none;
+        }
+
+        #quick-nav li {
+            margin-bottom: 5px;
+        }
+
+        #quick-nav a {
+            text-decoration: none;
+            color: #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px;
+            border-radius: 3px;
+        }
+
+        #quick-nav a:hover {
+            background-color: #e0e0e0;
+        }
+
+        .subject-name {
+            max-width: 120px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .study-time {
+            font-size: 0.8em;
+            color: #666;
+            margin-left: 10px;
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 768px) {
+            #quick-nav {
+                top: auto;
+                bottom: 10px;
+                right: 10px;
+                transform: none;
+                max-width: 150px;
+            }
+
+            #quick-nav.collapsed {
+                width: 40px;
+                height: 40px;
+            }
+
+            #quick-nav-toggle {
+                font-size: 16px;
+            }
+
+            .subject-name {
+                max-width: 80px;
+            }
+
+            .study-time {
+                font-size: 0.7em;
+            }
+        }
+
+        /* iOS用のスタイル調整 */
+        @supports (-webkit-touch-callout: none) {
+
+            input[type="checkbox"],
+            input[type="number"],
+            button {
+                font-size: 16px;
+            }
+
+            .add-button,
+            .delete-button {
+                padding: 12px 15px;
+            }
+        }
+
+        #copyright-notice {
+            text-align: center;
+            padding: 20px 10px;
+            background-color: #f0f0f0;
+            font-size: 14px;
+            color: #666;
+            margin-top: 30px;
+            border-top: 1px solid #ddd;
+        }
+
+        #copyright-notice p {
+            margin: 5px 0;
+        }
+
+        @media (max-width: 768px) {
+            #copyright-notice {
+                font-size: 12px;
+                padding: 15px 5px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <h1>お勉強用進捗管理</h1>
+    <div id="xp-display">
+        <h2>レベル: <span id="level">1</span></h2>
+        <p>経験値: <span id="xp">0</span> / <span id="xp-to-next-level">100</span></p>
+        <div class="progress-bar">
+            <div class="progress" id="xp-progress"></div>
+        </div>
+    </div>
+    <div id="daily-challenge">
+        <!-- デイリーチャレンジの内容がここに挿入されます -->
+    </div>
+    <div id="achievements">
+        <button class="collapsible">
+            実績
+            <span class="achievement-progress">0 / 0</span>
+        </button>
+        <div class="content">
+            <!-- 実績はJavaScriptで動的に追加されます -->
+        </div>
+    </div>
+    <div id="subjects"></div>
+    <div class="button-container">
+        <button id="add-subject" class="add-button">新しい科目を追加</button>
+        <button id="reset-button">データを初期化</button>
+    </div>
+
+    <!-- クイックナビゲーション -->
+    <div id="quick-nav">
+        <div id="quick-nav-toggle">&gt;&gt;</div>
+        <h3>科目名</h3>
+        <ul id="subject-list"></ul>
+    </div>
+
+    <script>
+        /**
+         * お勉強用進捗管理アプリケーション
+         * 
+         * @copyright 2024 たぬ
+         * @license MIT
+         */
+
+        // グローバル変数
+        let subjectsData = [
+            {
+                name: "G検定",
+                chapters: [
+                    { name: "1章", total: 10 },
+                    { name: "2章", total: 10 },
+                    { name: "3章", total: 10 },
+                    { name: "4章", total: 10 },
+                    { name: "5章", total: 10 },
+                    { name: "6章", total: 10 },
+                    { name: "7章", total: 10 },
+                    { name: "8章", total: 15 },
+                    { name: "9章", total: 10 }
+                ]
+            },
+            {
+                name: "基本情報",
+                chapters: [
+                    { name: "1章", total: 10 },
+                    { name: "2章", total: 10 },
+                    { name: "3章", total: 10 },
+                    { name: "4章", total: 10 },
+                    { name: "5章", total: 10 },
+                    { name: "6章", total: 10 },
+                    { name: "7章", total: 10 }
+                ]
+            }
+        ];
+
+        let userXP = 0;
+        let userLevel = 1;
+        let unlockedAchievements = [];
+
+        // 実績システムの定義
+        const achievements = [
+            { id: 'first-check', name: '初めの一歩', description: '最初のチェックボックスをチェック', icon: '🎉', condition: checkFirstCheckboxAchievement },
+            { id: 'level-5', name: '勤勉な学習者', description: 'レベル5に到達', icon: '📚', condition: () => checkLevelAchievement(5) },
+            { id: 'level-10', name: '熱心な学習者', description: 'レベル10に到達', icon: '🔥', condition: () => checkLevelAchievement(10) },
+            { id: 'study-streak-7', name: '1週間継続', description: '7日連続で勉強', icon: '📅', condition: () => checkStudyStreak(7) },
+            { id: 'study-streak-30', name: '1ヶ月継続', description: '30日連続で勉強', icon: '🗓️', condition: () => checkStudyStreak(30) },
+            { id: 'time-master-100', name: 'タイムマスター100', description: '合計勉強時間が100時間を超える', icon: '⏰', condition: () => checkTotalStudyTime(6000) },
+            { id: 'time-master-500', name: 'タイムマスター500', description: '合計勉強時間が500時間を超える', icon: '⏳', condition: () => checkTotalStudyTime(30000) },
+            { id: 'subject-complete', name: '科目マスター', description: '1つの科目をすべて完了', icon: '🏆', condition: checkSubjectComplete },
+            { id: 'all-subjects-complete', name: '全科目制覇', description: 'すべての科目を完了', icon: '👑', condition: checkAllSubjectsComplete },
+            { id: 'early-bird', name: '早起き勉強家', description: '朝5時から7時の間に勉強を開始', icon: '🌅', condition: checkEarlyBirdStudy },
+        ];
+
+        // デイリーチャレンジの定義
+        const dailyChallenges = [
+            { description: "今日は3つの章を完了しよう", reward: 50 },
+            { description: "合計60分以上勉強しよう", reward: 40 },
+            { description: "新しい科目を1つ追加しよう", reward: 30 },
+            { description: "5つのチェックボックスを完了しよう", reward: 25 },
+        ];
+
+        /**
+         * 科目ごとの合計勉強時間を計算
+         */
+        function calculateTotalStudyTime(subject) {
+            const progress = JSON.parse(localStorage.getItem('studyProgress')) || {};
+            const subjectProgress = progress[subject.name] || {};
+            let totalTime = 0;
+
+            subject.chapters.forEach((chapter, index) => {
+                const chapterProgress = subjectProgress[index] || {};
+                const chapterTime = (chapterProgress.times || []).reduce((sum, time) => sum + (Number(time) || 0), 0);
+                totalTime += chapterTime;
+            });
+
+            return totalTime;
+        }
+
+        /**
+         * クイックナビゲーションを更新
+         */
+        function updateQuickNav() {
+            const subjectList = document.getElementById('subject-list');
+            subjectList.innerHTML = '';
+            subjectsData.forEach((subject, index) => {
+                const li = document.createElement('li');
+                const a = document.createElement('a');
+                a.href = `#subject-${index}`;
+
+                // 科目名を10文字に制限し、必要に応じて省略
+                const truncatedName = subject.name.length > 10
+                    ? subject.name.slice(0, 10) + '...'
+                    : subject.name;
+
+                a.innerHTML = `
+            <span class="subject-name" title="${subject.name}">${truncatedName}</span>
+            <span class="study-time">${calculateTotalStudyTime(subject)}分</span>
+        `;
+                li.appendChild(a);
+                subjectList.appendChild(li);
+            });
+        }
+
+        /**
+         * クイックナビゲーションの折りたたみ機能を初期化
+         */
+        function initQuickNavToggle() {
+            const quickNav = document.getElementById('quick-nav');
+            const toggle = document.getElementById('quick-nav-toggle');
+            toggle.addEventListener('click', () => {
+                quickNav.classList.toggle('collapsed');
+                toggle.textContent = quickNav.classList.contains('collapsed') ? '>>' : '<<';
+            });
+        }
+
+        /**
+         * 初期化関数
+         */
+        function initialize() {
+            loadSubjectsData();
+            loadXPData();
+            loadAchievements();
+            renderSubjects();
+            renderAchievements();
+            updateDailyChallengeDisplay();
+            initCollapsible();
+            addEventListeners();
+            updateQuickNav();
+            initQuickNavToggle();
+
+            // ページ読み込み時に実績をチェック（初期化直後は除く）
+            if (JSON.parse(localStorage.getItem('studyProgress'))) {
+                checkAchievements();
+            }
+        }
+
+        /**
+         * イベントリスナーを追加
+         */
+        function addEventListeners() {
+            document.getElementById('add-subject').addEventListener('click', addSubject);
+            document.getElementById('reset-button').addEventListener('click', resetLocalStorage);
+        }
+
+        /**
+         * 進捗データを保存
+         */
+        function saveProgress(subject, chapter, index, checked, time) {
+            let progress = JSON.parse(localStorage.getItem('studyProgress')) || {};
+            if (!progress[subject]) progress[subject] = {};
+            if (!progress[subject][chapter]) progress[subject][chapter] = { checked: [], times: [], date: '' };
+
+            const chapterProgress = progress[subject][chapter];
+            updateCheckedStatus(chapterProgress, index, checked);
+            updateTimeSpent(chapterProgress, index, time);
+
+            localStorage.setItem('studyProgress', JSON.stringify(progress));
+            updateDateDisplay(subject, chapter, chapterProgress.date);
+            updateTotalTime(subject, chapter);
+
+            checkAchievements();
+            updateQuickNav(); // 勉強時間が更新されたときにクイックナビゲーションも更新
+        }
+
+        /**
+         * チェック状態を更新
+         */
+        function updateCheckedStatus(chapterProgress, index, checked) {
+            if (checked) {
+                if (!chapterProgress.checked.includes(index)) {
+                    chapterProgress.checked.push(index);
+                    chapterProgress.date = new Date().toLocaleDateString();
+                    addXP(10); // チェックボックスをチェックした時に10XP追加
+                }
+            } else {
+                chapterProgress.checked = chapterProgress.checked.filter(i => i !== index);
+                if (chapterProgress.checked.length === 0) {
+                    chapterProgress.date = '';
+                }
+                addXP(-10); // チェックを外した時に10XP減少
+            }
+        }
+
+        /**
+         * 勉強時間を更新
+         */
+        function updateTimeSpent(chapterProgress, index, time) {
+            const oldTime = Number(chapterProgress.times[index]) || 0;
+            const newTime = Number(time) || 0;
+            chapterProgress.times[index] = newTime;
+            const timeDiff = newTime - oldTime;
+            addXP(timeDiff); // 時間の差分だけXPを追加（または減少）
+        }
+
+        /**
+         * 日付表示を更新
+         */
+        function updateDateDisplay(subject, chapter, date) {
+            const dateSpan = document.querySelector(`span.date[data-subject="${subject}"][data-chapter="${chapter}"]`);
+            if (dateSpan) dateSpan.textContent = date;
+        }
+
+        /**
+         * 合計時間を更新
+         */
+        function updateTotalTime(subject, chapter) {
+            const progress = JSON.parse(localStorage.getItem('studyProgress')) || {};
+            const chapterProgress = progress[subject] && progress[subject][chapter];
+            const totalTime = chapterProgress ? chapterProgress.times.reduce((sum, time) => sum + (Number(time) || 0), 0) : 0;
+            const totalSpan = document.querySelector(`span.total-time[data-subject="${subject}"][data-chapter="${chapter}"]`);
+            const chapterData = subjectsData.find(s => s.name === subject).chapters[chapter];
+            if (totalSpan) totalSpan.textContent = `合計時間: ${totalTime}分 / ${chapterData.total}分`;
+        }
+
+        /**
+         * 科目のHTMLを作成
+         */
+        function createSubjectHTML(subject, subjectIndex) {
+            let html = `<div class="subject" id="subject-${subjectIndex}">
+            <div class="subject-header">
+                <h2>${subject.name}</h2>
+                <button class="delete-button" onclick="deleteSubject(${subjectIndex})">科目を削除</button>
+            </div>
+            <button class="add-button" onclick="addChapter(${subjectIndex})">新しい章を追加</button>`;
+
+            subject.chapters.forEach((chapter, chapterIndex) => {
+                html += createChapterHTML(subject, subjectIndex, chapter, chapterIndex);
+            });
+
+            html += '</div>';
+            return html;
+        }
+
+        /**
+         * 章のHTMLを作成
+         */
+        function createChapterHTML(subject, subjectIndex, chapter, chapterIndex) {
+            const checkboxes = Array(10).fill().map((_, i) => {
+                return `
+            <div class="checkbox-wrapper">
+                <input type="checkbox" class="checkbox" data-subject="${subject.name}" data-chapter="${chapterIndex}" data-index="${i}">
+                <input type="number" class="time-input" min="0" value="0" data-subject="${subject.name}" data-chapter="${chapterIndex}" data-index="${i}">
+            </div>`;
+            }).join('');
+
+            return `<div class="chapter" id="subject-${subjectIndex}-chapter-${chapterIndex}">
+            <h3>${chapter.name}</h3>
+            <div class="checkbox-container">
+                ${checkboxes}
+            </div>
+            <span class="date" data-subject="${subject.name}" data-chapter="${chapterIndex}"></span>
+            <span class="total-time" data-subject="${subject.name}" data-chapter="${chapterIndex}">合計時間: 0分 / ${chapter.total}分</span>
+            <button class="add-button" onclick="addCheckbox(${subjectIndex}, ${chapterIndex})">チェックボックスを追加</button>
+        </div>`;
+        }
+
+        /**
+         * 進捗データを読み込み
+         */
+        function loadProgress() {
+            const progress = JSON.parse(localStorage.getItem('studyProgress')) || {};
+            Object.keys(progress).forEach(subject => {
+                Object.keys(progress[subject]).forEach(chapter => {
+                    const chapterProgress = progress[subject][chapter];
+                    chapterProgress.checked.forEach(index => {
+                        const checkbox = document.querySelector(`input[type="checkbox"][data-subject="${subject}"][data-chapter="${chapter}"][data-index="${index}"]`);
+                        if (checkbox) checkbox.checked = true;
+                    });
+                    chapterProgress.times.forEach((time, index) => {
+                        const timeInput = document.querySelector(`input[type="number"][data-subject="${subject}"][data-chapter="${chapter}"][data-index="${index}"]`);
+                        if (timeInput) timeInput.value = time;
+                    });
+                    const dateSpan = document.querySelector(`span.date[data-subject="${subject}"][data-chapter="${chapter}"]`);
+                    if (dateSpan) dateSpan.textContent = chapterProgress.date || '';
+                    updateTotalTime(subject, chapter);
+                });
+            });
+        }
+
+        /**
+         * 章を追加
+         */
+        function addChapter(subjectIndex) {
+            const chapterName = prompt("新しい章の名前を入力してください：");
+            if (chapterName) {
+                const chapterTotal = parseInt(prompt("この章の目標時間（分）を入力してください：", "60")) || 60;
+                const newChapter = { name: chapterName, total: chapterTotal };
+                subjectsData[subjectIndex].chapters.push(newChapter);
+                const subjectElement = document.getElementById(`subject-${subjectIndex}`);
+                const chapterIndex = subjectsData[subjectIndex].chapters.length - 1;
+                const chapterHTML = createChapterHTML(subjectsData[subjectIndex], subjectIndex, newChapter, chapterIndex);
+                subjectElement.insertAdjacentHTML('beforeend', chapterHTML);
+                saveSubjectsData();
+
+                // 新しい章の進捗データを初期化
+                let progress = JSON.parse(localStorage.getItem('studyProgress')) || {};
+                const subjectName = subjectsData[subjectIndex].name;
+                if (!progress[subjectName]) {
+                    progress[subjectName] = {};
+                }
+                progress[subjectName][chapterIndex] = { checked: [], times: [], date: '' };
+                localStorage.setItem('studyProgress', JSON.stringify(progress));
+
+                // 新しい章のイベントリスナーを設定
+                const newChapterElement = subjectElement.lastElementChild;
+                newChapterElement.querySelectorAll('.checkbox').forEach(checkbox => {
+                    checkbox.addEventListener('change', handleCheckboxChange);
+                });
+                newChapterElement.querySelectorAll('.time-input').forEach(timeInput => {
+                    timeInput.addEventListener('input', handleTimeInput);
+                });
+            }
+        }
+
+        /**
+         * チェックボックスを追加
+         */
+        function addCheckbox(subjectIndex, chapterIndex) {
+            const subject = subjectsData[subjectIndex];
+            const chapter = subject.chapters[chapterIndex];
+            const chapterElement = document.getElementById(`subject-${subjectIndex}-chapter-${chapterIndex}`);
+            const checkboxContainer = chapterElement.querySelector('.checkbox-container');
+            const newIndex = checkboxContainer.children.length;
+
+            const newCheckboxHTML = `
+            <div class="checkbox-wrapper">
+                <input type="checkbox" class="checkbox" data-subject="${subject.name}" data-chapter="${chapterIndex}" data-index="${newIndex}">
+                <input type="number" class="time-input" min="0" value="0" data-subject="${subject.name}" data-chapter="${chapterIndex}" data-index="${newIndex}">
+            </div>`;
+
+            checkboxContainer.insertAdjacentHTML('beforeend', newCheckboxHTML);
+
+            const newCheckbox = checkboxContainer.lastElementChild.querySelector('.checkbox');
+            const newTimeInput = checkboxContainer.lastElementChild.querySelector('.time-input');
+
+            newCheckbox.addEventListener('change', handleCheckboxChange);
+            newTimeInput.addEventListener('input', handleTimeInput);
+        }
+
+        /**
+         * 科目を追加
+         */
+        function addSubject() {
+            const subjectName = prompt("新しい科目の名前を入力してください：");
+            if (subjectName) {
+                const newSubject = {
+                    name: subjectName,
+                    chapters: []
+                };
+                subjectsData.push(newSubject);
+                const subjectIndex = subjectsData.length - 1;
+                const subjectsContainer = document.getElementById('subjects');
+                const subjectHTML = createSubjectHTML(newSubject, subjectIndex);
+                subjectsContainer.insertAdjacentHTML('beforeend', subjectHTML);
+                saveSubjectsData();
+
+                // 新しい科目の進捗データを初期化
+                let progress = JSON.parse(localStorage.getItem('studyProgress')) || {};
+                progress[subjectName] = {};
+                localStorage.setItem('studyProgress', JSON.stringify(progress));
+
+                checkAchievements();
+            }
+            updateQuickNav();
+        }
+
+        /**
+         * 科目を削除
+         */
+        function deleteSubject(subjectIndex) {
+            const subject = subjectsData[subjectIndex];
+            if (confirm(`本当に「${subject.name}」を削除しますか？この操作は元に戻せません。`)) {
+                subjectsData.splice(subjectIndex, 1);
+                document.getElementById(`subject-${subjectIndex}`).remove();
+
+                // 進捗データから該当の科目を削除
+                let progress = JSON.parse(localStorage.getItem('studyProgress')) || {};
+                delete progress[subject.name];
+                localStorage.setItem('studyProgress', JSON.stringify(progress));
+
+                saveSubjectsData();
+                renderSubjects(); // 科目のインデックスが変わるので、全ての科目を再描画
+
+                checkAchievements();
+            }
+            updateQuickNav();
+        }
+
+        /**
+         * 科目データを保存
+         */
+        function saveSubjectsData() {
+            localStorage.setItem('subjectsData', JSON.stringify(subjectsData));
+        }
+
+        /**
+         * 科目データを読み込み
+         */
+        function loadSubjectsData() {
+            const savedData = localStorage.getItem('subjectsData');
+            if (savedData) {
+                subjectsData = JSON.parse(savedData);
+            }
+        }
+
+        /**
+         * チェックボックスの変更を処理
+         */
+        function handleCheckboxChange(e) {
+            const { subject, chapter, index } = e.target.dataset;
+            const timeInput = document.querySelector(`input[type="number"][data-subject="${subject}"][data-chapter="${chapter}"][data-index="${index}"]`);
+            saveProgress(subject, chapter, index, e.target.checked, timeInput.value);
+        }
+
+        /**
+         * 時間入力の変更を処理
+         */
+        function handleTimeInput(e) {
+            const { subject, chapter, index } = e.target.dataset;
+            const checkbox = document.querySelector(`input[type="checkbox"][data-subject="${subject}"][data-chapter="${chapter}"][data-index="${index}"]`);
+            saveProgress(subject, chapter, index, checkbox.checked, e.target.value);
+        }
+
+        /**
+         * 科目を描画
+         */
+        function renderSubjects() {
+            const subjectsContainer = document.getElementById('subjects');
+            subjectsContainer.innerHTML = '';
+            subjectsData.forEach((subject, index) => {
+                subjectsContainer.innerHTML += createSubjectHTML(subject, index);
+            });
+
+            document.querySelectorAll('.checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', handleCheckboxChange);
+            });
+
+            document.querySelectorAll('.time-input').forEach(timeInput => {
+                timeInput.addEventListener('input', handleTimeInput);
+            });
+
+            loadProgress();
+        }
+
+        /**
+         * XPを追加
+         */
+        function addXP(amount) {
+            amount = Number(amount) || 0;
+            userXP = Math.max(0, userXP + amount);
+            checkLevelUp();
+            updateXPDisplay();
+            saveXPData();
+            checkAchievements();
+            updateStudyStreak();
+        }
+
+        /**
+         * レベルアップをチェック
+         */
+        function checkLevelUp() {
+            const xpToNextLevel = calculateXPToNextLevel();
+            while (userXP >= xpToNextLevel) {
+                userXP -= xpToNextLevel;
+                userLevel++;
+                alert(`おめでとうございます！レベル ${userLevel} に上がりました！`);
+            }
+        }
+
+        /**
+         * 次のレベルまでに必要なXPを計算
+         */
+        function calculateXPToNextLevel() {
+            return Math.floor(100 * Math.pow(1.2, userLevel - 1));
+        }
+
+        /**
+         * XP表示を更新
+         */
+        function updateXPDisplay() {
+            const xpToNextLevel = calculateXPToNextLevel();
+            document.getElementById('level').textContent = userLevel;
+            document.getElementById('xp').textContent = Math.floor(userXP);
+            document.getElementById('xp-to-next-level').textContent = xpToNextLevel;
+            const progressPercentage = (userXP / xpToNextLevel) * 100;
+            document.getElementById('xp-progress').style.width = `${progressPercentage}%`;
+        }
+
+        /**
+         * XPデータを保存
+         */
+        function saveXPData() {
+            localStorage.setItem('userXP', userXP.toString());
+            localStorage.setItem('userLevel', userLevel.toString());
+        }
+
+        /**
+         * XPデータを読み込み
+         */
+        function loadXPData() {
+            const savedXP = localStorage.getItem('userXP');
+            const savedLevel = localStorage.getItem('userLevel');
+            if (savedXP !== null) userXP = Number(savedXP) || 0;
+            if (savedLevel !== null) userLevel = Number(savedLevel) || 1;
+            updateXPDisplay();
+        }
+
+        /**
+         * 実績をチェック
+         */
+        function checkAchievements() {
+            let newAchievements = false;
+            achievements.forEach(achievement => {
+                if (!unlockedAchievements.includes(achievement.id)) {
+                    const result = achievement.condition();
+                    if (result.success) {
+                        unlockAchievement(achievement);
+                        newAchievements = true;
+                    }
+                }
+            });
+            if (newAchievements) {
+                renderAchievements();
+            }
+        }
+
+        /**
+         * 実績を解除
+         */
+        function unlockAchievement(achievement) {
+            if (!unlockedAchievements.includes(achievement.id)) {
+                unlockedAchievements.push(achievement.id);
+                alert(`実績解除: ${achievement.name}\n${achievement.description}`);
+                saveAchievements();
+            } else {
+                alert(`実績「${achievement.name}」は既に解除されています。`);
+            }
+            renderAchievements();
+        }
+
+        /**
+         * 実績を保存
+         */
+        function saveAchievements() {
+            localStorage.setItem('unlockedAchievements', JSON.stringify(unlockedAchievements));
+        }
+
+        /**
+         * 実績を読み込み
+         */
+        function loadAchievements() {
+            const savedAchievements = localStorage.getItem('unlockedAchievements');
+            if (savedAchievements) {
+                unlockedAchievements = JSON.parse(savedAchievements);
+            }
+        }
+
+        /**
+         * 実績を描画
+         */
+        function renderAchievements() {
+            const achievementsContainer = document.querySelector('#achievements .content');
+            achievementsContainer.innerHTML = '';
+            achievements.forEach(achievement => {
+                const achievementElement = document.createElement('div');
+                achievementElement.className = `achievement ${unlockedAchievements.includes(achievement.id) ? '' : 'achievement-locked'}`;
+                achievementElement.innerHTML = `
+                <div class="achievement-icon">${achievement.icon}</div>
+                <div>
+                    <strong>${achievement.name}</strong>
+                    <p>${achievement.description}</p>
+                </div>
+                <button class="manual-check">${unlockedAchievements.includes(achievement.id) ? '実績解除済み' : 'チェック'}</button>
+            `;
+                achievementElement.querySelector('.manual-check').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    manualCheckAchievement(achievement);
+                });
+                achievementsContainer.appendChild(achievementElement);
+            });
+            updateAchievementProgress();
+        }
+
+        /**
+         * 実績の進捗を更新
+         */
+        function updateAchievementProgress() {
+            const progressElement = document.querySelector('#achievements .achievement-progress');
+            progressElement.textContent = `${unlockedAchievements.length} / ${achievements.length}`;
+        }
+
+        /**
+         * 手動で実績をチェック
+         */
+        async function manualCheckAchievement(achievement) {
+            const confirmed = await confirmAchievementUnlock(achievement);
+            if (confirmed) {
+                unlockAchievement(achievement);
+            }
+        }
+
+        /**
+         * 実績解除の確認
+         */
+        function confirmAchievementUnlock(achievement) {
+            return new Promise((resolve) => {
+                let message = `この実績「${achievement.name}」を解除してもよろしいですか？\n\n${achievement.description}`;
+                const result = achievement.condition();
+                if (!result.success) {
+                    message += `\n\n注意: この実績の条件はまだ満たされていません。\n理由: ${result.reason}\n\nOKを選択すると、この実績は強制的に解除されます。`;
+                }
+                const confirmed = confirm(message);
+                resolve(confirmed);
+            });
+        }
+
+        /**
+         * 最初のチェックボックスがチェックされたかどうかを確認
+         */
+        function checkFirstCheckboxAchievement() {
+            const progress = JSON.parse(localStorage.getItem('studyProgress')) || {};
+            let isAnyChecked = false;
+
+            for (const subject in progress) {
+                for (const chapter in progress[subject]) {
+                    if (progress[subject][chapter].checked.length > 0) {
+                        isAnyChecked = true;
+                        break;
+                    }
+                }
+                if (isAnyChecked) break;
+            }
+
+            return { success: isAnyChecked };
+        }
+
+        /**
+         * すべての科目が完了しているかチェック
+         */
+        function checkAllSubjectsComplete() {
+            const progress = JSON.parse(localStorage.getItem('studyProgress')) || {};
+            if (subjectsData.length === 0) {
+                return { success: false, reason: '科目が登録されていません。少なくとも1つの科目を追加し、完了させてください。' };
+            }
+            const incompleteSubjects = subjectsData.filter(subject => !isSubjectComplete(subject, progress));
+            if (incompleteSubjects.length === 0) {
+                return { success: true };
+            } else {
+                const subjectNames = incompleteSubjects.map(s => s.name).join(', ');
+                return { success: false, reason: `以下の科目がまだ完了していません: ${subjectNames}` };
+            }
+        }
+
+        /**
+         * 科目が完了しているかチェック
+         */
+        function isSubjectComplete(subject, progress) {
+            const subjectProgress = progress[subject.name];
+            if (!subjectProgress) return false;
+
+            return subject.chapters.every((chapter, index) => {
+                const chapterProgress = subjectProgress[index];
+                if (!chapterProgress) return false;
+
+                const totalCheckboxes = 10; // チェックボックスの最大数
+                const checkedBoxes = chapterProgress.checked.length;
+                const allTimesEntered = chapterProgress.times.every(time => Number(time) > 0);
+
+                return checkedBoxes === totalCheckboxes && allTimesEntered;
+            });
+        }
+
+        /**
+         * 早朝の学習をチェック
+         */
+        function checkEarlyBirdStudy() {
+            const lastStudyTime = localStorage.getItem('lastStudyTime');
+            if (lastStudyTime) {
+                const studyTime = new Date(lastStudyTime);
+                const hours = studyTime.getHours();
+                if (hours >= 5 && hours < 7) {
+                    return { success: true };
+                } else {
+                    return { success: false, reason: '朝5時から7時の間に学習を開始する必要があります。' };
+                }
+            }
+            return { success: false, reason: '学習記録がありません。朝5時から7時の間に学習を開始してください。' };
+        }
+
+        /**
+         * 学習の連続日数を更新
+         */
+        function updateStudyStreak() {
+            const today = new Date().toDateString();
+            let studyDates = JSON.parse(localStorage.getItem('studyDates')) || [];
+
+            if (studyDates[studyDates.length - 1] !== today) {
+                studyDates.push(today);
+                localStorage.setItem('studyDates', JSON.stringify(studyDates));
+            }
+
+            // 最終学習時間を更新
+            localStorage.setItem('lastStudyTime', new Date().toISOString());
+        }
+
+        /**
+         * 学習の連続日数を取得
+         */
+        function getStudyStreak() {
+            const studyDates = JSON.parse(localStorage.getItem('studyDates')) || [];
+            if (studyDates.length === 0) return 0;
+
+            let streak = 1;
+            let currentDate = new Date(studyDates[studyDates.length - 1]);
+
+            for (let i = studyDates.length - 2; i >= 0; i--) {
+                const prevDate = new Date(studyDates[i]);
+                const diffDays = (currentDate - prevDate) / (1000 * 60 * 60 * 24);
+
+                if (diffDays === 1) {
+                    streak++;
+                    currentDate = prevDate;
+                } else if (diffDays > 1) {
+                    break;
+                }
+            }
+
+            return streak;
+        }
+
+        /**
+         * 合計学習時間を取得
+         */
+        function getTotalStudyTime() {
+            let totalTime = 0;
+            const progress = JSON.parse(localStorage.getItem('studyProgress')) || {};
+            Object.values(progress).forEach(subject => {
+                Object.values(subject).forEach(chapter => {
+                    totalTime += chapter.times.reduce((sum, time) => sum + (Number(time) || 0), 0);
+                });
+            });
+            return totalTime;
+        }
+
+        /**
+         * 科目が完了しているかチェック
+         */
+        function checkSubjectComplete() {
+            const progress = JSON.parse(localStorage.getItem('studyProgress')) || {};
+            const completedSubject = subjectsData.find(subject => {
+                return subject.chapters.length > 0 && isSubjectComplete(subject, progress);
+            });
+            if (completedSubject) {
+                return { success: true };
+            } else {
+                return { success: false, reason: '完了した科目がありません。1つの科目のすべての章を完了させてください。' };
+            }
+        }
+
+        /**
+         * 折りたたみ機能を初期化
+         */
+        function initCollapsible() {
+            var coll = document.getElementsByClassName("collapsible");
+            for (var i = 0; i < coll.length; i++) {
+                coll[i].addEventListener("click", function () {
+                    this.classList.toggle("active");
+                    var content = this.nextElementSibling;
+                    if (content.style.maxHeight) {
+                        content.style.maxHeight = null;
+                    } else {
+                        content.style.maxHeight = content.scrollHeight + "px";
+                    }
+                });
+            }
+        }
+
+        /**
+         * レベル達成をチェック
+         */
+        function checkLevelAchievement(requiredLevel) {
+            if (userLevel >= requiredLevel) {
+                return { success: true };
+            } else {
+                return { success: false, reason: `現在のレベルは${userLevel}です。レベル${requiredLevel}に到達する必要があります。` };
+            }
+        }
+
+        /**
+         * 学習の連続日数をチェック
+         */
+        function checkStudyStreak(requiredDays) {
+            const streak = getStudyStreak();
+            if (streak >= requiredDays) {
+                return { success: true };
+            } else {
+                return { success: false, reason: `現在の連続学習日数は${streak}日です。${requiredDays}日間連続で学習する必要があります。` };
+            }
+        }
+
+        /**
+         * 合計学習時間をチェック
+         */
+        function checkTotalStudyTime(requiredMinutes) {
+            const totalTime = getTotalStudyTime();
+            if (totalTime >= requiredMinutes) {
+                return { success: true };
+            } else {
+                const remainingMinutes = requiredMinutes - totalTime;
+                return { success: false, reason: `現在の総学習時間は${totalTime}分です。あと${remainingMinutes}分学習する必要があります。` };
+            }
+        }
+
+        /**
+         * ローカルストレージを初期化
+         */
+        function resetLocalStorage() {
+            if (confirm("本当にすべてのデータを初期化しますか？この操作は元に戻せません。")) {
+                // このアプリで使用しているすべてのローカルストレージのキーをクリア
+                localStorage.removeItem('studyProgress');
+                localStorage.removeItem('subjectsData');
+                localStorage.removeItem('userXP');
+                localStorage.removeItem('userLevel');
+                localStorage.removeItem('unlockedAchievements');
+                localStorage.removeItem('studyDates');
+                localStorage.removeItem('lastStudyTime');
+                localStorage.removeItem('dailyChallenge');
+
+                // デフォルト値を設定
+                subjectsData = [
+                    {
+                        name: "G検定",
+                        chapters: [
+                            { name: "1章", total: 10 },
+                            { name: "2章", total: 10 },
+                            { name: "3章", total: 10 },
+                            { name: "4章", total: 10 },
+                            { name: "5章", total: 10 },
+                            { name: "6章", total: 10 },
+                            { name: "7章", total: 10 },
+                            { name: "8章", total: 15 },
+                            { name: "9章", total: 10 }
+                        ]
+                    },
+                    {
+                        name: "基本情報",
+                        chapters: [
+                            { name: "1章", total: 10 },
+                            { name: "2章", total: 10 },
+                            { name: "3章", total: 10 },
+                            { name: "4章", total: 10 },
+                            { name: "5章", total: 10 },
+                            { name: "6章", total: 10 },
+                            { name: "7章", total: 10 }
+                        ]
+                    }
+                ];
+                userXP = 0;
+                userLevel = 1;
+                unlockedAchievements = [];
+
+                // 画面を更新
+                saveSubjectsData();
+                renderSubjects();
+                updateXPDisplay();
+                renderAchievements();
+                updateDailyChallengeDisplay();
+
+                alert("すべてのデータが初期化されました。");
+            }
+        }
+
+        /**
+         * デイリーチャレンジを取得
+         */
+        function getDailyChallenge() {
+            const today = new Date().toDateString();
+            let challenge = JSON.parse(localStorage.getItem('dailyChallenge'));
+
+            if (!challenge || challenge.date !== today) {
+                const randomIndex = Math.floor(Math.random() * dailyChallenges.length);
+                challenge = {
+                    ...dailyChallenges[randomIndex],
+                    date: today,
+                    completed: false
+                };
+                localStorage.setItem('dailyChallenge', JSON.stringify(challenge));
+            }
+
+            return challenge;
+        }
+
+        /**
+         * デイリーチャレンジの表示を更新
+         */
+        function updateDailyChallengeDisplay() {
+            const challenge = getDailyChallenge();
+            const challengeElement = document.getElementById('daily-challenge');
+            challengeElement.innerHTML = `
+            <h3>今日のチャレンジ</h3>
+            <p>${challenge.description}</p>
+            <p>報酬: ${challenge.reward}XP</p>
+            <button id="complete-challenge" ${challenge.completed ? 'disabled' : ''}>
+                ${challenge.completed ? '完了済み' : 'チャレンジ完了'}
+            </button>
+        `;
+
+            if (!challenge.completed) {
+                document.getElementById('complete-challenge').addEventListener('click', completeChallenge);
+            }
+        }
+
+        /**
+         * チャレンジ完了処理
+         */
+        function completeChallenge() {
+            const challenge = getDailyChallenge();
+            challenge.completed = true;
+            localStorage.setItem('dailyChallenge', JSON.stringify(challenge));
+            addXP(challenge.reward);
+            updateDailyChallengeDisplay();
+            updateXPDisplay();
+            alert(`チャレンジ完了！${challenge.reward}XPを獲得しました！`);
+        }
+
+        // 初期化
+        document.addEventListener('DOMContentLoaded', initialize);
+
+        // 定期的に実績をチェック（1分ごと）
+        setInterval(checkAchievements, 60000);
+    </script>
+
+    <footer id="copyright-notice">
+        <p>© 2024 お勉強用進捗管理 All Rights Reserved.</p>
+        <p>制作: たぬ | 開発支援: Claude 3.5 (Anthropic AI)</p>
+        <p>Version 1.1.0 "Study Tracker" (2024-08-07 21:40)</p>
+    </footer>
+</body>
+
+</html>

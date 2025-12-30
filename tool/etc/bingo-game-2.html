@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ビンゴゲーム</title>
+    <style>
+        :root {
+            --primary-color: #6366f1;
+            --primary-hover: #4f46e5;
+            --bg-color: #f8fafc;
+            --cell-bg: #ffffff;
+            --selected-color: #818cf8;
+            --bingo-color: #22c55e;
+            --text-secondary: #64748b;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            line-height: 1.5;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .title {
+            font-size: 2.5rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+
+        .timestamp {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+            padding: 0.5rem 1rem;
+            background-color: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+        }
+
+        .timestamp-label {
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .input-label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .number-input {
+            width: 80px;
+            padding: 0.5rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        .number-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgb(99 102 241 / 0.2);
+        }
+
+        .bingo-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            max-width: 500px;
+            width: 100%;
+            margin: 20px auto;
+            padding: 10px;
+            background: #ffffff;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+
+        .cell {
+            position: relative;
+            aspect-ratio: 1;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 1.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            background-color: var(--cell-bg);
+            color: #1e293b;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+
+        .cell:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+
+        .cell:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgb(99 102 241 / 0.5);
+        }
+
+        .cell.selected {
+            background-color: var(--selected-color);
+            color: white;
+        }
+
+        .cell.bingo {
+            background-color: var(--bingo-color);
+            color: white;
+        }
+
+        .free {
+            background-color: var(--primary-color) !important;
+            color: white !important;
+            font-size: 1.2rem !important;
+        }
+
+        .button {
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+        }
+
+        .button:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+        .button:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgb(99 102 241 / 0.5);
+        }
+
+        @media (max-width: 500px) {
+            .title {
+                font-size: 2rem;
+            }
+            
+            .cell {
+                font-size: 1.2rem;
+            }
+            
+            .controls {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="title">ビンゴゲーム</h1>
+        <div class="timestamp" id="timestamp">
+            <span class="timestamp-label">生成日時：</span>
+            <span id="generatedTime" aria-live="polite"></span>
+        </div>
+        <div class="controls">
+            <div class="input-group">
+                <label for="maxNumber" class="input-label">数字の最大値:</label>
+                <input type="number" id="maxNumber" class="number-input" value="60" min="25" max="999" aria-label="数字の最大値を入力">
+            </div>
+            <button class="button" onclick="initializeGame()" aria-label="新しいビンゴを生成">新しいビンゴを生成</button>
+        </div>
+        <div class="bingo-grid" id="bingoGrid" role="grid" aria-label="ビンゴカード"></div>
+    </div>
+
+    <script>
+        /**
+         * 日時を指定されたフォーマットで文字列に変換
+         * @param {Date} date - フォーマットする日時
+         * @returns {string} フォーマットされた日時文字列
+         */
+        function formatDateTime(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            
+            return `${year}年${month}月${day}日 ${hours}:${minutes}:${seconds}`;
+        }
+
+        /**
+         * タイムスタンプを更新
+         */
+        function updateTimestamp() {
+            const timestampElement = document.getElementById('generatedTime');
+            timestampElement.textContent = formatDateTime(new Date());
+        }
+
+        /**
+         * 指定された範囲からランダムな数字を生成
+         * @param {number} maxNum - 生成する数字の最大値
+         * @param {number} count - 生成する数字の個数
+         * @returns {Array<number>} 生成された数字の配列
+         */
+        function generateRandomNumbers(maxNum, count) {
+            const numbers = new Set();
+            while (numbers.size < count) {
+                numbers.add(Math.floor(Math.random() * maxNum) + 1);
+            }
+            return Array.from(numbers);
+        }
+
+        /**
+         * ビンゴをチェック
+         */
+        function checkBingo() {
+            const cells = document.querySelectorAll('button.cell');
+            const gridArray = Array.from(cells).map(cell => cell.classList.contains('selected'));
+            
+            cells.forEach(cell => {
+                cell.classList.remove('bingo');
+                cell.setAttribute('aria-label', 
+                    `${cell.textContent}${cell.classList.contains('selected') ? ' (選択済み)' : ''}`
+                );
+            });
+
+            // Check rows
+            for (let i = 0; i < 5; i++) {
+                if (gridArray.slice(i * 5, (i + 1) * 5).every(cell => cell)) {
+                    for (let j = 0; j < 5; j++) {
+                        const cell = cells[i * 5 + j];
+                        cell.classList.add('bingo');
+                        cell.setAttribute('aria-label', 
+                            `${cell.textContent} (ビンゴ達成)`
+                        );
+                    }
+                }
+            }
+
+            // Check columns
+            for (let i = 0; i < 5; i++) {
+                if ([0, 1, 2, 3, 4].every(j => gridArray[j * 5 + i])) {
+                    for (let j = 0; j < 5; j++) {
+                        const cell = cells[j * 5 + i];
+                        cell.classList.add('bingo');
+                        cell.setAttribute('aria-label', 
+                            `${cell.textContent} (ビンゴ達成)`
+                        );
+                    }
+                }
+            }
+
+            // Check diagonals
+            const diagonals = [
+                [0, 6, 12, 18, 24],
+                [4, 8, 12, 16, 20]
+            ];
+
+            diagonals.forEach(diagonal => {
+                if (diagonal.every(i => gridArray[i])) {
+                    diagonal.forEach(i => {
+                        const cell = cells[i];
+                        cell.classList.add('bingo');
+                        cell.setAttribute('aria-label', 
+                            `${cell.textContent} (ビンゴ達成)`
+                        );
+                    });
+                }
+            });
+        }
+
+        /**
+         * セルを作成
+         * @param {number|string} number - セルに表示する数字
+         * @param {number} index - セルのインデックス
+         * @returns {HTMLButtonElement} 作成されたセル要素
+         */
+        function createCell(number, index) {
+            const cell = document.createElement('button');
+            cell.className = 'cell';
+            cell.setAttribute('role', 'gridcell');
+            cell.setAttribute('tabindex', '0');
+            
+            if (index === 12) {
+                cell.classList.add('free', 'selected');
+                cell.textContent = 'FREE';
+                cell.setAttribute('aria-label', 'フリースペース (選択済み)');
+            } else {
+                cell.textContent = number;
+                cell.setAttribute('aria-label', String(number));
+            }
+
+            cell.addEventListener('click', function() {
+                if (!cell.classList.contains('free')) {
+                    cell.classList.toggle('selected');
+                    cell.setAttribute('aria-pressed', cell.classList.contains('selected'));
+                    checkBingo();
+                }
+            });
+
+            cell.addEventListener('keydown', function(event) {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    if (!cell.classList.contains('free')) {
+                        cell.click();
+                    }
+                }
+            });
+
+            return cell;
+        }
+
+        /**
+         * ゲームを初期化
+         */
+        function initializeGame() {
+            const grid = document.getElementById('bingoGrid');
+            let inputVal = parseInt(document.getElementById('maxNumber').value, 10);
+            if (isNaN(inputVal)) {
+                inputVal = 60;
+            }
+            const maxNumber = Math.max(25, Math.min(999, inputVal));
+            document.getElementById('maxNumber').value = maxNumber;
+            
+            grid.innerHTML = '';
+            
+            // 24個の数字だけを生成（FREEスペース分を除く）
+            const numbers = generateRandomNumbers(maxNumber, 24);
+            let numberIndex = 0;
+
+            for (let i = 0; i < 25; i++) {
+                if (i === 12) {
+                    grid.appendChild(createCell('FREE', i));
+                } else {
+                    grid.appendChild(createCell(numbers[numberIndex++], i));
+                }
+            }
+
+            updateTimestamp();
+        }
+
+        // Initialize the game when the page loads
+        initializeGame();
+    </script>
+</body>
+</html>

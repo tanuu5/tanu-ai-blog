@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ソートアルゴリズム可視化</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            background-color: #f0f4f8;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 30px;
+        }
+        #array-container {
+            display: flex;
+            align-items: flex-end;
+            height: 300px;
+            background-color: #fff;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+        .array-item {
+            width: 40px;
+            margin: 0 5px;
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+            border-radius: 5px 5px 0 0;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .array-item-block {
+            width: 100%;
+            height: 20px;
+            background-color: #3498db;
+            border-top: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .array-item-value {
+            padding: 5px 0;
+            font-size: 14px;
+        }
+        .highlight {
+            background-color: #e74c3c;
+        }
+        .highlight .array-item-block {
+            background-color: #e74c3c;
+        }
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 30px;
+            justify-content: center;
+        }
+        button, select {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #2980b9;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+        button:hover, select:hover {
+            background-color: #3498db;
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        select {
+            background-color: #27ae60;
+        }
+        select:hover {
+            background-color: #2ecc71;
+        }
+        #explanation {
+            width: 80%;
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        #speed-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        #speed-slider {
+            width: 200px;
+        }
+        #performance-comparison, #real-world-usage {
+            width: 80%;
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <h1>ソートアルゴリズム可視化</h1>
+    <div id="array-container"></div>
+    <div class="controls">
+        <select id="algorithmSelect">
+            <option value="bubble">バブルソート</option>
+            <option value="quick">クイックソート</option>
+            <option value="selection">選択ソート</option>
+            <option value="insertion">挿入ソート</option>
+            <option value="shell">シェルソート</option>
+            <option value="heap">ヒープソート</option>
+            <option value="cocktail">カクテルシェイカーソート</option>
+        </select>
+        <button id="startBtn" onclick="startSort()">ソート開始</button>
+        <button id="pauseBtn" onclick="pauseSort()" disabled>一時停止</button>
+        <button id="resumeBtn" onclick="resumeSort()" disabled>再開</button>
+        <button id="prevBtn" onclick="previousStep()" disabled>戻る</button>
+        <button id="nextBtn" onclick="nextStep()" disabled>進む</button>
+    </div>
+    <div id="speed-control">
+        <label for="speed-slider">ソート速度:</label>
+        <input type="range" id="speed-slider" min="1" max="10" value="5">
+        <span id="speed-value">標準</span>
+    </div>
+    <div id="explanation"></div>
+    <div id="performance-comparison">
+        <h3>パフォーマンス比較</h3>
+        <button id="compareBtn" onclick="comparePerformance()">パフォーマンス比較を実行</button>
+        <p>0から19,999までのランダムな整数を用いて比較します。実行結果のみ一覧で出力されます。</p>
+        <p>JavaScript の実行環境やブラウザの違いにより、結果が若干異なる可能性があります。１つの参考としてご確認ください。</p>
+        <table id="performanceTable">
+            <tr>
+                <th>アルゴリズム</th>
+                <th>実行時間 (ms)</th>
+                <th>比較回数</th>
+                <th>交換回数</th>
+            </tr>
+        </table>
+    </div>
+    <div id="real-world-usage">
+        <h3>実世界での応用例</h3>
+        <div id="usageExample"></div>
+    </div>
+
+    <script>
+        const array = [5, 2, 9, 1, 7, 6, 3];
+        let sorting = false;
+        let paused = false;
+        let steps = [];
+        let currentStep = -1;
+        let sortState = {};
+        let sortSpeed = 500; // ミリ秒単位
+
+        const algorithmDescriptions = {
+            bubble: "バブルソートは隣接する要素を比較し、必要に応じて交換を繰り返すシンプルなソートアルゴリズムです。効率は低いですが、実装が簡単です。",
+            quick: "クイックソートは「分割統治法」を用いた効率的なソートアルゴリズムです。ピボットを選び、それを基準に配列を分割して再帰的にソートします。",
+            selection: "選択ソートは配列から最小（または最大）の要素を見つけ、それを適切な位置に配置する操作を繰り返すアルゴリズムです。",
+            insertion: "挿入ソートは配列を順番に走査し、各要素を適切な位置に挿入していくアルゴリズムです。小規模なデータセットに対して効率的です。",
+            shell: "シェルソートは挿入ソートを改良したアルゴリズムで、離れた要素同士の比較から始めて徐々に間隔を狭めていきます。",
+            heap: "ヒープソートはヒープデータ構造を利用したソートアルゴリズムで、効率的で安定した性能を発揮します。",
+            cocktail: "カクテルシェイカーソートはバブルソートの変種で、配列を交互に前後させながらソートします。"
+        };
+
+        function renderArray(highlightIndices = []) {
+            const container = document.getElementById('array-container');
+            container.innerHTML = '';
+            array.forEach((num, index) => {
+                const div = document.createElement('div');
+                div.className = 'array-item';
+                if (highlightIndices.includes(index)) {
+                    div.classList.add('highlight');
+                }
+                div.style.height = `${num * 30}px`;
+                
+                for (let i = 0; i < num; i++) {
+                    const block = document.createElement('div');
+                    block.className = 'array-item-block';
+                    div.appendChild(block);
+                }
+                
+                const value = document.createElement('div');
+                value.className = 'array-item-value';
+                value.textContent = num;
+                div.appendChild(value);
+                
+                container.appendChild(div);
+            });
+        }
+
+        function updateButtons() {
+            document.getElementById('startBtn').disabled = sorting;
+            document.getElementById('pauseBtn').disabled = !sorting || paused;
+            document.getElementById('resumeBtn').disabled = !sorting || !paused;
+            document.getElementById('prevBtn').disabled = currentStep <= 0;
+            document.getElementById('nextBtn').disabled = currentStep >= steps.length - 1 || (!paused && sorting);
+            document.getElementById('algorithmSelect').disabled = sorting;
+        }
+
+        function recordStep(highlights = [], explanation = "") {
+            steps.push({
+                array: [...array],
+                highlights: highlights,
+                explanation: explanation
+            });
+        }
+
+        function updateExplanation(text) {
+            const explanationDiv = document.getElementById('explanation');
+            explanationDiv.innerHTML = `<h3>アルゴリズムの説明</h3><p>${algorithmDescriptions[document.getElementById('algorithmSelect').value]}</p><h3>現在の操作</h3><p>${text}</p>`;
+        }
+
+        async function bubbleSort() {
+            const n = array.length;
+            for (let i = sortState.i || 0; i < n - 1; i++) {
+                for (let j = sortState.j || 0; j < n - i - 1; j++) {
+                    if (!sorting) return;
+                    await checkPaused();
+                    recordStep([j, j + 1], `${array[j]} と ${array[j+1]} を比較しています。`);
+                    currentStep++;
+                    renderArray([j, j + 1]);
+                    updateExplanation(`${array[j]} と ${array[j+1]} を比較しています。`);
+                    await new Promise(resolve => setTimeout(resolve, sortSpeed));
+                    
+                    if (array[j] > array[j + 1]) {
+                        [array[j], array[j + 1]] = [array[j + 1], array[j]];
+                        recordStep([j, j + 1], `${array[j]} と ${array[j+1]} を交換しました。`);
+                        currentStep++;
+                        renderArray([j, j + 1]);
+                        updateExplanation(`${array[j]} と ${array[j+1]} を交換しました。`);
+                        await new Promise(resolve => setTimeout(resolve, sortSpeed));
+                    }
+                    sortState = { i, j: j + 1 };
+                }
+                sortState.j = 0;
+            }
+            sortState = {};
+        }
+
+        async function quickSort(low = sortState.low || 0, high = sortState.high !== undefined ? sortState.high : array.length - 1) {
+            if (low < high) {
+                const pivotIndex = await partition(low, high);
+                sortState.low = low;
+                sortState.high = high;
+                await quickSort(low, pivotIndex - 1);
+                await quickSort(pivotIndex + 1, high);
+            }
+        }
+
+        async function partition(low, high) {
+            const pivot = array[high];
+            let i = low - 1;
+
+            updateExplanation(`ピボット値 ${pivot} を選択しました。`);
+            await new Promise(resolve => setTimeout(resolve, sortSpeed));
+
+            for (let j = low; j < high; j++) {
+                if (!sorting) return;
+                await checkPaused();
+                recordStep([j, high], `${array[j]} とピボット ${pivot} を比較しています。`);
+                currentStep++;
+                renderArray([j, high]);
+                updateExplanation(`${array[j]} とピボット ${pivot} を比較しています。`);
+                await new Promise(resolve => setTimeout(resolve, sortSpeed));
+
+                if (array[j] < pivot) {
+                    i++;
+                    [array[i], array[j]] = [array[j], array[i]];
+                    recordStep([i, j], `${array[i]} と ${array[j]} を交換しました。`);
+                    currentStep++;
+                    renderArray([i, j]);
+                    updateExplanation(`${array[i]} と ${array[j]} を交換しました。`);
+                    await new Promise(resolve => setTimeout(resolve, sortSpeed));
+                }
+                sortState = { low, high, i, j: j + 1 };
+            }
+
+            [array[i + 1], array[high]] = [array[high], array[i + 1]];
+            recordStep([i + 1, high], `ピボット ${pivot} を正しい位置に配置しました。`);
+            currentStep++;
+            renderArray([i + 1, high]);
+            updateExplanation(`ピボット ${pivot} を正しい位置に配置しました。`);
+            await new Promise(resolve => setTimeout(resolve, sortSpeed));
+
+            return i + 1;
+        }
+
+        async function selectionSort() {
+            const n = array.length;
+            for (let i = sortState.i || 0; i < n - 1; i++) {
+                let minIndex = i;
+                updateExplanation(`${i+1}番目に小さい要素を探しています。`);
+                for (let j = Math.max(i + 1, sortState.j || i + 1); j < n; j++) {
+                    if (!sorting) return;
+                    await checkPaused();
+                    recordStep([minIndex, j], `現在の最小値 ${array[minIndex]} と ${array[j]} を比較しています。`);
+                    currentStep++;
+                    renderArray([minIndex, j]);
+                    updateExplanation(`現在の最小値 ${array[minIndex]} と ${array[j]} を比較しています。`);
+                    await new Promise(resolve => setTimeout(resolve, sortSpeed));
+
+                    if (array[j] < array[minIndex]) {
+                        minIndex = j;
+                        updateExplanation(`新しい最小値 ${array[minIndex]} を見つけました。`);
+                    }
+                    sortState = { i, j: j + 1, minIndex };
+                }
+                if (minIndex !== i) {
+                    [array[i], array[minIndex]] = [array[minIndex], array[i]];
+                    recordStep([i, minIndex], `${array[i]} と ${array[minIndex]} を交換しました。`);
+                    currentStep++;
+                    renderArray([i, minIndex]);
+                    updateExplanation(`${array[i]} と ${array[minIndex]} を交換しました。`);
+                    await new Promise(resolve => setTimeout(resolve, sortSpeed));
+                }
+                sortState = { i: i + 1, j: i + 2 };
+            }
+            sortState = {};
+        }
+
+        async function insertionSort() {
+            const n = array.length;
+            for (let i = Math.max(1, sortState.i || 1); i < n; i++) {
+                let key = array[i];
+                let j = i - 1;
+                updateExplanation(`${key} を適切な位置に挿入します。`);
+                while (j >= 0 && array[j] > key) {
+                    if (!sorting) return;
+                    await checkPaused();
+                    recordStep([j, j + 1], `${array[j]} を右に移動しています。`);
+                    currentStep++;
+                    renderArray([j, j + 1]);
+                    updateExplanation(`${array[j]} を右に移動しています。`);
+                    await new Promise(resolve => setTimeout(resolve, sortSpeed));
+
+                    array[j + 1] = array[j];
+                    j--;
+                    sortState = { i, j, key };
+                }
+                array[j + 1] = key;
+                recordStep([j + 1], `${key} を位置 ${j+1} に挿入しました。`);
+                currentStep++;
+                renderArray([j + 1]);
+                updateExplanation(`${key} を位置 ${j+1} に挿入しました。`);
+                await new Promise(resolve => setTimeout(resolve, sortSpeed));
+                sortState = { i: i + 1 };
+            }
+            sortState = {};
+        }
+
+        async function shellSort() {
+            const n = array.length;
+            for (let gap = Math.floor(n/2); gap > 0; gap = Math.floor(gap/2)) {
+                for (let i = gap; i < n; i++) {
+                    let temp = array[i];
+                    let j;
+                    for (j = i; j >= gap && array[j - gap] > temp; j -= gap) {
+                        if (!sorting) return;
+                        await checkPaused();
+                        recordStep([j, j - gap], `${array[j-gap]} と ${temp} を比較しています（間隔: ${gap}）。`);
+                        currentStep++;
+                        renderArray([j, j - gap]);
+                        updateExplanation(`${array[j-gap]} と ${temp} を比較しています（間隔: ${gap}）。`);
+                        await new Promise(resolve => setTimeout(resolve, sortSpeed));
+
+                        array[j] = array[j - gap];
+                    }
+                    array[j] = temp;
+                    recordStep([j], `${temp} を位置 ${j} に挿入しました。`);
+                    currentStep++;
+                    renderArray([j]);
+                    updateExplanation(`${temp} を位置 ${j} に挿入しました。`);
+                    await new Promise(resolve => setTimeout(resolve, sortSpeed));
+                }
+            }
+            sortState = {};
+        }
+
+        async function heapSort() {
+            const n = array.length;
+
+            // ヒープを構築
+            for (let i = Math.floor(n / 2) - 1; i >= 0; i--) {
+                await heapify(n, i);
+            }
+
+            // ヒープから要素を1つずつ取り出す
+            for (let i = n - 1; i > 0; i--) {
+                if (!sorting) return;
+                await checkPaused();
+                // rootと最後の要素を交換
+                [array[0], array[i]] = [array[i], array[0]];
+                recordStep([0, i], `${array[0]} と ${array[i]} を交換しました。`);
+                currentStep++;
+                renderArray([0, i]);
+                updateExplanation(`${array[0]} と ${array[i]} を交換しました。`);
+                await new Promise(resolve => setTimeout(resolve, sortSpeed));
+
+                // ヒープサイズを減らしてヒープを再構築
+                await heapify(i, 0);
+            }
+            sortState = {};
+        }
+
+        async function heapify(n, i) {
+            let largest = i;
+            const left = 2 * i + 1;
+            const right = 2 * i + 2;
+
+            if (left < n && array[left] > array[largest]) {
+                largest = left;
+            }
+
+            if (right < n && array[right] > array[largest]) {
+                largest = right;
+            }
+
+            if (largest !== i) {
+                if (!sorting) return;
+                await checkPaused();
+                [array[i], array[largest]] = [array[largest], array[i]];
+                recordStep([i, largest], `${array[i]} と ${array[largest]} を交換しました。`);
+                currentStep++;
+                renderArray([i, largest]);
+                updateExplanation(`${array[i]} と ${array[largest]} を交換しました。`);
+                await new Promise(resolve => setTimeout(resolve, sortSpeed));
+
+                await heapify(n, largest);
+            }
+        }
+
+        async function cocktailShakerSort() {
+            let swapped = true;
+            let start = 0;
+            let end = array.length - 1;
+
+            while (swapped) {
+                swapped = false;
+
+                // 前方へのパス
+                for (let i = start; i < end; i++) {
+                    if (!sorting) return;
+                    await checkPaused();
+                    if (array[i] > array[i + 1]) {
+                        [array[i], array[i + 1]] = [array[i + 1], array[i]];
+                        swapped = true;
+                        recordStep([i, i + 1], `${array[i]} と ${array[i+1]} を交換しました。`);
+                        currentStep++;
+                        renderArray([i, i + 1]);
+                        updateExplanation(`${array[i]} と ${array[i+1]} を交換しました。`);
+                        await new Promise(resolve => setTimeout(resolve, sortSpeed));
+                    }
+                }
+
+                if (!swapped) break;
+
+                swapped = false;
+                end--;
+
+                // 後方へのパス
+                for (let i = end - 1; i >= start; i--) {
+                    if (!sorting) return;
+                    await checkPaused();
+                    if (array[i] > array[i + 1]) {
+                        [array[i], array[i + 1]] = [array[i + 1], array[i]];
+                        swapped = true;
+                        recordStep([i, i + 1], `${array[i]} と ${array[i+1]} を交換しました。`);
+                        currentStep++;
+                        renderArray([i, i + 1]);
+                        updateExplanation(`${array[i]} と ${array[i+1]} を交換しました。`);
+                        await new Promise(resolve => setTimeout(resolve, sortSpeed));
+                    }
+                }
+
+                start++;
+            }
+            sortState = {};
+        }
+
+
+        async function checkPaused() {
+            if (paused) {
+                await new Promise(resolve => {
+                    const resumeHandler = () => {
+                        paused = false;
+                        updateButtons();
+                        resolve();
+                    };
+                    document.getElementById('resumeBtn').onclick = resumeHandler;
+                });
+            }
+        }
+
+        async function startSort() {
+            if (!sorting) {
+                sorting = true;
+                paused = false;
+                array.splice(0, array.length, 5, 2, 9, 1, 7, 6, 3);
+                steps = [];
+                currentStep = -1;
+                sortState = {};
+                const algorithm = document.getElementById('algorithmSelect').value;
+                updateButtons();
+                updateExplanation(algorithmDescriptions[algorithm]);
+                
+                switch (algorithm) {
+                    case 'bubble':
+                        await bubbleSort();
+                        break;
+                    case 'quick':
+                        await quickSort();
+                        break;
+                    case 'selection':
+                        await selectionSort();
+                        break;
+                    case 'insertion':
+                        await insertionSort();
+                        break;
+                    case 'shell':
+                        await shellSort();
+                        break;
+                    case 'heap':
+                        await heapSort();
+                        break;
+                    case 'cocktail':
+                        await cocktailShakerSort();
+                        break;
+                }
+                
+                sorting = false;
+                updateButtons();
+                updateExplanation("ソートが完了しました。");
+            }
+        }
+
+        function pauseSort() {
+            paused = true;
+            updateButtons();
+        }
+
+        function resumeSort() {
+            paused = false;
+            updateButtons();
+        }
+
+        function previousStep() {
+            if (currentStep > 0) {
+                currentStep--;
+                const step = steps[currentStep];
+                array.splice(0, array.length, ...step.array);
+                renderArray(step.highlights);
+                updateExplanation(step.explanation);
+                updateButtons();
+            }
+        }
+
+        function nextStep() {
+            if (currentStep < steps.length - 1) {
+                currentStep++;
+                const step = steps[currentStep];
+                array.splice(0, array.length, ...step.array);
+                renderArray(step.highlights);
+                updateExplanation(step.explanation);
+                updateButtons();
+            }
+        }
+
+        renderArray();
+        updateButtons();
+        updateExplanation("アルゴリズムを選択し、「ソート開始」をクリックしてください。");
+
+        document.getElementById('algorithmSelect').addEventListener('change', function() {
+            updateExplanation(algorithmDescriptions[this.value]);
+        });
+
+        // ソート速度の調整機能
+        const speedSlider = document.getElementById('speed-slider');
+        const speedValue = document.getElementById('speed-value');
+
+        speedSlider.addEventListener('input', function() {
+            const speed = 11 - this.value; // スライダーの値を反転させて使用
+            sortSpeed = speed * 100; // 100ms から 1000ms の範囲で調整
+            
+            // 速度の表示を更新
+            if (speed <= 2) speedValue.textContent = "超高速";
+            else if (speed <= 4) speedValue.textContent = "高速";
+            else if (speed <= 6) speedValue.textContent = "標準";
+            else if (speed <= 8) speedValue.textContent = "低速";
+            else speedValue.textContent = "超低速";
+        });
+
+        const realWorldUsages = {
+            bubble: "データベースの小規模なデータセットの整理や、教育目的でのアルゴリズムの説明によく使用されます。",
+            quick: "大規模データの高速ソートが必要な場面で広く使用されます。例えば、ファイルシステムやデータベースの内部実装、検索エンジンの結果のランキングなどに利用されています。",
+            selection: "メモリが限られている組み込みシステムでの小規模データのソートや、部分的にソートされたデータの整理に使用されることがあります。",
+            insertion: "ほぼソートされたデータの微調整や、オンラインアルゴリズム（データが逐次的に到着する場合）での使用に適しています。例えば、リアルタイムのデータストリーム処理などに使用されます。",
+            shell: "中規模のデータセットのソートに使用されます。例えば、スプレッドシートアプリケーションでの列のソートなどに利用されることがあります。",
+            heap: "優先度付きキューの実装に使用され、オペレーティングシステムのジョブスケジューリングやグラフアルゴリズム（ダイクストラ法など）で広く利用されています。",
+            cocktail: "ほぼソートされたデータや、小さな無秩序要素が両端に偏在するデータのソートに適しています。例えば、連続的に更新される順序付きリストの維持などに使用されることがあります。"
+        };
+
+        let comparisonCount = 0;
+        let swapCount = 0;
+
+        function updateUsageExample(algorithm) {
+            document.getElementById('usageExample').textContent = realWorldUsages[algorithm];
+        }
+
+        async function comparePerformance() {
+            const algorithms = ['bubble', 'quick', 'selection', 'insertion', 'shell', 'heap', 'cocktail'];
+            const results = [];
+            const runs = 3; // 実行回数
+            const size = 20000; // データセットのサイズ
+
+            for (const alg of algorithms) {
+                let totalTime = 0;
+                let totalComparisons = 0;
+                let totalSwaps = 0;
+
+                for (let i = 0; i < runs; i++) {
+                    comparisonCount = 0;
+                    swapCount = 0;
+                    const testArray = Array.from({length: size}, () => Math.floor(Math.random() * size));
+                    
+                    const startTime = performance.now();
+
+                    switch (alg) {
+                        case 'bubble':
+                            bubbleSortForComparison(testArray);
+                            break;
+                        case 'quick':
+                            quickSortForComparison(testArray, 0, testArray.length - 1);
+                            break;
+                        case 'selection':
+                            selectionSortForComparison(testArray);
+                            break;
+                        case 'insertion':
+                            insertionSortForComparison(testArray);
+                            break;
+                        case 'shell':
+                            shellSortForComparison(testArray);
+                            break;
+                        case 'heap':
+                            heapSortForComparison(testArray);
+                            break;
+                        case 'cocktail':
+                            cocktailShakerSortForComparison(testArray);
+                            break;
+                    }
+
+                    const endTime = performance.now();
+                    totalTime += endTime - startTime;
+                    totalComparisons += comparisonCount;
+                    totalSwaps += swapCount;
+                }
+
+                results.push({
+                    algorithm: alg,
+                    time: totalTime / runs,
+                    comparisons: Math.round(totalComparisons / runs),
+                    swaps: Math.round(totalSwaps / runs)
+                });
+            }
+
+            updatePerformanceTable(results);
+        }
+
+        function updatePerformanceTable(results) {
+            const table = document.getElementById('performanceTable');
+            table.innerHTML = `
+                <tr>
+                    <th>アルゴリズム</th>
+                    <th>平均実行時間 (ms)</th>
+                    <th>平均比較回数</th>
+                    <th>平均交換回数</th>
+                </tr>
+            `;
+            results.forEach(result => {
+                table.innerHTML += `
+                    <tr>
+                        <td>${result.algorithm}</td>
+                        <td>${result.time.toFixed(3)}</td>
+                        <td>${result.comparisons.toLocaleString()}</td>
+                        <td>${result.swaps.toLocaleString()}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        // 以下、パフォーマンス比較用の各ソートアルゴリズムの実装
+        // これらの関数は視覚化なしで高速に実行され、比較回数と交換回数を記録します
+
+        async function bubbleSortForComparison(arr) {
+            const n = arr.length;
+            for (let i = 0; i < n - 1; i++) {
+                for (let j = 0; j < n - i - 1; j++) {
+                    comparisonCount++;
+                    if (arr[j] > arr[j + 1]) {
+                        swapCount++;
+                        [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
+                    }
+                }
+            }
+        }
+
+        async function quickSortForComparison(arr, low, high) {
+            if (low < high) {
+                const pi = await partitionForComparison(arr, low, high);
+                await quickSortForComparison(arr, low, pi - 1);
+                await quickSortForComparison(arr, pi + 1, high);
+            }
+        }
+
+        async function partitionForComparison(arr, low, high) {
+            const pivot = arr[high];
+            let i = low - 1;
+            for (let j = low; j < high; j++) {
+                comparisonCount++;
+                if (arr[j] < pivot) {
+                    i++;
+                    swapCount++;
+                    [arr[i], arr[j]] = [arr[j], arr[i]];
+                }
+            }
+            swapCount++;
+            [arr[i + 1], arr[high]] = [arr[high], arr[i + 1]];
+            return i + 1;
+        }
+
+        async function selectionSortForComparison(arr) {
+            const n = arr.length;
+            for (let i = 0; i < n - 1; i++) {
+                let minIdx = i;
+                for (let j = i + 1; j < n; j++) {
+                    comparisonCount++;
+                    if (arr[j] < arr[minIdx]) {
+                        minIdx = j;
+                    }
+                }
+                if (minIdx !== i) {
+                    swapCount++;
+                    [arr[i], arr[minIdx]] = [arr[minIdx], arr[i]];
+                }
+            }
+        }
+
+        async function insertionSortForComparison(arr) {
+            const n = arr.length;
+            for (let i = 1; i < n; i++) {
+                let key = arr[i];
+                let j = i - 1;
+                comparisonCount++;
+                while (j >= 0 && arr[j] > key) {
+                    swapCount++;
+                    arr[j + 1] = arr[j];
+                    j--;
+                    comparisonCount++;
+                }
+                arr[j + 1] = key;
+            }
+        }
+
+        async function shellSortForComparison(arr) {
+            const n = arr.length;
+            for (let gap = Math.floor(n/2); gap > 0; gap = Math.floor(gap/2)) {
+                for (let i = gap; i < n; i++) {
+                    let temp = arr[i];
+                    let j;
+                    for (j = i; j >= gap && arr[j - gap] > temp; j -= gap) {
+                        comparisonCount++;
+                        swapCount++;
+                        arr[j] = arr[j - gap];
+                    }
+                    arr[j] = temp;
+                }
+            }
+        }
+
+        function heapSortForComparison(arr) {
+            const n = arr.length;
+
+            // ヒープを構築
+            for (let i = Math.floor(n / 2) - 1; i >= 0; i--)
+                heapifyForComparison(arr, n, i);
+
+            // ヒープから要素を1つずつ取り出す
+            for (let i = n - 1; i > 0; i--) {
+                // rootと最後の要素を交換
+                swapCount++;
+                [arr[0], arr[i]] = [arr[i], arr[0]];
+
+                // 縮小したヒープを再構築
+                heapifyForComparison(arr, i, 0);
+            }
+        }
+
+        function heapifyForComparison(arr, n, i) {
+            let largest = i;
+            const left = 2 * i + 1;
+            const right = 2 * i + 2;
+
+            comparisonCount++; // 左の子との比較
+            if (left < n && arr[left] > arr[largest])
+                largest = left;
+
+            comparisonCount++; // 右の子との比較
+            if (right < n && arr[right] > arr[largest])
+                largest = right;
+
+            if (largest !== i) {
+                swapCount++;
+                [arr[i], arr[largest]] = [arr[largest], arr[i]];
+                heapifyForComparison(arr, n, largest);
+            }
+        }
+
+        async function cocktailShakerSortForComparison(arr) {
+            let swapped = true;
+            let start = 0;
+            let end = arr.length - 1;
+            while (swapped) {
+                swapped = false;
+                for (let i = start; i < end; i++) {
+                    comparisonCount++;
+                    if (arr[i] > arr[i + 1]) {
+                        swapCount++;
+                        [arr[i], arr[i + 1]] = [arr[i + 1], arr[i]];
+                        swapped = true;
+                    }
+                }
+                if (!swapped) break;
+                swapped = false;
+                end--;
+                for (let i = end - 1; i >= start; i--) {
+                    comparisonCount++;
+                    if (arr[i] > arr[i + 1]) {
+                        swapCount++;
+                        [arr[i], arr[i + 1]] = [arr[i + 1], arr[i]];
+                        swapped = true;
+                    }
+                }
+                start++;
+            }
+        }
+
+        // アルゴリズム選択時に実世界での応用例を更新
+        document.getElementById('algorithmSelect').addEventListener('change', function() {
+            updateUsageExample(this.value);
+            updateExplanation(algorithmDescriptions[this.value]);
+        });
+
+        // 初期表示時の更新
+        updateUsageExample(document.getElementById('algorithmSelect').value);
+    </script>
+</body>
+</html>

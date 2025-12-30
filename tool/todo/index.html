@@ -1,0 +1,2030 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
+    <title>ゆるToDo - タスク管理アプリ</title>
+    <meta name="description" content="ゆるToDoは、効率的なタスク管理と進捗トラッキングを可能にするサイバーパンクスタイルのToDoアプリです。">
+    <meta name="keywords" content="ToDo, タスク管理, 生産性, サイバーパンク, Webアプリ">
+    <meta name="author" content="たぬ">
+    <meta property="og:title" content="ゆるToDo - タスク管理アプリ">
+    <meta property="og:description" content="効率的なタスク管理と進捗トラッキングを可能にするサイバーパンクスタイルのToDoアプリ">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://tanu-ai.blog/tool/todo/">
+    <meta property="og:image" content="https://tanu-ai.blog/tool/todo/todo-app-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="ゆるToDoアプリのスクリーンショット">
+    <link rel="canonical" href="https://tanu-ai.blog/tool/todo/">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.26.0/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Handlee&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+        body {
+            font-family: 'Orbitron', sans-serif;
+            background-color: #0a0a0a;
+            color: #00ff00;
+            -webkit-text-size-adjust: 100%;
+        }
+        .cyber-glow {
+            text-shadow: 0 0 5px #00ff00, 0 0 10px #00ff00;
+        }
+        .cyber-input {
+            background-color: rgba(0, 255, 0, 0.1);
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            font-size: 14px; 
+        }
+        .cyber-button {
+            background-color: rgba(0, 255, 0, 0.2);
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            transition: all 0.3s ease;
+        }
+        .cyber-button:hover {
+            background-color: rgba(0, 255, 0, 0.4);
+            box-shadow: 0 0 10px #00ff00;
+        }
+        .cyber-button:not(:disabled):hover {
+            background-color: rgba(0, 255, 0, 0.4);
+            box-shadow: 0 0 10px #00ff00;
+        }
+        .cyber-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        .cyber-button:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px #00ff00, 0 0 10px #00ff00;
+        }
+        .cyber-list-item {
+            background-color: rgba(0, 255, 0, 0.05);
+            border: 1px solid rgba(0, 255, 0, 0.2);
+            touch-action: pan-y;
+            user-select: none;
+            transition: transform 0.2s ease;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+        .cyber-stats {
+            background-color: rgba(0, 255, 0, 0.1);
+            border: 1px solid #00ff00;
+            box-shadow: 0 0 5px #00ff00;
+        }
+        .progress-bar {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 10px;
+            background: rgba(0, 255, 0, 0.1);
+            outline: none;
+            transition: 0.2s;
+            border-radius: 5px;
+            position: relative;
+            touch-action: auto;
+            cursor: pointer;
+        }
+        .progress-bar::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: var(--progress);
+            height: 100%;
+            background-color: #00ff00;
+            border-radius: 5px 0 0 5px;
+            z-index: 1;
+        }
+        .progress-bar::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #00ff00;
+            cursor: pointer;
+            border-radius: 50%;
+            box-shadow: 0 0 5px #00ff00;
+            position: relative;
+            z-index: 2;
+        }
+        .progress-bar::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #00ff00;
+            cursor: pointer;
+            border-radius: 50%;
+            box-shadow: 0 0 5px #00ff00;
+            position: relative;
+            z-index: 2;
+        }
+        .progress-bar:disabled {
+            opacity: 0.5;
+        }
+        .progress-bar:disabled::-webkit-slider-thumb {
+            display: none;
+        }
+        .progress-bar:disabled::-moz-range-thumb {
+            display: none;
+        }
+        .progress-bar::-webkit-slider-runnable-track {
+            background: transparent;
+        }
+        .progress-bar::-moz-range-track {
+        background: transparent;
+    }
+
+        .progress-bar::-moz-range-progress {
+            background-color: #00ff00;
+            border-radius: 5px;
+        }
+
+        .task-text {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-height: 3em;
+            line-height: 1.5em;
+        }
+        .cyber-checkbox {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 1.5em;
+            height: 1.5em;
+            border: 2px solid rgba(0, 255, 0, 0.3);
+            border-radius: 50%;
+            outline: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .cyber-checkbox:checked {
+            background-color: #00ff00;
+            box-shadow: 0 0 5px #00ff00, 0 0 10px #00ff00;
+        }
+
+        .cyber-checkbox:hover {
+            border-color: #00ff00;
+            box-shadow: 0 0 5px #00ff00;
+        }
+        @media (max-width: 640px) {
+            body {
+                font-size: 14px;
+            }
+            .task-text {
+                max-width: none; 
+                white-space: normal; 
+            }
+        }
+        .cyber-subtitle {
+            color: #00ffff;
+            text-shadow: 0 0 5px #00ffff;
+            letter-spacing: 2px;
+        }
+
+        .cyber-bracket {
+            color: #ff00ff;
+            text-shadow: 0 0 5px #ff00ff;
+            margin: 0 5px;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 5px #00ff00, 0 0 10px #00ff00;
+            }
+            50% {
+                box-shadow: 0 0 20px #00ff00, 0 0 30px #00ff00;
+            }
+            100% {
+                box-shadow: 0 0 5px #00ff00, 0 0 10px #00ff00;
+            }
+        }
+
+        .cyber-subtitle {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes taskComplete {
+        0% {
+            opacity: 1;
+            box-shadow: 0 0 0 rgba(0, 255, 0, 0);
+        }
+        50% {
+            opacity: 0.5;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.7);
+        }
+        100% {
+            opacity: 1;
+            box-shadow: 0 0 0 rgba(0, 255, 0, 0);
+        }
+        }
+
+        .task-complete-animation {
+            animation: taskComplete 0.8s ease-in-out;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        .theme-paperpen {
+        background-color: #f5f5f5;
+        color: #333;
+        font-family: 'Handlee', cursive;
+        }
+
+        .theme-paperpen input,
+        .theme-paperpen select,
+        .theme-paperpen button {
+        background-color: #fff;
+        border: 1px solid #ccc;
+        color: #333;
+        transition: all 0.3s ease;
+        }
+
+        .theme-paperpen button:hover {
+        background-color: #e0e0e0;
+        }
+
+        .theme-paperpen .progress-bar {
+        background-color: #ddd;
+        }
+
+        .theme-paperpen .progress-bar::before {
+        background-color: #4CAF50;
+        }
+
+        .theme-paperpen .cyber-stats {
+        background-color: #fff;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .theme-paperpen .cyber-list-item {
+        background-color: #fff;
+        border-left: 4px solid #ccc;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+        }
+
+        .theme-paperpen .cyber-list-item:hover {
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .theme-paperpen .cyber-button {
+        background-color: #f0f0f0;
+        color: #333;
+        border: 1px solid #ccc;
+        transition: all 0.3s ease;
+        }
+
+        .theme-paperpen .cyber-button:hover {
+        background-color: #e0e0e0;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .theme-paperpen .cyber-input {
+        background-color: #fff;
+        border: 1px solid #ccc;
+        color: #333;
+        }
+
+        .theme-paperpen .cyber-checkbox {
+        border-color: #ccc;
+        }
+
+        .theme-paperpen .cyber-checkbox:checked {
+        background-color: #4CAF50;
+        border-color: #4CAF50;
+        }
+
+        input[type="text"], input[type="number"], textarea, select {
+            font-size: 16px;
+        }
+        
+        .no-zoom {
+            touch-action: manipulation;
+        }
+
+        /* レスポンシブデザイン対応 */
+        @media (min-width: 640px) {
+            .cyber-input {
+                font-size: 16px; /* sm:text-smに相当 */
+            }
+        }
+
+        /* 必要に応じて、さらに具体的なセレクタを使用 */
+        .cyber-input.w-12, .cyber-input.w-16 {
+            font-size: 12px; /* さらに小さいサイズが必要な場合 */
+        }
+
+        @media (min-width: 640px) {
+            .cyber-input.w-12, .cyber-input.w-16 {
+                font-size: 14px;
+            }
+        }
+
+        /* ドラッグ中のスタイル 
+        .cyber-list-item:active {
+            opacity: 0.6;
+
+        }*/
+
+        .cyber-list-item.dragging {
+            opacity: 0.7;
+            transform: scale(1.02);
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+        }
+
+        .cyber-list-item.drag-over {
+            transform: translateY(5px);
+        }
+
+        .drag-handle {
+            cursor: grab;
+            padding: 8px;
+            margin: -8px;
+            border-radius: 4px;
+            transition: background-color 0.3s ease;
+        }
+        .drag-handle:hover {
+            background-color: rgba(0, 255, 0, 0.2);
+        }
+        .drag-handle:active {
+            cursor: grabbing;
+            background-color: rgba(0, 255, 0, 0.4);
+        }
+
+    </style>
+</head>
+<body class="min-h-screen text-base sm:text-lg">
+    <div id="root"></div>
+    <script type="text/babel">
+    /**
+     * ゆるToDo - サイバーパンクスタイルのタスク管理アプリケーション
+     * 
+     * @version 2.0.0
+     * @author たぬ
+     * @coauthor Claude 3.5
+     * @lastModified 2024-07-03
+     */
+
+    // React Hooksのインポート
+    const { useState, useEffect, useRef, useCallback, useMemo } = React;
+
+    /**
+     * スマートフォン画面用のスクロールガイドコンポーネント
+     * @param {Object} props - コンポーネントのプロパティ
+     * @param {string} props.theme - 現在のテーマ
+     */
+    const AnimatedScrollGuide = ({ theme }) => {
+        const [visible, setVisible] = useState(true);
+
+        useEffect(() => {
+            const timer = setTimeout(() => {
+                setVisible(false);
+            }, 5000);
+
+            return () => clearTimeout(timer);
+        }, []);
+
+        if (!visible) return null;
+
+        return (
+            <div className={`flex items-center px-2 py-1 rounded-l-md animate-pulse ${
+                theme === 'cyberpunk'
+                    ? 'bg-yellow-500 bg-opacity-70 text-black'
+                    : 'bg-blue-100 text-blue-800'
+            }`}>
+                <span className="mr-1">&gt;&gt;</span>
+                <span className="text-xs whitespace-nowrap">スクロール</span>
+            </div>
+        );
+    };
+
+    /**
+     * アラートメッセージを表示するコンポーネント
+     * @param {Object} props - コンポーネントのプロパティ
+     * @param {string} props.message - 表示するメッセージ
+     * @param {boolean} props.isVisible - アラートの表示/非表示
+     * @param {Function} props.onClose - アラートを閉じる関数
+     */
+    const CyberAlert = ({ message, isVisible, onClose }) => {
+        if (!isVisible) return null;
+
+        return (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-gray-900 border-2 border-green-500 p-6 rounded-lg shadow-lg max-w-sm w-full mx-4">
+                    <p className="text-green-500 mb-4">{message}</p>
+                    <div className="flex justify-end">
+                        <button
+                            onClick={onClose}
+                            className="bg-green-500 hover:bg-green-600 text-black px-4 py-2 rounded transition duration-300 ease-in-out transform hover:scale-105"
+                        >
+                            OK
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    /**
+     * カスタム入力コンポーネント
+     * @param {Object} props - コンポーネントのプロパティ
+     */
+    const Input = ({ className, value, onChange, type = "text", ...props }) => {
+        const [internalValue, setInternalValue] = useState(String(value));
+
+        useEffect(() => {
+            setInternalValue(value === '0' || value === 0 ? '' : String(value));
+        }, [value]);
+
+        const handleChange = (e) => {
+            let newValue = e.target.value;
+            
+            if (type === "number") {
+                newValue = newValue.replace(/[^\d.]/g, '');
+                newValue = newValue.replace(/^0+(?=\d)/, '');
+                const parts = newValue.split('.');
+                if (parts.length > 2) {
+                    newValue = parts[0] + '.' + parts.slice(1).join('');
+                }
+            }
+
+            setInternalValue(newValue);
+            onChange({ target: { value: type === "number" ? (newValue || '0') : newValue } });
+        };
+
+        const handleFocus = () => {
+            if (type === "number" && internalValue === '0') {
+                setInternalValue('');
+            }
+        };
+
+        const handleBlur = () => {
+            if (type === "number") {
+                if (internalValue === '' || internalValue === '0') {
+                    setInternalValue('0');
+                    onChange({ target: { value: '0' } });
+                } else {
+                    let finalValue = String(internalValue).replace(/\.$/, '');
+                    setInternalValue(finalValue);
+                    onChange({ target: { value: finalValue } });
+                }
+            }
+        };
+
+        return (
+            <input
+                type={type === "number" ? "text" : type}
+                inputMode={type === "number" ? "decimal" : "text"}
+                className={`no-zoom cyber-input rounded px-2 py-1 ${className}`}
+                value={internalValue}
+                onChange={handleChange}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
+                {...props}
+            />
+        );
+    };
+
+    /**
+     * カスタムボタンコンポーネント
+     * @param {Object} props - コンポーネントのプロパティ
+     */
+    const Button = ({ className, children, disabled, ...props }) => (
+        <button 
+            className={`cyber-button px-3 py-1 rounded ${className} ${
+                disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-green-600 hover:shadow-lg'
+            }`}
+            disabled={disabled}
+            {...props}
+        >
+            {children}
+        </button>
+    );
+
+    /**
+     * カスタムセレクトコンポーネント
+     * @param {Object} props - コンポーネントのプロパティ
+     */
+    const Select = ({ value, onValueChange, children }) => (
+        <select 
+            value={value} 
+            onChange={(e) => onValueChange(e.target.value)} 
+            className="cyber-input rounded px-2 py-1"
+        >
+            {children}
+        </select>
+    );
+
+    /**
+     * プログレスバーコンポーネント
+     * @param {Object} props - コンポーネントのプロパティ
+     */
+    const ProgressBar = ({ value, onChange, disabled }) => (
+        <div className="flex items-center space-x-2">
+            <input
+                type="range"
+                min="0"
+                max="100"
+                value={value}
+                onChange={onChange}
+                disabled={disabled}
+                className="no-zoom progress-bar"
+                style={{ "--progress": `${value}%` }}
+            />
+            <span className="text-sm">{value}%</span>
+        </div>
+    );
+
+    /**
+     * トグルボタンコンポーネント
+     * @param {Object} props - コンポーネントのプロパティ
+     */
+    const ToggleButton = ({ isOn, onToggle, onLabel, offLabel, theme }) => {
+        const buttonClasses = theme === 'cyberpunk'
+            ? `cyber-button ${isOn ? 'bg-green-600' : 'bg-gray-600'} text-green-200`
+            : `${isOn ? 'bg-blue-100 text-blue-800' : 'bg-gray-200 text-gray-800'}`;
+
+        return (
+            <button
+                onClick={onToggle}
+                className={`inline-flex items-center space-x-2 px-3 py-2 rounded text-sm sm:text-base shadow-md hover:shadow-lg transition-shadow duration-300 ${buttonClasses} whitespace-nowrap`}
+            >
+                <span className="mr-2">{isOn ? '✓' : '✗'}</span>
+                <span>{isOn ? onLabel : offLabel}</span>
+            </button>
+        );
+    };
+
+    /**
+     * 動的ヘッダーコンポーネント
+     */
+    const DynamicHeader = () => {
+        const [message, setMessage] = useState('');
+        const [showSubtitle, setShowSubtitle] = useState(false);
+        const [currentTime, setCurrentTime] = useState('');
+        const [currentDate, setCurrentDate] = useState('');
+
+        useEffect(() => {
+            const updateDateTime = () => {
+                const now = new Date();
+                setCurrentDate(now.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }));
+                setCurrentTime(now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }));
+            };
+
+            updateDateTime();
+            const timer = setInterval(updateDateTime, 1000);
+
+            const hour = new Date().getHours();
+            let timeMessage = '';
+
+            if (hour >= 5 && hour < 12) {
+                timeMessage = 'おはようございます！';
+            } else if (hour >= 12 && hour < 18) {
+                timeMessage = 'こんにちは！';
+            } else {
+                timeMessage = 'こんばんは！';
+            }
+
+            setTimeout(() => {
+                setMessage(timeMessage);
+            }, 1000);
+
+            setTimeout(() => {
+                setShowSubtitle(true);
+            }, 2000);
+
+            setTimeout(() => {
+                setMessage('');
+            }, 3000);
+
+            return () => {
+                clearInterval(timer);
+            };
+        }, []);
+
+        return (
+            <div className="text-center mb-6">
+                <h1 className="text-2xl sm:text-3xl font-bold cyber-glow mb-2">ゆるToDo</h1>
+                <p className="text-sm sm:text-base cyber-subtitle h-6 mb-1">
+                    {currentDate} {currentTime}
+                </p>
+                <p className="text-xs sm:text-sm mt-2 cyber-subtitle h-6">
+                    {message && 
+                        <span>
+                            <span className="cyber-bracket">[</span>
+                            {message}
+                            <span className="cyber-bracket">]</span>
+                        </span>
+                    }
+                    {showSubtitle && (message ? ' ' : '')}
+                    {showSubtitle && 
+                        <span>
+                            <span className="cyber-bracket">[</span>
+                            すること・しないことも管理
+                            <span className="cyber-bracket">]</span>
+                        </span>
+                    }
+                </p>
+            </div>
+        );
+    };
+
+    /**
+     * タブコンポーネント
+     * @param {Object} props - コンポーネントのプロパティ
+     */
+    const Tabs = ({ tabs, activeTab, onTabChange }) => {
+        return (
+            <div className="flex mb-4 border-b border-green-500">
+                {tabs.map((tab) => (
+                    <button
+                        key={tab}
+                        className={`py-2 px-4 mr-2 ${
+                            activeTab === tab
+                                ? 'bg-green-500 text-black'
+                                : 'bg-transparent text-green-500'
+                        } hover:bg-green-600 hover:text-black transition-colors`}
+                        onClick={() => onTabChange(tab)}
+                    >
+                        {tab}
+                    </button>
+                ))}
+            </div>
+        );
+    };
+
+    /**
+     * メインのTodoアプリコンポーネント
+     */
+    const TodoApp = () => {
+        // 状態変数の定義
+        const [todos, setTodos] = useState([]);
+        const [newTodo, setNewTodo] = useState('');
+        const [newEstimate, setNewEstimate] = useState('');
+        const [newPriority, setNewPriority] = useState('中');
+        const [newIsNegative, setNewIsNegative] = useState(false);
+        const [alertMessage, setAlertMessage] = useState('');
+        const [isAlertVisible, setIsAlertVisible] = useState(false);
+        const [priorityFilter, setPriorityFilter] = useState('all');
+        const [editingTaskId, setEditingTaskId] = useState(null);
+        const [completedTaskId, setCompletedTaskId] = useState(null);
+        const [isDeleteConfirmVisible, setIsDeleteConfirmVisible] = useState(false);
+        const [showCompletedTasks, setShowCompletedTasks] = useState(true);
+        const [countAllTasks, setCountAllTasks] = useState(true);
+        const [isMobile, setIsMobile] = useState(false);
+        const fileInputRef = useRef(null);
+        const [tabs, setTabs] = useState(['メイン', '仕事', '趣味']);
+        const [activeTab, setActiveTab] = useState('メイン');
+        const [todosPerTab, setTodosPerTab] = useState({
+            メイン: [],
+            仕事: [],
+            趣味: [],
+        });
+
+        // 励ましのメッセージをつくる
+        const getEncouragementMessage = (totalProgress, completedProgress) => {
+            if (totalProgress === 100) return "素晴らしい！全てのタスクを完了しました！";
+            if (completedProgress >= 75) return "あと少し！がんばって！";
+            if (completedProgress >= 50) return "半分以上完了！その調子！";
+            if (completedProgress >= 25) return "良い進捗です。続けましょう！";
+            return "一歩ずつ前進しましょう！";
+        };
+
+        // タスク並び替え機能
+        const [isDragging, setIsDragging] = useState(false);
+        const dragStartY = useRef(null);
+        const draggedItem = useRef(null);
+        const dragThreshold = 5000; // ピクセル単位のドラッグ開始しきい値
+        const [draggedOverId, setDraggedOverId] = useState(null);
+        const [isDraggingHandle, setIsDraggingHandle] = useState(false);
+        const [draggedItemId, setDraggedItemId] = useState(null);
+
+        const handleDragStart = (e, id) => {
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', id);
+            setIsDragging(true);
+            setDraggedItemId(id);
+
+            const draggedElement = e.target.closest('li');
+            if (draggedElement) {
+                draggedElement.classList.add('dragging');
+            }
+
+            // タッチデバイス用
+            if (e.type === 'touchstart') {
+                const touch = e.touches[0];
+                dragStartY.current = touch.clientY;
+            }
+        };
+
+        const handleDragEnd = () => {
+            setIsDragging(false);
+            setDraggedItemId(null);
+        };
+        
+        const handleDragMove = (e) => {
+            if (!draggedItem.current) return;
+
+            const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+            const deltaY = clientY - dragStartY.current;
+
+            if (Math.abs(deltaY) > dragThreshold && !isDragging) {
+                setIsDragging(true);
+                if (e.dataTransfer) {
+                e.dataTransfer.setData('text/plain', draggedItem.current.toString());
+                }
+            }
+        };
+
+
+        const handleDragOver = (e, id) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            setDraggedOverId(id);
+        };
+
+        const handleDrop = (e, targetId) => {
+            e.preventDefault();
+            setIsDragging(false);
+            setDraggedOverId(null);
+
+            const draggedId = parseInt(e.dataTransfer ? e.dataTransfer.getData('text/plain') : draggedItem.current);
+            if (draggedId !== targetId) {
+                const newTodos = [...todosPerTab[activeTab]];
+                const draggedIndex = newTodos.findIndex(todo => todo.id === draggedId);
+                const targetIndex = newTodos.findIndex(todo => todo.id === targetId);
+                
+                const [removed] = newTodos.splice(draggedIndex, 1);
+                newTodos.splice(targetIndex, 0, removed);
+                
+                setTodosPerTab(prev => ({
+                ...prev,
+                [activeTab]: newTodos
+                }));
+            }
+            
+            draggedItem.current = null;
+        };
+
+        const handleTouchMove = (e) => {
+            if (!draggedItem.current) return;
+
+            const touch = e.touches[0];
+            const currentY = touch.clientY;
+            const deltaY = currentY - dragStartY.current;
+
+            if (Math.abs(deltaY) > 5) { // 5pxの閾値を設定
+                const draggedElement = document.elementFromPoint(touch.clientX, currentY);
+                const targetItem = draggedElement && draggedElement.closest('li');
+                if (targetItem && targetItem.dataset.id !== draggedItem.current) {
+                    handleDrop(e, parseInt(targetItem.dataset.id));
+                }
+                dragStartY.current = currentY;
+            }
+        };
+
+        // テキスト選択を防止（ドラッグ&ドロップするため）
+        const preventDefaultTouchMove = (e) => {
+            e.preventDefault();
+        };
+
+        const handleTouchStart = (e, id) => {
+            e.preventDefault(); // テキスト選択を防ぐ
+            handleDragStart(e, id);
+            document.addEventListener('touchmove', preventDefaultTouchMove, { passive: false });
+            setIsDragging(true);
+            setDraggedItemId(id);
+        };
+
+        const handleTouchEnd = () => {
+            draggedItem.current = null;
+            setIsDraggingHandle(false);
+            setDraggedOverId(null);
+            document.removeEventListener('touchmove', preventDefaultTouchMove);
+            setIsDragging(false);
+            setDraggedItemId(null);
+        };
+                        
+        // サジェスト機能
+        const [suggestions, setSuggestions] = useState([]);
+        const [selectedSuggestion, setSelectedSuggestion] = useState(-1);
+        // サジェスト機能（フォーカスが外れた際の挙動）
+        const inputRef = useRef(null);
+        const suggestionsRef = useRef(null);
+
+        const generateSuggestions = (input) => {
+            if (input.length < 2) return [];
+
+            const allTasks = Object.values(todosPerTab).flat();
+            return allTasks
+                .map(todo => todo.text)
+                .filter((text, index, self) => 
+                    text.toLowerCase().includes(input.toLowerCase()) && self.indexOf(text) === index
+                )
+                .slice(0, 5);
+        };
+
+        const handleInputBlur = () => {
+            setTimeout(() => {
+                setSuggestions([]);
+            }, 200);
+        };
+
+        useEffect(() => {
+            function handleClickOutside(event) {
+                if (inputRef.current && !inputRef.current.contains(event.target) &&
+                    suggestionsRef.current && !suggestionsRef.current.contains(event.target)) {
+                    setSuggestions([]);
+                }
+            }
+
+            document.addEventListener("mousedown", handleClickOutside);
+            return () => {
+                document.removeEventListener("mousedown", handleClickOutside);
+            };
+        }, []);
+
+        const handleInputChange = (e) => {
+            const newValue = e.target.value;
+            setNewTodo(newValue);
+            setSuggestions(generateSuggestions(newValue));
+            setSelectedSuggestion(-1);
+        };
+
+        const handleKeyDown = (e) => {
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                setSelectedSuggestion(prev => (prev < suggestions.length - 1 ? prev + 1 : prev));
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                setSelectedSuggestion(prev => (prev > 0 ? prev - 1 : -1));
+            } else if (e.key === 'Enter' && selectedSuggestion !== -1) {
+                e.preventDefault();
+                setNewTodo(suggestions[selectedSuggestion]);
+                setSuggestions([]);
+            }
+        };
+
+        const SuggestionList = React.forwardRef(({ suggestions, selectedIndex, onSelect }, ref) => (
+            <ul ref={ref} className="absolute z-10 bg-gray-800 border border-green-500 rounded mt-1 w-full">
+                {suggestions.map((suggestion, index) => (
+                    <li
+                        key={index}
+                        className={`px-2 py-1 cursor-pointer ${index=== selectedIndex ? 'bg-green-700' : 'hover:bg-green-900'}`}
+                        onClick={() => onSelect(suggestion)}
+                    >
+                        {suggestion}
+                    </li>
+                ))}
+            </ul>
+        ));
+
+        // 日本語入力中のバグ修正
+        const [isComposing, setIsComposing] = useState(false);
+        const [originalText, setOriginalText] = useState('');
+        const [composingStates, setComposingStates] = useState({});
+        const [editingValues, setEditingValues] = useState({});
+
+        // テーマ切り替えのための状態変数
+        const [currentTheme, setCurrentTheme] = useState(() => {
+            const savedTheme = localStorage.getItem('todoAppTheme');
+            return savedTheme || 'cyberpunk';
+        });
+
+        // テーマ切り替え関数
+        const toggleTheme = () => {
+            const newTheme = currentTheme === 'cyberpunk' ? 'paperpen' : 'cyberpunk';
+            setCurrentTheme(newTheme);
+            localStorage.setItem('todoAppTheme', newTheme);
+        };
+
+        // テーマに基づくスタイル
+        const getThemeStyles = () => {
+            if (currentTheme === 'cyberpunk') {
+                return {
+                    backgroundColor: '#0a0a0a',
+                    color: '#00ff00',
+                    fontFamily: "'Orbitron', sans-serif",
+                };
+            } else {
+                return {
+                    backgroundColor: '#f0f0f0',
+                    color: '#333',
+                    fontFamily: "'Handlee', cursive",
+                };
+            }
+        };
+
+        // テーマに基づくクラス名
+        const getThemeClasses = (cyberpunkClass, paperpenClass) => {
+            return currentTheme === 'cyberpunk' ? cyberpunkClass : paperpenClass;
+        };
+
+        // チュートリアル用の状態変数
+        const [showTutorial, setShowTutorial] = useState(false);
+        const [tutorialStep, setTutorialStep] = useState(0);
+        const [isLoading, setIsLoading] = useState(true);
+
+        // チュートリアルのステップ
+        const tutorialSteps = [
+            {
+                title: "ゆるToDoへようこそ！",
+                content: "このアプリではタスクの管理と進捗トラッキングが簡単にできます。チュートリアルを進めて基本機能を学びましょう。",
+            },
+            {
+                title: "タスクの追加",
+                content: "新しいタスクを追加するには、上部の入力フィールドにタスク名を入力し、予定時間を設定して「＋ 追加」ボタンをクリックします。",
+            },
+            {
+                title: "優先度の設定",
+                content: "タスクの重要度に応じて、「高」「中」「低」の優先度を設定できます。",
+            },
+            {
+                title: "「する」「しない」の切り替え",
+                content: "タスクを「しない」に設定すると、自動的に完了扱いになります。タスクの内容含めて、これは後で変更可能です。",
+            },
+            {
+                title: "進捗の更新",
+                content: "各タスクにはプログレスバーがあり、0%から100%まで進捗を更新できます。100%に到達すると自動的に完了扱いになります。",
+            },
+            {
+                title: "フィルター・並び替え機能",
+                content: "優先度でフィルタリングしたり、完了済みタスクの表示/非表示を切り替えられます。各タスクはドラッグ&ドロップでも並び替えができます。",
+            },
+            {
+                title: "データの保存とロード",
+                content: "入力された項目は、ローカルストレージに自動保存されます。そのほか「💾 セーブ」ボタンでデータをJSONファイルとして外部に保存し、「🔃 ロード」ボタンで復元できます。",
+            },
+            {
+                title: "チュートリアル完了！",
+                content: "基本機能を一通り学びました。さっそくタスク管理を始めましょう！※このチュートリアルは下部の「再表示」ボタンから再度確認することができます。",
+            },
+        ];
+
+        // チュートリアルの表示制御
+        useEffect(() => {
+            const tutorialCompleted = localStorage.getItem('tutorialCompleted');
+            if (!tutorialCompleted) {
+                setShowTutorial(true);
+            }
+            setIsLoading(false);
+        }, []);
+
+        // チュートリアルの次のステップへ
+        const handleNextTutorialStep = () => {
+            if (tutorialStep < tutorialSteps.length - 1) {
+                setTutorialStep(tutorialStep + 1);
+            } else {
+                handleCompleteTutorial();
+            }
+        };
+
+        // チュートリアルの完了
+        const handleCompleteTutorial = () => {
+            localStorage.setItem('tutorialCompleted', 'true');
+            setShowTutorial(false);
+        };
+
+        // チュートリアルの再開
+        const restartTutorial = () => {
+            localStorage.removeItem('tutorialCompleted');
+            setShowTutorial(true);
+            setTutorialStep(0);
+        };
+
+        // チュートリアルコンポーネント
+        const TutorialComponent = () => (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-gray-900 border-2 border-green-500 p-6 rounded-lg shadow-lg max-w-sm w-full mx-4 relative">
+                    <button onClick={handleCompleteTutorial} className="absolute top-2 right-2 text-green-500 hover:text-green-400">
+                        ✕
+                    </button>
+                    <h2 className="text-green-500 text-xl mb-4">{tutorialSteps[tutorialStep].title}</h2>
+                    <p className="text-green-400 mb-4">{tutorialSteps[tutorialStep].content}</p>
+                    <div className="flex justify-between items-center">
+                        <span className="text-green-500">
+                            {tutorialStep + 1} / {tutorialSteps.length}
+                        </span>
+                        <button
+                            onClick={handleNextTutorialStep}
+                            className="bg-green-500 hover:bg-green-600 text-black px-4 py-2 rounded transition duration-300 ease-in-out transform hover:scale-105"
+                        >
+                            {tutorialStep < tutorialSteps.length - 1 ? '次へ' : '完了'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+        
+        // 旧フォーマットjson検出用
+        const [isLegacyImportDialogVisible, setIsLegacyImportDialogVisible] = useState(false);
+        const [legacyImportData, setLegacyImportData] = useState(null);
+        const [showConversionButton, setShowConversionButton] = useState(false);
+
+        // タブ変更ハンドラー
+        const handleTabChange = (tab) => {
+            setActiveTab(tab);
+        };
+
+        // 時間表示を統一するためのヘルパー関数
+        const formatTime = (time) => {
+            const numTime = parseFloat(time);
+            if (numTime >= 1000) {
+                return '999+';
+            }
+            return numTime.toFixed(1).replace(/\.0$/, '');
+        };
+
+        // タスク数表示用の関数
+        const formatCount = (count) => {
+            return count >= 1000 ? '999+' : count.toString();
+        };
+
+        // タスク操作関数
+        const updateTaskText = (id, newText) => {
+            setTodosPerTab(prev => ({
+                ...prev,
+                [activeTab]: prev[activeTab].map(todo =>
+                    todo.id === id ? { ...todo, text: newText.trim() || todo.text } : todo
+                )
+            }));
+            setEditingValues(prev => ({ ...prev, [id]: newText }));
+        };
+
+        const toggleCompletedTasks = () => {
+            setShowCompletedTasks(!showCompletedTasks);
+        };
+
+        const toggleCountAllTasks = () => {
+            setCountAllTasks(!countAllTasks);
+        };
+
+        // ログメッセージ生成関数
+        const getLogMessages = () => {
+            const messages = [];
+            if (priorityFilter !== 'all') {
+                messages.push(`優先度「${priorityFilter}」のタスクのみ表示中`);
+            }
+            if (!showCompletedTasks) {
+                messages.push('完了済タスクは非表示');
+            }
+            if (countAllTasks) {
+                messages.push('非表示のタスクもカウントに含む');
+            }
+            return messages;
+        };
+
+        // 旧jsonからの移行プログラム
+        useEffect(() => {
+            migrateLocalStorageData();
+        }, []);
+
+        const migrateLocalStorageData = () => {
+            const oldData = localStorage.getItem('todos');
+            const newData = localStorage.getItem('todosPerTab');
+
+            if (oldData && !newData) {
+                try {
+                    const parsedOldData = JSON.parse(oldData);
+                    if (Array.isArray(parsedOldData)) {
+                        // 古いデータ形式を新しい形式に変換
+                        const migratedData = {
+                            メイン: parsedOldData,
+                            仕事: [],
+                            趣味: []
+                        };
+                        localStorage.setItem('todosPerTab', JSON.stringify(migratedData));
+                        setTodosPerTab(migratedData);
+                        setAlertMessage('旧バージョンのデータを新しい形式に変換しました。全てのタスクは「メイン」タブに配置されました。');
+                        setIsAlertVisible(true);
+                    }
+                } catch (error) {
+                    console.error('データの移行中にエラーが発生しました:', error);
+                    setAlertMessage('旧データの変換中にエラーが発生しました。ごめんなさい。おそらく消えてしまったようです。');
+                    setIsAlertVisible(true);
+                }
+            } else if (newData) {
+                // 新しいデータ形式が存在する場合は、それを使用
+                setTodosPerTab(JSON.parse(newData));
+            }
+        };
+
+        // ローカルストレージ新旧コンバート、手動実行用（緊急）
+        useEffect(() => {
+            const oldData = localStorage.getItem('todos');
+            const newData = localStorage.getItem('todosPerTab');
+            setShowConversionButton(!!oldData && !newData);
+        }, []);
+
+        const convertData = () => {
+            const oldData = localStorage.getItem('todos');
+            if (oldData) {
+                try {
+                    const parsedOldData = JSON.parse(oldData);
+                    if (Array.isArray(parsedOldData)) {
+                        const migratedData = {
+                            メイン: parsedOldData,
+                            仕事: [],
+                            趣味: []
+                        };
+                        localStorage.setItem('todosPerTab', JSON.stringify(migratedData));
+                        localStorage.removeItem('todos'); // 古いデータを削除
+                        setAlertMessage('データの変換が完了しました。ページをリロードします。');
+                        setIsAlertVisible(true);
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 3000); // 3秒後にリロード
+                    }
+                } catch (error) {
+                    console.error('データの変換中にエラーが発生しました:', error);
+                    setAlertMessage('データの変換中にエラーが発生しました。ごめんなさい。おそらく消えてしまったようです。');
+                    setIsAlertVisible(true);
+                }
+            } else {
+                setAlertMessage('変換するデータが見つかりませんでした。');
+                setIsAlertVisible(true);
+            }
+        };
+
+        // バージョン情報・履歴
+        const appVersion = "2.0.0";
+        const updateHistory = [
+            { version: "2.00", description: "並び替え機能の改善・日付表示の追加" },
+            { version: "1.90", description: "並び替え機能の追加" },
+            { version: "1.90", description: "ロード時のチェックを厳格化" },
+            { version: "1.80", description: "サジェスト機能の追加" },
+            { version: "1.71", description: "テーマ切り替え機能の追加（β）" },
+            { version: "1.70", description: "チュートリアル追加" },
+            { version: "1.60", description: "タブ機能の追加（β）" },
+        ];
+
+        // ローカルストレージからの読み込み
+        useEffect(() => {
+            const storedTodos = localStorage.getItem('todosPerTab');
+            if (storedTodos) {
+                setTodosPerTab(JSON.parse(storedTodos));
+            } else {
+                migrateLocalStorageData(); // データがない場合、移行を試みる
+            }
+        }, []);
+
+        // ローカルストレージへの保存
+        useEffect(() => {
+            localStorage.setItem('todosPerTab', JSON.stringify(todosPerTab));
+        }, [todosPerTab]);
+
+        useEffect(() => {
+            const checkIfMobile = () => {
+                setIsMobile(window.innerWidth < 640); // sm breakpoint
+            };
+
+            checkIfMobile();
+            window.addEventListener('resize', checkIfMobile);
+
+            return () => window.removeEventListener('resize', checkIfMobile);
+        }, []);
+
+        // タスク追加関数
+        const addTodo = () => {
+            const estimateValue = parseFloat(newEstimate);
+            if (newTodo.trim() !== '' && estimateValue && estimateValue !== 0) {
+                const finalEstimate = newIsNegative ? -Math.abs(estimateValue) : estimateValue;
+                const newTask = { 
+                    id: Date.now(), 
+                    text: newTodo, 
+                    completed: newIsNegative,
+                    estimate: finalEstimate,
+                    priority: newPriority,
+                    progress: newIsNegative ? 100 : 0
+                };
+                setTodosPerTab(prev => ({
+                    ...prev,
+                    [activeTab]: [...prev[activeTab], newTask]
+                }));
+                setNewTodo('');
+                setNewEstimate('');
+                setNewPriority('中');
+                setNewIsNegative(false);
+            } else {
+                setAlertMessage('タスク名と0以外の時間を入力してください。');
+                setIsAlertVisible(true);
+            }
+        };
+
+        // タスク切り替え関数
+        const toggleTodo = (id) => {
+            setTodosPerTab(prev => ({
+                ...prev,
+                [activeTab]: prev[activeTab].map(todo => {
+                    if (todo.id === id) {
+                        if (!todo.completed && todo.estimate >= 0) {
+                            setCompletedTaskId(id);
+                            setTimeout(() => setCompletedTaskId(null), 800);
+                            return { ...todo, completed: true, progress: 100 };
+                        } else if (todo.completed && todo.estimate >= 0) {
+                            return { ...todo, completed: true, estimate: -Math.abs(todo.estimate), progress: 100 };
+                        } else {
+                            return { ...todo, completed: false, estimate: Math.abs(todo.estimate), progress: 0 };
+                        }
+                    }
+                    return todo;
+                })
+            }));
+        };
+
+        // タスク削除関数
+        const deleteTodo = (id) => {
+            setTodosPerTab(prev => ({
+                ...prev,
+                [activeTab]: prev[activeTab].filter(todo => todo.id !== id)
+            }));
+        };
+
+        // タスクの見積もり時間更新関数
+        const updateEstimate = (id, newEstimate) => {
+            setTodosPerTab(prev => ({
+                ...prev,
+                [activeTab]: prev[activeTab].map(todo =>
+                    todo.id === id ? { ...todo, estimate: newEstimate === '' ? 0 : parseFloat(newEstimate) } : todo
+                )
+            }));
+        };
+
+        // タスクの優先度更新関数
+        const updatePriority = (id, newPriority) => {
+            setTodosPerTab(prev => ({
+                ...prev,
+                [activeTab]: prev[activeTab].map(todo =>
+                    todo.id === id ? { ...todo, priority: newPriority } : todo
+                )
+            }));
+        };
+
+        // タスクの進捗更新関数
+        const updateProgress = (id, newProgress) => {
+            setTodosPerTab(prev => ({
+                ...prev,
+                [activeTab]: prev[activeTab].map(todo =>
+                    todo.id === id && todo.estimate >= 0 ? { ...todo, progress: newProgress, completed: newProgress === 100 } : todo
+                )
+            }));
+        };
+
+        // 優先度に応じた色の定義
+        const priorityColors = {
+            '高': 'text-red-500',
+            '中': 'text-yellow-500',
+            '低': 'text-blue-500'
+        };
+
+        // タスク統計計算関数
+        const getTaskCounts = () => {
+            const tasksToCount = countAllTasks ? todosPerTab[activeTab] : filteredTodos;
+            return {
+                remaining: tasksToCount.filter(todo => !todo.completed && todo.estimate >= 0).length,
+                completed: tasksToCount.filter(todo => todo.completed && todo.estimate >= 0).length,
+                notDoing: tasksToCount.filter(todo => todo.estimate < 0).length
+            };
+        };
+
+        // タスク時間計算関数
+        const calculateTimes = () => {
+            const tasksToCount = countAllTasks ? todosPerTab[activeTab] : filteredTodos;
+            
+            const remaining = tasksToCount
+                .filter(todo => !todo.completed && todo.estimate >= 0)
+                .reduce((total, todo) => total + (parseFloat(todo.estimate) || 0), 0);
+
+            const completed = tasksToCount
+                .filter(todo => todo.completed && todo.estimate >= 0)
+                .reduce((total, todo) => total + parseFloat(todo.estimate), 0);
+
+            const notDoing = Math.abs(tasksToCount
+                .filter(todo => todo.estimate < 0)
+                .reduce((total, todo) => total + parseFloat(todo.estimate), 0));
+
+            return {
+                remaining: formatTime(remaining),
+                completed: formatTime(completed),
+                notDoing: formatTime(notDoing)
+            };
+        };
+
+        /**
+         * タスクエクスポート関数
+         * ファイル名に現在の日時を含め、エクスポート完了時にファイル名を表示する
+         */
+         const exportTodos = () => {
+            const dataStr = JSON.stringify(todosPerTab, null, 2);
+            const blob = new Blob([dataStr], {type: 'application/json'});
+            const exportFileName = `todos_${new Date().toISOString().slice(0,10)}.json`;
+
+            // SafariブラウザではiOSとMacOSの両方で動作します
+            if (window.navigator.userAgent.indexOf('Safari') > -1 && window.navigator.userAgent.indexOf('Chrome') === -1) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const a = document.createElement('a');
+                    a.href = e.target.result;
+                    a.download = exportFileName;
+                    a.textContent = "ダウンロード: " + exportFileName;
+                    a.style.display = 'none';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                };
+                reader.readAsDataURL(blob);
+            } else {
+                // 他のブラウザ用
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = exportFileName;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+
+            setAlertMessage(`タスクが "${exportFileName}" としてエクスポートされました。`);
+            setIsAlertVisible(true);
+        };
+
+        // タスクインポート関数
+        const isValidTodoItem = (item) => {
+            return (
+                typeof item === 'object' &&
+                item !== null &&
+                typeof item.id === 'number' &&
+                typeof item.text === 'string' &&
+                typeof item.completed === 'boolean' &&
+                typeof item.estimate === 'number' &&
+                typeof item.priority === 'string' &&
+                ['高', '中', '低'].includes(item.priority) &&
+                typeof item.progress === 'number' &&
+                item.progress >= 0 &&
+                item.progress <= 100
+            );
+        };
+
+        // タブの内容の型を検証
+        const isValidTabContent = (content) => {
+            return Array.isArray(content) && content.every(isValidTodoItem);
+        };
+
+        // インポートデータ全体の構造を検証
+        const isValidImportData = (data) => {
+            return (
+                typeof data === 'object' &&
+                data !== null &&
+                Object.keys(data).length > 0 &&
+                Object.values(data).every(isValidTabContent)
+            );
+        };
+
+        const importTodos = (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const importedData = JSON.parse(e.target.result);
+                        
+                        if (Array.isArray(importedData)) {
+                            // 旧フォーマットのデータ
+                            if (importedData.every(isValidTodoItem)) {
+                                setLegacyImportData(importedData);
+                                setIsLegacyImportDialogVisible(true);
+                            } else {
+                                throw new Error('Invalid legacy data structure');
+                            }
+                        } else if (isValidImportData(importedData)) {
+                            // 新フォーマットのデータ
+                            handleNewFormatImport(importedData);
+                        } else {
+                            throw new Error('Invalid data structure');
+                        }
+                    } catch (error) {
+                        console.error('Import error:', error);
+                        setAlertMessage('インポートに失敗しました。ファイルが正しい形式であることを確認してください。');
+                        setIsAlertVisible(true);
+                    }
+                };
+                reader.readAsText(file);
+            }
+        };
+
+        const handleNewFormatImport = (importedData) => {
+            setTodosPerTab(prevTabs => {
+                const updatedTabs = { ...prevTabs };
+                Object.keys(importedData).forEach(tab => {
+                    if (isValidTabContent(importedData[tab])) {
+                        updatedTabs[tab] = importedData[tab];
+                    }
+                });
+                return updatedTabs;
+            });
+
+            setTabs(prevTabs => {
+                const newTabs = new Set([...prevTabs, ...Object.keys(importedData)]);
+                return Array.from(newTabs);
+            });
+
+            setAlertMessage('タスクが正常にインポートされました。');
+            setIsAlertVisible(true);
+        };
+
+        const handleLegacyImport = () => {
+            if (legacyImportData && legacyImportData.every(isValidTodoItem)) {
+                setTodosPerTab(prevTabs => ({
+                    ...prevTabs,
+                    メイン: [...prevTabs.メイン, ...legacyImportData]
+                }));
+                setLegacyImportData(null);
+                setIsLegacyImportDialogVisible(false);
+                setAlertMessage('旧フォーマットのタスクが正常にインポートされました。');
+                setIsAlertVisible(true);
+            } else {
+                setAlertMessage('無効な旧フォーマットデータです。インポートできません。');
+                setIsAlertVisible(true);
+            }
+        };
+
+        const cancelLegacyImport = () => {
+            setLegacyImportData(null);
+            setIsLegacyImportDialogVisible(false);
+        };
+
+        // ファイル選択をリセットする関数
+        const resetFileInput = () => {
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+        };
+
+        // 全タスク削除確認ダイアログ表示関数
+        const showDeleteConfirm = () => {
+            setIsDeleteConfirmVisible(true);
+        };
+
+        // 全タスク削除関数
+        const clearAllTodos = () => {
+            setTodosPerTab(prev => ({
+                ...prev,
+                [activeTab]: []
+            }));
+            setIsDeleteConfirmVisible(false);
+            setAlertMessage(`${activeTab}タブの全てのタスクが削除されました。`);
+            setIsAlertVisible(true);
+        };
+
+        // 全タスク削除キャンセル関数
+        const cancelDelete = () => {
+            setIsDeleteConfirmVisible(false);
+        };
+
+        // 全体の進捗計算関数
+        const calculateOverallProgress = () => {
+            const todos = todosPerTab[activeTab];
+            if (todos.length === 0) return { done: 0, inProgress: 0, notDoing: 0, total: 0 };
+            
+            const totalTasks = todos.length;
+            const notDoingTasks = todos.filter(todo => todo.estimate < 0);
+            const completedTasks = todos.filter(todo => todo.completed && todo.estimate >= 0);
+            const inProgressTasks = todos.filter(todo => !todo.completed && todo.estimate >= 0);
+            
+            const notDoingPercentage = (notDoingTasks.length / totalTasks) * 100;
+            const completedPercentage = (completedTasks.length / totalTasks) * 100;
+            
+            const inProgressPercentage = inProgressTasks.reduce((sum, todo) => {
+                return sum + (todo.progress / totalTasks);
+            }, 0);
+            
+            const totalProgress = completedPercentage + inProgressPercentage + notDoingPercentage;
+            
+            return {
+                done: Math.round(completedPercentage),
+                inProgress: Math.round(inProgressPercentage),
+                notDoing: Math.round(notDoingPercentage),
+                total: Math.round(totalProgress)
+            };
+        };
+
+        // キー押下時のハンドラ関数
+        const handleKeyPress = (event, action) => {
+            if (event.key === 'Enter') {
+                action();
+            }
+        };
+
+        // 追加ボタンの無効化条件関数
+        const isAddButtonDisabled = () => {
+            return !newTodo.trim() || !newEstimate || parseFloat(newEstimate) <= 0;
+        };
+
+        // フィルタリングされたToDo配列
+        const [filteredTodos, setFilteredTodos] = useState([]);
+
+        useEffect(() => {
+            const newFilteredTodos = todosPerTab[activeTab].filter(todo => 
+                (priorityFilter === 'all' || todo.priority === priorityFilter) &&
+                (showCompletedTasks || !todo.completed || todo.estimate < 0)
+            );
+            setFilteredTodos(newFilteredTodos);
+        }, [todosPerTab, activeTab, priorityFilter, showCompletedTasks]);
+        
+        const taskCounts = getTaskCounts();
+        const taskTimes = calculateTimes();
+
+        // ローディング中のコンポーネント
+        const LoadingComponent = () => (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="text-green-500 text-2xl">読み込み中...</div>
+            </div>
+        );
+
+        // メインのレンダリング
+        if (isLoading) {
+            return <LoadingComponent />;
+        }
+
+        // JSXを返す
+        return (
+            <div className={`max-w-full sm:max-w-4xl mx-auto mt-4 sm:mt-10 p-2 sm:p-6 rounded-lg shadow-lg ${
+                getThemeClasses('border border-green-500', 'border-2 border-gray-300')
+            }`} style={getThemeStyles()}>
+            <DynamicHeader />
+
+            <Tabs tabs={tabs} activeTab={activeTab} onTabChange={handleTabChange} />
+                
+                {/* タスク入力エリア */}
+                <div className="flex flex-col sm:flex-row mb-4 space-y-2 sm:space-y-0 sm:space-x-2">
+                    {/* 上段：タスク名入力 */}
+                    <div className="relative w-full sm:w-auto flex-grow">
+                        <Input
+                            ref={inputRef}
+                            value={newTodo}
+                            onChange={handleInputChange}
+                            onKeyDown={handleKeyDown}
+                            onBlur={handleInputBlur}
+                            placeholder="新しいタスクを入力..."
+                            className="w-full text-sm sm:text-base"
+                        />
+                        {suggestions.length > 0 && (
+                            <SuggestionList
+                                ref={suggestionsRef}
+                                suggestions={suggestions}
+                                selectedIndex={selectedSuggestion}
+                                onSelect={(suggestion) => {
+                                    setNewTodo(suggestion);
+                                    setSuggestions([]);
+                                }}
+                            />
+                        )}
+                    </div>
+                    
+                    {/* 下段：時間、優先度、する/しないボタン、追加ボタン */}
+                    <div className="w-full sm:w-auto flex space-x-1 sm:space-x-2">
+                        <Input
+                            type="number"
+                            value={newEstimate}
+                            onChange={(e) => setNewEstimate(e.target.value)}
+                            placeholder="時間"
+                            className="w-16 sm:w-20 text-xs sm:text-sm"
+                            min="0.1"
+                            step="0.1"
+                            required
+                        />
+                        <Select 
+                            value={newPriority} 
+                            onValueChange={setNewPriority}
+                            className="w-16 sm:w-20 text-xs sm:text-sm"
+                        >
+                            <option value="高">高</option>
+                            <option value="中">中</option>
+                            <option value="低">低</option>
+                        </Select>
+                        <Button 
+                            onClick={() => setNewIsNegative(!newIsNegative)} 
+                            onKeyPress={(e) => handleKeyPress(e, () => setNewIsNegative(!newIsNegative))}
+                            className={`w-20 sm:w-24 text-xs sm:text-sm ${newIsNegative ? 'bg-red-500' : ''}`}
+                            tabIndex="0"
+                        >
+                            {newIsNegative ? 'しない' : 'する'}
+                        </Button>
+                        <Button 
+                            onClick={addTodo} 
+                            className="w-20 sm:w-24 whitespace-nowrap text-xs sm:text-sm"
+                            disabled={isAddButtonDisabled()}
+                        >
+                            ＋ 追加
+                        </Button>
+                    </div>
+                </div>
+
+                {/* ステータスエリア */}
+                <div className={getThemeClasses(
+                    'cyber-stats mb-4 p-3 rounded bg-gray-900',
+                    'theme-paperpen mb-4 p-3 rounded bg-white shadow-md'
+                )}>
+                    <div className="grid grid-cols-3 gap-2 sm:gap-4 text-xs sm:text-sm">
+                        {[
+                            { title: '未完了タスク', count: taskCounts.remaining, time: taskTimes.remaining, color: 'green' },
+                            { title: '完了済タスク', count: taskCounts.completed, time: taskTimes.completed, color: 'blue' },
+                            { title: 'しないタスク', count: taskCounts.notDoing, time: taskTimes.notDoing, color: 'red' }
+                        ].map((item, index) => (
+                            <div key={index} className={getThemeClasses(
+                                'bg-gray-800 p-2 sm:p-3 rounded',
+                                'bg-gray-100 p-2 sm:p-3 rounded shadow'
+                            )}>
+                                <h3 className={`text-sm sm:text-base font-bold mb-1 sm:mb-2 truncate ${
+                                    getThemeClasses(`text-${item.color}-400`, `text-${item.color}-600`)
+                                }`}>
+                                    {item.title}
+                                </h3>
+                                <div className="flex items-center justify-between mb-1">
+                                    <span className="mr-1">{index === 0 ? '📋' : index === 1 ? '✅' : '🚫'}</span>
+                                    <span className={`font-bold text-base sm:text-lg w-14 text-right ${
+                                        getThemeClasses('text-green', 'text-gray-800')
+                                    }`}>
+                                        {formatCount(item.count)}
+                                        <span className="invisible text-xs sm:text-sm ml-1">h</span>
+                                    </span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="mr-1">⏱️</span>
+                                    <span className={`font-bold text-base sm:text-lg w-14 text-right ${
+                                        getThemeClasses('text-green', 'text-gray-800')
+                                    }`}>
+                                        {formatTime(item.time)}
+                                        <span className="text-xs sm:text-sm ml-1">h</span>
+                                    </span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="mt-3">
+                        <div className="text-sm mb-1 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                            <span>
+                                全体の進捗: {calculateOverallProgress().total}% / 完了: {calculateOverallProgress().done}% / {calculateOverallProgress().notDoing}% しない
+                            </span>
+                            <span className={`text-sm ${getThemeClasses('text-green-400', 'text-blue-600')} font-bold mt-1 sm:mt-0`}>
+                                {getEncouragementMessage(calculateOverallProgress().total, calculateOverallProgress().done)}
+                            </span>
+                        </div>
+                        <div className="w-full bg-gray-700 rounded-full h-2.5 relative overflow-hidden">
+                            <div 
+                                className="absolute top-0 left-0 bg-green-600 h-full" 
+                                style={{width: `${calculateOverallProgress().done}%`}}
+                            ></div>
+                            <div 
+                                className="absolute top-0 left-0 bg-yellow-400 h-full" 
+                                style={{width: `${calculateOverallProgress().inProgress}%`, left: `${calculateOverallProgress().done}%`}}
+                            ></div>
+                            <div 
+                                className="absolute top-0 right-0 bg-red-600 h-full" 
+                                style={{width: `${calculateOverallProgress().notDoing}%`}}
+                            ></div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* フィルターエリア */}
+                <div className={`mb-4 overflow-x-auto relative rounded ${
+                    getThemeClasses('bg-gray-800', 'bg-white shadow-md')
+                }`}>
+                    <div className="flex items-center space-x-2 sm:space-x-4 p-2 min-w-max relative">
+                        <label htmlFor="priority-filter" className={`inline-flex items-center space-x-2 px-3 py-2 rounded text-xs sm:text-sm shadow-md transition-shadow duration-300 whitespace-nowrap ${
+                            getThemeClasses('cyber-button bg-gray-700 text-green-400', 'bg-gray-200 text-gray-800')
+                        }`}>
+                            <span>&#x1F50D;</span>
+                            <span>優先度：</span>
+                            <select
+                                id="priority-filter"
+                                value={priorityFilter}
+                                onChange={(e) => setPriorityFilter(e.target.value)}
+                                className={getThemeClasses(
+                                    'bg-transparent border-none text-green-200 focus:outline-none',
+                                    'bg-white border-none text-gray-800 focus:outline-none'
+                                )}
+                            >
+                                <option value="all">全て</option>
+                                <option value="高">高</option>
+                                <option value="中">中</option>
+                                <option value="低">低</option>
+                            </select>
+                        </label>
+
+                        <ToggleButton
+                            isOn={showCompletedTasks}
+                            onToggle={toggleCompletedTasks}
+                            onLabel="完了済タスクを表示中"
+                            offLabel="完了済タスクを非表示中"
+                            theme={currentTheme}
+                        />
+
+                        <ToggleButton
+                            isOn={countAllTasks}
+                            onToggle={toggleCountAllTasks}
+                            onLabel="全タスクをカウント中"
+                            offLabel="表示タスクのみカウント中"
+                            theme={currentTheme}
+                        />
+                    </div>
+                    {isMobile && (
+                        <div className="absolute right-0 top-1/2 transform -translate-y-1/2">
+                            <AnimatedScrollGuide theme={currentTheme} />
+                        </div>
+                    )}
+                </div>
+
+                <ul className="space-y-2 mb-4">
+                    {filteredTodos.map(todo => (
+                        <li
+                            key={todo.id}
+                            data-id={todo.id}
+                            className={`p-2 sm:p-3 rounded text-xs sm:text-sm flex items-center cyber-list-item ${
+                                todo.estimate < 0 ? 'bg-red-900' : 
+                                todo.completed ? 'bg-green-900' : ''
+                            } ${isDragging && draggedItemId === todo.id ? 'dragging' : ''}`}
+                            onDragOver={(e) => handleDragOver(e, todo.id)}
+                            onDrop={(e) => handleDrop(e, todo.id)}
+                        >
+                        <div
+                            className="drag-handle mr-1 text-xl"
+                            draggable="true"
+                            onDragStart={(e) => handleDragStart(e, todo.id)}
+                            onDragEnd={handleDragEnd}
+                            onTouchStart={(e) => handleTouchStart(e, todo.id)}
+                            onTouchEnd={handleTouchEnd}
+                        >
+                            ⋮⋮
+                        </div>
+                            <div className="flex-grow">
+                            <div className="flex items-center mb-2">
+                                <button
+                                onClick={() => toggleTodo(todo.id)}
+                                className={`mr-2 flex-shrink-0 w-6 h-6 rounded-full border-2 ${
+                                    todo.estimate < 0 ? 'border-red-500 bg-red-500' :
+                                    todo.completed ? 'border-green-500 bg-green-500' : 'border-yellow-500'
+                                }`}
+                                >
+                                {todo.estimate < 0 ? '✗' : todo.completed ? '✓' : ''}
+                                </button>
+                                
+                                {editingTaskId === todo.id ? (
+                                <input
+                                    type="text"
+                                    value={editingValues[todo.id] !== undefined ? editingValues[todo.id] : todo.text}
+                                    onChange={(e) => {
+                                    setEditingValues(prev => ({ ...prev, [todo.id]: e.target.value }));
+                                    }}
+                                    onCompositionStart={() => {
+                                    setComposingStates(prev => ({ ...prev, [todo.id]: true }));
+                                    }}
+                                    onCompositionEnd={(e) => {
+                                    setComposingStates(prev => ({ ...prev, [todo.id]: false }));
+                                    updateTaskText(todo.id, e.target.value);
+                                    }}
+                                    onBlur={() => {
+                                    setEditingTaskId(null);
+                                    setComposingStates(prev => ({ ...prev, [todo.id]: false }));
+                                    updateTaskText(todo.id, editingValues[todo.id] !== undefined ? editingValues[todo.id] : todo.text);
+                                    }}
+                                    onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !composingStates[todo.id]) {
+                                        setEditingTaskId(null);
+                                        setComposingStates(prev => ({ ...prev, [todo.id]: false }));
+                                        updateTaskText(todo.id, editingValues[todo.id] !== undefined ? editingValues[todo.id] : todo.text);
+                                    } else if (e.key === 'Escape') {
+                                        setEditingTaskId(null);
+                                        setEditingValues(prev => ({ ...prev, [todo.id]: todo.text }));
+                                    }
+                                    }}
+                                    className="no-zoom flex-grow mr-2 bg-transparent border-b border-green-500 focus:outline-none"
+                                    autoFocus
+                                />
+                                ) : (
+                                <span 
+                                className={`task-text flex-grow mr-2 ${todo.completed || todo.estimate < 0 ? 'line-through' : ''}`}
+                                onClick={(e) => {
+                                    e.preventDefault(); // テキスト選択を防ぐ
+                                    setEditingTaskId(todo.id);
+                                    setEditingValues(prev => ({ ...prev, [todo.id]: todo.text }));
+                                }}
+                                    title={todo.text}
+                                >
+                                    {todo.text || '(空のタスク)'}
+                                </span>
+                                )}
+                                <div className="flex items-center space-x-1 sm:space-x-2 ml-auto">
+                                <div className="flex items-center">
+                                    <span className="mr-1">⏱️</span>
+                                    <Input
+                                    type="number"
+                                    value={Math.abs(todo.estimate)}
+                                    onChange={(e) => updateEstimate(todo.id, todo.estimate < 0 ? -Math.abs(e.target.value) : Math.abs(e.target.value))}
+                                    className="cyber-input rounded px-2 py-1 w-12 sm:w-16 text-xs sm:text-sm"
+                                    min="0"
+                                    step="0.1"
+                                    />
+                                    <span className="ml-1 text-xs sm:text-sm">h</span>
+                                </div>
+                                <Select 
+                                    value={todo.priority} 
+                                    onValueChange={(value) => updatePriority(todo.id, value)}
+                                    className="w-14 sm:w-16 text-xs sm:text-sm"
+                                >
+                                    <option value="高">高</option>
+                                    <option value="中">中</option>
+                                    <option value="低">低</option>
+                                </Select>
+                                <span className={`flex-shrink-0 ${priorityColors[todo.priority]}`}>⚑</span>
+                                <Button onClick={() => deleteTodo(todo.id)} className="text-red-500 hover:text-red-700 flex-shrink-0 text-xs sm:text-sm">
+                                    ✗
+                                </Button>
+                                </div>
+                            </div>
+                            <ProgressBar 
+                                value={todo.progress} 
+                                onChange={(e) => updateProgress(todo.id, parseInt(e.target.value))} 
+                                disabled={todo.completed || todo.estimate < 0}
+                            />
+                            </div>
+                        </li>
+                        ))}
+                </ul>
+                <div className="flex justify-between mb-4">
+                    <Button onClick={exportTodos} className="mr-2">
+                        💾 セーブ
+                    </Button>
+                    <div>
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            style={{ display: 'none' }}
+                            onChange={(e) => {
+                                importTodos(e);
+                                resetFileInput();
+                            }}
+                            accept=".json"
+                        />
+                        <Button onClick={() => fileInputRef.current.click()} className="mr-2">
+                            🔃 ロード
+                        </Button>
+                    </div>
+                    <Button onClick={showDeleteConfirm} className="bg-red-500 hover:bg-red-600">
+                        🗑️ 全て消去
+                    </Button>
+                </div>
+
+                <div className="text-center text-xs sm:text-sm text-gray-500 mb-2">
+                    &copy; 2024 ゆるToDo All Rights Reserved.
+                    <br />
+                    制作: たぬ | コーディング協力: Claude 3.5
+                    <br />
+                    <span className="text-xs">Version 2.0.0 "Cyber ToDo" (2024-07-03 23:30)</span>
+                </div>
+                <div className="text-center text-xs text-gray-400 mt-4">
+                    <p>This application uses React, ReactDOM, Babel, and Tailwind CSS, which are licensed under the MIT License.</p>
+                    <p>
+                        <a href="https://opensource.org/licenses/MIT" className="underline hover:text-gray-300" target="_blank" rel="noopener noreferrer">
+                            MIT License
+                        </a>
+                    </p>
+                </div>
+
+                {/* チュートリアル再開ボタン・テーマ切り替えボタン */}
+                <div className="mt-4 flex flex-row justify-center items-center space-x-2">
+                    <Button 
+                        onClick={restartTutorial} 
+                        className={`flex-1 px-2 py-1 text-xs sm:text-sm ${getThemeClasses('bg-blue-500 hover:bg-blue-600', 'bg-blue-100 hover:bg-blue-200 text-blue-800')}`}
+                        title="アプリの使い方を再確認できます"
+                    >
+                        <span className="sm:hidden">📘 チュートリアル</span>
+                        <span className="hidden sm:inline">📘 チュートリアル</span>
+                    </Button>
+                    <Button 
+                        onClick={toggleTheme} 
+                        className={`flex-1 px-2 py-1 text-xs sm:text-sm ${getThemeClasses('bg-green-500 hover:bg-green-600', 'bg-gray-300 hover:bg-gray-400 text-gray-800')}`}
+                        title={currentTheme === 'cyberpunk' ? '紙とペン風のデザインに切り替えます（β版）' : 'サイバーパンク風のデザインに切り替えます'}
+                    >
+                        <span className="sm:hidden">{currentTheme === 'cyberpunk' ? '🖋️紙ペン風テーマ（β）' : '🌐サイバーパンク風'}</span>
+                        <span className="hidden sm:inline">{currentTheme === 'cyberpunk' ? '🖋️ 紙ペン風テーマ（β）' : '🌐 サイバーパンク風'}</span>
+                    </Button>
+                </div>
+
+                {/* チュートリアルコンポーネント */}
+                {showTutorial && <TutorialComponent />}
+
+                {/* Enhanced Cyberpunk-style Log */}
+                <div className="mt-6 p-4 bg-black bg-opacity-50 border border-green-500 rounded-lg text-green-400 font-mono text-xs">
+                    <div className="mb-2 text-green-500 text-sm">[System Log]</div>
+                    
+                    {/* Current Status */}
+                    <div className="mb-4">
+                        <div className="text-yellow-500">[Current Status]</div>
+                        {getLogMessages().map((message, index) => (
+                            <div key={index} className="flex items-start">
+                                <span className="mr-2 text-blue-400">[INFO]</span>
+                                <span>{message}</span>
+                            </div>
+                        ))}
+                        {getLogMessages().length === 0 && (
+                            <div className="flex items-start">
+                                <span className="mr-2 text-blue-400">[INFO]</span>
+                                <span>全タスク表示中</span>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* System Info */}
+                    <div className="mb-4">
+                        <div className="text-yellow-500">[System Info]</div>
+                        <div className="flex items-start">
+                            <span className="mr-2 text-blue-400">[DATA]</span>
+                            <span>データはローカルストレージに保存されます</span>
+                        </div>
+                        <div className="flex items-start">
+                            <span className="mr-2 text-red-400">[WARN]</span>
+                            <span>本アプリの使用は自己責任でお願いします</span>
+                        </div>
+                    </div>
+
+                    {/* Version Info */}
+                    <div className="mb-4">
+                        <div className="text-yellow-500">[Version Info]</div>
+                        <div className="flex items-start">
+                            <span className="mr-2 text-purple-400">[VER ]</span>
+                            <span>Current Version: {appVersion}</span>
+                        </div>
+                    </div>
+
+                    {/* Update History */}
+                    <div>
+                        <div className="text-yellow-500">[Update History]</div>
+                        {updateHistory.map((update, index) => (
+                            <div key={index} className="flex items-start">
+                                <span className="mr-2 text-green-400">[{update.version}]</span>
+                                <span>{update.description}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+                
+                <CyberAlert
+                    message={alertMessage}
+                    isVisible={isAlertVisible}
+                    onClose={() => setIsAlertVisible(false)}
+                />
+
+                {isDeleteConfirmVisible && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                        <div className="bg-gray-900 border-2 border-green-500 p-6 rounded-lg shadow-lg max-w-sm w-full mx-4">
+                            <p className="text-green-500 mb-4">現在選択されているタブの、全てのタスクを削除します。よろしいですか？</p>
+                            <div className="flex justify-end space-x-4">
+                                <Button onClick={clearAllTodos} className="bg-red-500 hover:bg-red-600">
+                                    はい
+                                </Button>
+                                <Button onClick={cancelDelete}>
+                                    いいえ
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {isLegacyImportDialogVisible && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                        <div className="bg-gray-900 border-2 border-green-500 p-6 rounded-lg shadow-lg max-w-sm w-full mx-4">
+                            <p className="text-green-500 mb-4">旧バージョンのjsonファイルを復元します。メインタブに復元されます。よろしいですか？</p>
+                            <div className="flex justify-end space-x-4">
+                                <Button onClick={handleLegacyImport} className="bg-green-500 hover:bg-green-600">
+                                    はい
+                                </Button>
+                                <Button onClick={cancelLegacyImport}>
+                                    いいえ
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+            </div>
+        );
+    };
+        
+    ReactDOM.render(<TodoApp />, document.getElementById('root'));
+    </script>
+</body>
+</html>

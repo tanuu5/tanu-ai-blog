@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>100マス計算</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.18.13/babel.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; display: flex; flex-direction: column; min-height: 100vh; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; flex: 1; }
+        .grid { 
+            display: grid; 
+            grid-template-columns: repeat(11, 1fr); 
+            gap: 1px; 
+            background-color: #ccc; 
+            border: 1px solid #ccc; 
+        }
+        .cell { 
+            background-color: white; 
+            aspect-ratio: 1; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            font-size: 14px;
+            border: 1px solid #ccc;
+        }
+        .header { background-color: #f0f0f0; font-weight: bold; }
+        input[type="number"] { 
+            width: 100%; 
+            height: 100%; 
+            border: none; 
+            text-align: center; 
+            font-size: 14px; 
+            padding: 0; 
+            box-sizing: border-box; 
+            -moz-appearance: textfield; 
+        }
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        button { margin: 10px 5px; padding: 5px 10px; }
+        .incorrect { background-color: #ffdddd; }
+        footer { background-color: #f0f0f0; padding: 10px; text-align: center; font-size: 12px; }
+        .print-header { display: none; }
+        @media print {
+            .no-print, footer { display: none; }
+            body { display: block; }
+            .container { 
+                margin: 0; 
+                padding: 10px; 
+                max-width: 100%; 
+                page-break-after: avoid;
+            }
+            .grid { 
+                width: 100%; 
+                height: auto; 
+                aspect-ratio: 1;
+                gap: 0;
+                border: 1px solid black;
+            }
+            .cell { 
+                font-size: 10px; 
+                border: 1px solid black;
+            }
+            input[type="number"] { 
+                font-size: 10px; 
+                border: none;
+            }
+            .print-header { 
+                display: block; 
+                margin-bottom: 10px;
+            }
+            .print-header input {
+                border: none;
+                border-bottom: 1px solid black;
+                margin-right: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <footer class="no-print">
+        <p>© 2024 100マス計算アプリ All Rights Reserved.</p>
+        <p>制作: たぬ | 開発支援: Claude 3.5 Sonnet (2024-07-28)</p>
+        <p>This application uses React, ReactDOM, and Babel, which are licensed under the MIT License.</p>
+    </footer>
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        function App() {
+            const [started, setStarted] = useState(false);
+            const [numbers, setNumbers] = useState({ row: [], col: [] });
+            const [answers, setAnswers] = useState(Array(100).fill(''));
+            const [timer, setTimer] = useState(0);
+            const [isRunning, setIsRunning] = useState(false);
+            const [score, setScore] = useState(null);
+            const [incorrectCells, setIncorrectCells] = useState([]);
+            const intervalRef = useRef(null);
+
+            useEffect(() => {
+                if (isRunning) {
+                    intervalRef.current = setInterval(() => {
+                        setTimer((prevTimer) => prevTimer + 1);
+                    }, 1000);
+                }
+                return () => clearInterval(intervalRef.current);
+            }, [isRunning]);
+
+            const generateNumbers = () => {
+                const generateRandomNumbers = () => {
+                    const nums = Array.from({length: 9}, (_, i) => i + 1);
+                    nums.push(0);
+                    return nums.sort(() => Math.random() - 0.5);
+                };
+                setNumbers({
+                    row: generateRandomNumbers(),
+                    col: generateRandomNumbers()
+                });
+                setAnswers(Array(100).fill(''));
+                setStarted(true);
+                setIsRunning(true);
+                setTimer(0);
+                setScore(null);
+                setIncorrectCells([]);
+            };
+
+            const handleInputChange = (index, value) => {
+                const newAnswers = [...answers];
+                newAnswers[index] = value;
+                setAnswers(newAnswers);
+                if (newAnswers.every(answer => answer !== '')) {
+                    setIsRunning(false);
+                }
+            };
+
+            const checkAnswers = () => {
+                setIsRunning(false);
+                let correctCount = 0;
+                const newIncorrectCells = [];
+                for (let i = 0; i < 10; i++) {
+                    for (let j = 0; j < 10; j++) {
+                        const index = i * 10 + j;
+                        const correctAnswer = numbers.row[i] * numbers.col[j];
+                        if (answers[index] === '' || parseInt(answers[index]) !== correctAnswer) {
+                            newIncorrectCells.push(index);
+                        } else {
+                            correctCount++;
+                        }
+                    }
+                }
+                setScore(correctCount);
+                setIncorrectCells(newIncorrectCells);
+            };
+
+            const formatTime = (time) => {
+                const minutes = Math.floor(time / 60);
+                const seconds = time % 60;
+                return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            };
+
+            return (
+                <div className="container">
+                    <div className="print-header">
+                        日付: <input type="text" />
+                        名前: <input type="text" />
+                    </div>
+                    <h1>100マス計算</h1>
+                    {!started && (
+                        <button onClick={generateNumbers} className="no-print">スタート</button>
+                    )}
+                    {started && (
+                        <React.Fragment>
+                            <div className="no-print">
+                                <p>時間: {formatTime(timer)}</p>
+                                <button onClick={checkAnswers}>採点する</button>
+                                <button onClick={() => window.print()}>印刷する</button>
+                            </div>
+                            {score !== null && <p className="no-print">スコア: 100問中 {score} 問正解</p>}
+                            <div className="grid">
+                                <div className="cell header"></div>
+                                {numbers.col.map((num, index) => (
+                                    <div key={index} className="cell header">{num}</div>
+                                ))}
+                                {numbers.row.map((rowNum, rowIndex) => (
+                                    <React.Fragment key={rowIndex}>
+                                        <div className="cell header">{rowNum}</div>
+                                        {numbers.col.map((colNum, colIndex) => {
+                                            const index = rowIndex * 10 + colIndex;
+                                            return (
+                                                <div key={colIndex} className={`cell ${incorrectCells.includes(index) ? 'incorrect' : ''}`}>
+                                                    <input
+                                                        type="number"
+                                                        value={answers[index]}
+                                                        onChange={(e) => handleInputChange(index, e.target.value)}
+                                                    />
+                                                </div>
+                                            );
+                                        })}
+                                    </React.Fragment>
+                                ))}
+                            </div>
+                        </React.Fragment>
+                    )}
+                </div>
+            );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>

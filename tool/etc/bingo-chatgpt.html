@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ビンゴアプリ</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            text-align: center;
+            background-color: #f0f0f0;
+            color: #333;
+        }
+        .bingo-board {
+            display: grid;
+            grid-template-columns: repeat(5, 80px);
+            grid-gap: 15px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .bingo-cell {
+            width: 80px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #333;
+            cursor: pointer;
+            background-color: #fff;
+            font-size: 24px;
+            transition: background-color 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .bingo-cell.open {
+            background-color: #ff6b6b;
+            color: #fff;
+        }
+        .bingo-cell.center {
+            background-color: #ff6b6b;
+            color: #fff;
+            pointer-events: none;
+        }
+        .highlight {
+            background-color: #4caf50 !important;
+            color: #fff;
+        }
+        .input-container {
+            margin-top: 20px;
+        }
+        .input-container input {
+            padding: 10px;
+            font-size: 16px;
+            width: 100px;
+            margin-right: 10px;
+        }
+        .input-container button {
+            padding: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #333;
+            color: #fff;
+            border: none;
+            transition: background-color 0.3s ease;
+        }
+        .input-container button:hover {
+            background-color: #555;
+        }
+        .timestamp {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #777;
+        }
+    </style>
+</head>
+<body>
+    <h1>ビンゴゲーム</h1>
+    <div class="input-container">
+        <input type="number" id="numberRange" placeholder="数字の幅" min="1">
+        <button onclick="generateBingoBoard()">ビンゴ生成</button>
+    </div>
+    <div class="timestamp" id="timestamp"></div>
+    <div class="bingo-board" id="bingoBoard"></div>
+
+    <script>
+        // ビンゴボードの生成
+        function generateBingoBoard() {
+            const board = document.getElementById("bingoBoard");
+            board.innerHTML = ""; // ボードをリセット
+            const rangeInput = document.getElementById("numberRange").value;
+            const maxNumber = rangeInput ? parseInt(rangeInput) : 60;
+            let numbers = Array.from({ length: 25 }, (_, i) => i + 1);
+            numbers = numbers.map(() => Math.floor(Math.random() * maxNumber) + 1);
+            numbers.splice(12, 1); // 真ん中の数字を削除
+
+            shuffle(numbers);
+
+            for (let i = 0; i < 25; i++) {
+                const cell = document.createElement("div");
+                cell.classList.add("bingo-cell");
+                if (i === 12) {
+                    cell.classList.add("center", "open");
+                } else {
+                    cell.textContent = numbers.pop();
+                    cell.addEventListener("click", () => handleCellClick(cell));
+                }
+                board.appendChild(cell);
+            }
+
+            // 現在の日時を表示
+            const timestampElement = document.getElementById("timestamp");
+            const now = new Date();
+            timestampElement.textContent = `このビンゴは ${now.toLocaleString()} に生成されました`;
+        }
+
+        // 配列をシャッフルする関数
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        // セルがクリックされたときの処理
+        function handleCellClick(cell) {
+            cell.classList.add("open");
+            checkBingo();
+        }
+
+        // ビンゴのチェック
+        function checkBingo() {
+            const cells = document.querySelectorAll(".bingo-cell");
+            const patterns = [
+                // 横のビンゴ
+                [0, 1, 2, 3, 4], [5, 6, 7, 8, 9], [10, 11, 12, 13, 14], [15, 16, 17, 18, 19], [20, 21, 22, 23, 24],
+                // 縦のビンゴ
+                [0, 5, 10, 15, 20], [1, 6, 11, 16, 21], [2, 7, 12, 17, 22], [3, 8, 13, 18, 23], [4, 9, 14, 19, 24],
+                // 斜めのビンゴ
+                [0, 6, 12, 18, 24], [4, 8, 12, 16, 20]
+            ];
+
+            patterns.forEach(pattern => {
+                if (pattern.every(index => cells[index].classList.contains("open"))) {
+                    pattern.forEach(index => cells[index].classList.add("highlight"));
+                }
+            });
+        }
+
+        // 初期化
+        generateBingoBoard();
+    </script>
+</body>
+</html>

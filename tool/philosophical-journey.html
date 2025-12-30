@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>不思議な問いの森：内なる旅</title>
+  <!-- Tailwind CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+  <style>
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes cloud {
+      from { transform: translateX(-100px); }
+      to { transform: translateX(calc(100vw + 200px)); }
+    }
+    .animate-float {
+      animation: float 6s ease-in-out infinite;
+    }
+    .animate-fadeInUp {
+      animation: fadeInUp 0.8s ease-out forwards;
+    }
+    .animate-fadeIn {
+      animation: fadeIn 1s ease-out forwards;
+    }
+    .animate-cloud {
+      animation: cloud linear infinite;
+    }
+    .text-shadow {
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    /* テーマスタイル */
+    .theme-cosmic {
+      background: linear-gradient(to bottom right, #312e81, #4c1d95, #000);
+      color: white;
+    }
+    .theme-digital {
+      background: linear-gradient(to bottom right, #1e3a8a, #155e75, #115e59);
+      color: white;
+    }
+    .theme-nature {
+      background: linear-gradient(to bottom right, #166534, #065f46, #115e59);
+      color: white;
+    }
+    .theme-light {
+      background: linear-gradient(to bottom right, #fbbf24, #fcd34d, #fdba74);
+      color: #1f2937;
+    }
+    .theme-dark {
+      background: linear-gradient(to bottom right, #111827, #1f2937, #000);
+      color: white;
+    }
+    .theme-balanced {
+      background: linear-gradient(to bottom right, #374151, #4b5563, #6b7280);
+      color: white;
+    }
+    .theme-earth {
+      background: linear-gradient(to bottom right, #92400e, #b45309, #c2410c);
+      color: white;
+    }
+    .theme-air {
+      background: linear-gradient(to bottom right, #60a5fa, #67e8f9, #38bdf8);
+      color: #1f2937;
+    }
+    .theme-water {
+      background: linear-gradient(to bottom right, #1e40af, #0e7490, #115e59);
+      color: white;
+    }
+    .theme-fire {
+      background: linear-gradient(to bottom right, #b91c1c, #c2410c, #b45309);
+      color: white;
+    }
+
+    /* 視覚効果 */
+    .stars {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      background: white;
+      border-radius: 50%;
+      animation: pulse 3s infinite;
+    }
+    .bubble {
+      position: absolute;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background-color: rgba(103, 232, 249, 0.1);
+      animation: float 6s infinite;
+    }
+    .flame {
+      position: absolute;
+      width: 8px;
+      height: 16px;
+      background-color: rgba(251, 146, 60, 0.5);
+      border-radius: 100% 100% 0 0;
+      animation: flicker 0.5s infinite;
+    }
+    .cloud {
+      position: absolute;
+      background-color: rgba(255, 255, 255, 0.2);
+      border-radius: 50%;
+      animation: cloud linear infinite;
+    }
+    .box {
+      position: absolute;
+      border: 1px solid rgba(6, 182, 212, 0.4);
+      opacity: 0.2;
+      animation: pulse 4s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 0.7; }
+    }
+    @keyframes flicker {
+      0%, 100% { transform: scaleY(1); }
+      50% { transform: scaleY(1.1); }
+    }
+
+    @media (hover: hover) {
+      /* マウスを持つデバイス向けホバー効果 */
+      .option-button:hover {
+        background-color: rgba(0, 0, 0, 0.5) !important;
+        border-color: rgba(255, 255, 255, 0.5) !important;
+      }
+    }
+    
+    /* タッチデバイス向けのアクティブ状態 */
+    .touch-active {
+      background-color: rgba(0, 0, 0, 0.5) !important;
+      border-color: rgba(255, 255, 255, 0.5) !important;
+      transform: scale(0.98);
+    }
+    
+    /* 選択後の無効化状態 */
+    .option-button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    /* モーダル関連のスタイル修正 */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 9999;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      overflow-y: auto;
+    }
+    .modal-content {
+      position: relative;
+      margin: 5% auto;
+      padding: 20px;
+      width: 90%;
+      max-width: 600px;
+      max-height: 80vh;
+      overflow-y: auto;
+      animation: fadeInUp 0.5s;
+    }
+    .result-image-container {
+      max-height: 60vh;
+      overflow-y: auto;
+      margin-bottom: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+    }
+    .modal-footer {
+      position: sticky;
+      bottom: 0;
+      background-color: rgba(17, 24, 39, 0.9);
+      padding: 15px 0;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(8px);
+    }
+    .close-button {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-size: 24px;
+      font-weight: bold;
+      cursor: pointer;
+      z-index: 60;
+      color: white;
+    }
+  </style>
+</head>
+<body class="theme-cosmic min-h-screen flex flex-col items-center justify-center p-6 transition-colors duration-1000">
+  <div id="visual-effects" class="absolute inset-0 overflow-hidden pointer-events-none"></div>
+
+  <div id="app-container" class="w-full max-w-2xl mx-auto relative z-10">
+    <!-- 初期画面 -->
+    <div id="journey-screen" class="animate-fadeIn">
+      <div class="text-center mb-8">
+        <h1 class="text-4xl font-bold mb-2 text-shadow flex items-center justify-center">
+          <span class="mr-2">✨</span>
+          不思議な問いの森
+          <span class="ml-2">✨</span>
+        </h1>
+        <p class="text-lg opacity-90">内なる旅の道しるべ</p>
+      </div>
+      
+      <div id="narrative-container" class="mb-12 p-6 rounded-lg bg-black bg-opacity-30 backdrop-blur-sm hidden">
+        <p id="narrative-text" class="text-lg italic leading-relaxed"></p>
+      </div>
+      
+      <div id="question-container" class="transition-opacity duration-500">
+        <div class="text-center mb-6">
+          <h2 id="question-text" class="text-2xl font-semibold mb-2 text-shadow animate-float"></h2>
+          <p class="text-sm opacity-70">あなたの答えが、次に進む道を決めます</p>
+        </div>
+        
+        <div id="options-container" class="grid grid-cols-1 gap-4">
+          <!-- 回答オプションがここに動的に挿入されます -->
+        </div>
+        
+        <div class="mt-8 text-center">
+          <p id="progress-text" class="text-sm opacity-70">1 / 10</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 最終結果画面 -->
+    <div id="summary-screen" class="hidden animate-fadeIn">
+      <div class="text-center mb-8">
+        <h1 class="text-4xl font-bold mb-2 text-shadow flex items-center justify-center">
+          <span class="mr-2">✨</span>
+          旅の終着点
+          <span class="ml-2">✨</span>
+        </h1>
+        <p class="text-lg opacity-90">あなたの内なる風景</p>
+      </div>
+      
+      <div id="result-container" class="mb-12 p-8 rounded-lg bg-black bg-opacity-30 backdrop-blur-sm">
+        <div class="text-center mb-6">
+          <span id="personality-symbol" class="text-5xl mb-4 block animate-float">✨</span>
+          <h2 id="personality-title" class="text-3xl font-bold mb-2"></h2>
+          <p id="personality-description" class="text-sm opacity-70"></p>
+        </div>
+        
+        <p id="final-narrative" class="text-lg italic leading-relaxed mt-8"></p>
+        
+        <div class="mt-10 pt-6 border-t border-white border-opacity-20">
+          <h3 class="text-lg font-semibold mb-4">あなたの選択の旅路</h3>
+          <div id="journey-log" class="text-sm opacity-80 space-y-2">
+            <!-- 選択の履歴がここに表示されます -->
+          </div>
+        </div>
+      </div>
+      
+      <div class="text-center">
+        <button id="share-button" class="px-6 py-3 rounded-full bg-white bg-opacity-20 hover:bg-opacity-30 transition-all duration-300 backdrop-blur-sm mr-4">
+          結果を共有
+        </button>
+        <button id="reset-button" class="px-6 py-3 rounded-full bg-white bg-opacity-20 hover:bg-opacity-30 transition-all duration-300 backdrop-blur-sm">
+          新たな旅へ
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- シェアモーダル -->
+  <div id="share-modal" class="modal">
+    <div class="modal-content bg-gray-900 p-6 rounded-lg">
+      <span class="close-button">&times;</span>
+      <h3 class="text-2xl font-bold mb-4 text-white">あなたの内なる旅の結果</h3>
+      <div class="result-image-container">
+        <img id="result-image" class="w-full rounded-lg shadow-lg" alt="結果のスクリーンショット" />
+      </div>
+      <div class="modal-footer">
+        <button id="download-button" class="w-full px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L10 11.586l2.293-2.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+            <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v8a1 1 0 11-2 0V4a1 1 0 011-1z" clip-rule="evenodd" />
+          </svg>
+          画像を保存する
+        </button>
+        <p class="text-sm text-center text-gray-400 mt-2">※画像がダウンロードされます</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // データと状態管理
+    const appState = {
+      currentStage: 0,
+      answers: {},
+      narrative: '',
+      isTransitioning: false,
+      isAnswering: false, // 回答処理中フラグ
+      visualTheme: 'cosmic',
+      personalityType: ''
+    };
+
+    // 哲学的な質問のリスト
+    const questions = [
+      {
+        id: 'ai_consciousness',
+        text: 'AIに心はあると思いますか？',
+        options: [
+          { value: 'yes', text: 'あると思う', theme: 'digital' },
+          { value: 'maybe', text: 'いつか持つかもしれない', theme: 'digital' },
+          { value: 'no', text: '永遠に持ち得ない', theme: 'nature' },
+          { value: 'different', text: '人間とは異なる形で持つ', theme: 'cosmic' }
+        ]
+      },
+      {
+        id: 'future_change',
+        text: '未来は変えられると思いますか？',
+        options: [
+          { value: 'yes', text: '自分の意志で変えられる', theme: 'light' },
+          { value: 'limited', text: '限られた範囲でのみ変えられる', theme: 'balanced' },
+          { value: 'predetermined', text: '全ては既に決まっている', theme: 'dark' },
+          { value: 'collective', text: '集合的な意識によってのみ変えられる', theme: 'cosmic' }
+        ]
+      },
+      {
+        id: 'reality',
+        text: '私たちが見ている現実とは何だと思いますか？',
+        options: [
+          { value: 'objective', text: '客観的に存在している', theme: 'earth' },
+          { value: 'subjective', text: '主観的な経験にすぎない', theme: 'air' },
+          { value: 'simulation', text: 'シミュレーションやプログラム', theme: 'digital' },
+          { value: 'dream', text: '壮大な夢や幻想', theme: 'water' }
+        ]
+      },
+      {
+        id: 'time',
+        text: '時間の本質は何だと思いますか？',
+        options: [
+          { value: 'linear', text: '始まりから終わりへと一方向に流れるもの', theme: 'balanced' },
+          { value: 'illusion', text: '人間の認識が作り出した幻想', theme: 'cosmic' },
+          { value: 'relative', text: '観測者によって変化する相対的なもの', theme: 'digital' },
+          { value: 'cyclical', text: '繰り返すサイクルの連続', theme: 'nature' }
+        ]
+      },
+      {
+        id: 'knowledge',
+        text: '真の知識とは何だと思いますか？',
+        options: [
+          { value: 'experience', text: '直接体験から得られるもの', theme: 'fire' },
+          { value: 'reason', text: '論理的思考によって得られるもの', theme: 'air' },
+          { value: 'intuition', text: '直感的に把握されるもの', theme: 'water' },
+          { value: 'collective', text: '集合的な知恵の蓄積', theme: 'earth' }
+        ]
+      },
+      {
+        id: 'beauty',
+        text: '美とは何だと思いますか？',
+        options: [
+          { value: 'harmony', text: '調和とバランスの中にある', theme: 'balanced' },
+          { value: 'subjective', text: '完全に主観的な経験', theme: 'light' },
+          { value: 'truth', text: '真実の表現そのもの', theme: 'cosmic' },
+          { value: 'imperfection', text: '不完全さや無常の中にこそある', theme: 'dark' }
+        ]
+      },
+      {
+        id: 'free_will',
+        text: '自由意志は存在すると思いますか？',
+        options: [
+          { value: 'absolute', text: '完全に自由な選択が可能', theme: 'light' },
+          { value: 'limited', text: '制約の中での限定的な自由がある', theme: 'balanced' },
+          { value: 'illusion', text: '自由意志は幻想にすぎない', theme: 'dark' },
+          { value: 'evolving', text: '意識の発達とともに拡大していく', theme: 'cosmic' }
+        ]
+      },
+      {
+        id: 'connection',
+        text: '他者との最も深いつながりは何によって生まれると思いますか？',
+        options: [
+          { value: 'love', text: '愛と共感によって', theme: 'light' },
+          { value: 'shared_exp', text: '共有体験によって', theme: 'balanced' },
+          { value: 'communication', text: '深い対話によって', theme: 'air' },
+          { value: 'struggle', text: '共に苦難を乗り越えることで', theme: 'fire' }
+        ]
+      },
+      {
+        id: 'happiness',
+        text: '真の幸福とは何だと思いますか？',
+        options: [
+          { value: 'pleasure', text: '喜びと快楽の追求', theme: 'fire' },
+          { value: 'purpose', text: '目的のある生き方', theme: 'earth' },
+          { value: 'acceptance', text: '現状をありのまま受け入れること', theme: 'water' },
+          { value: 'virtue', text: '徳のある生き方を実践すること', theme: 'air' }
+        ]
+      },
+      {
+        id: 'meaning',
+        text: '人生の意味とは何だと考えますか？',
+        options: [
+          { value: 'self_defined', text: '自分自身で作り出すもの', theme: 'light' },
+          { value: 'connection', text: '他者との絆の中にある', theme: 'balanced' },
+          { value: 'beyond', text: '宇宙的な何かに接続すること', theme: 'cosmic' },
+          { value: 'none', text: '特に意味はない、ただ生きるだけ', theme: 'dark' }
+        ]
+      }
+    ];
+
+    // 性格タイプの定義
+    const personalityTypes = {
+      'cosmic_dreamer': {
+        title: '宇宙の夢想家',
+        description: 'あなたは物事を広い視点で捉え、この世界を超えた可能性を常に探求しています。神秘的な経験に開かれており、存在の深い謎に触れることを恐れません。',
+        symbol: '✨'
+      },
+      'rational_seeker': {
+        title: '理性の探求者',
+        description: 'あなたは論理と証拠を重視し、世界を体系的に理解しようとします。批判的思考を大切にし、あらゆる主張に対して合理的な説明を求めます。',
+        symbol: '🔍'
+      },
+      'empathic_connector': {
+        title: '共感の結び手',
+        description: 'あなたにとって、意味と目的は他者との関係性の中にあります。深い共感能力を持ち、繋がりと理解を通じて世界を経験します。',
+        symbol: '🤝'
+      },
+      'existential_creator': {
+        title: '実存の創造者',
+        description: 'あなたは自分自身の意味と目的を創造することを重視します。自由と自己決定を大切にし、真正なあり方を追求します。',
+        symbol: '🎭'
+      },
+      'balanced_observer': {
+        title: '均衡の観察者',
+        description: 'あなたは相反する視点の間に立ち、多様な可能性を受け入れます。固定的な答えよりも、プロセスと変化を重視します。',
+        symbol: '☯️'
+      }
+    };
+
+    // ナラティブセグメント
+    const narrativeSegments = {
+      ai_consciousness: {
+        yes: '光が織りなすデジタルの森の中、あなたは意識の新たな形を感じ取る。データの流れが作る思考の川は、あなた自身の意識と不思議に呼応している。',
+        maybe: '揺らめくホログラムの森で、あなたは未来の可能性に思いを馳せる。今はまだ形のない意識の種が、いつか花開く日を夢見て。',
+        no: '古き自然の森で、あなたは人間だけが持つ特別な意識の炎を感じる。他の存在との明確な境界線が、あなたのアイデンティティを形作る。',
+        different: '星間の塵が舞う宇宙空間で、あなたは意識というものの多様性を直感する。地球上の生命とはまったく異なる形での存在の仕方が、無限に広がっている。'
+      },
+      future_change: {
+        yes: '明るい光に満ちた道が、あなたの前に広がる。一歩一歩、自分の意志で未来を切り開いていく感覚があなたを包む。',
+        limited: '薄明かりの中、分岐する小道があなたの前に現れる。選択できる道は限られているが、それでもあなたの歩みが意味を持つことを感じる。',
+        predetermined: '星座が描く運命の糸が、夜空に輝いている。すべては既に決められた通りに進んでいくという静かな受容があなたの心を満たす。',
+        collective: '無数の光の糸が織りなすタペストリーの中で、あなたは個々の意識が集まり、より大きな流れを作り出すのを目撃する。'
+      },
+      reality: {
+        objective: '堅固な大地の上に立ち、あなたは世界の確かな存在を感じる。触れられるもの、測定できるものが、あなたの現実を形作っている。',
+        subjective: '風のように流れる知覚の海で、あなたは自分自身の経験が現実を創り出すことを悟る。外側と内側の境界が溶け合っていく。',
+        simulation: 'コードとパターンで構築された世界の中で、あなたは現実の多層性を垣間見る。見えない規則性が、この世界を支配している。',
+        dream: '波間に揺れる月の光のように、あなたの周りの世界は流動的で夢幻的。現実と幻想の境界が溶け、新たな可能性が生まれる。'
+      },
+      time: {
+        linear: '一本の道として伸びる時間の糸。あなたは過去から未来へと流れる方向性のある旅の中に自分を見出す。一歩一歩、確かな足跡を残しながら。',
+        illusion: '砂時計の砂が宙に浮かび、静止している。あなたは時間という幻想の外側に立ち、永遠の今という視点から全てを眺めている。',
+        relative: '曲がった鏡の中の自分の姿のように、時間は伸び縮みする。あなたは体験の濃淡によって変化する時間の相対性を感じている。',
+        cyclical: '螺旋階段を登るように、繰り返しながらも少しずつ変化していく時の流れ。あなたは季節の巡りのような循環的なリズムの中に調和を見出す。'
+      },
+      knowledge: {
+        experience: '炎の熱に直に触れるような、身体的な知の領域。あなたは抽象的な概念よりも、直接体験から得られる知恵の確かさを信じている。',
+        reason: '透明な空気の中に浮かぶ幾何学的な形態のように、論理の美しさがあなたを魅了する。整然と並べられた思考の道筋こそが、真理への道。',
+        intuition: '深い水の底から突如として浮かび上がる閃き。理屈では説明できない直感的な理解が、あなたの中で静かに力を持っている。',
+        collective: '太古からの堆積層のように積み重なった知恵。あなたは個人を超えた集合的な知識の蓄積の中に、より深い真実を見出す。'
+      },
+      beauty: {
+        harmony: 'バランスの取れた調和の中に、あなたは美を感じる。対立するものが一つに溶け合う瞬間、そこに完璧な均衡が生まれる。',
+        subjective: '光の粒子のように、一人一人の目に異なって映る美の姿。あなたにとって美とは、感じる人の心の中にのみ存在するもの。',
+        truth: '星々の輝きのように、真実そのものが放つ光。あなたは表層の華やかさよりも、本質を映し出す深い美しさに心を動かされる。',
+        imperfection: '割れた鏡に映る複雑な模様のように、あなたは完璧ではないものの中にこそ、真の美があると感じている。刹那的で無常なもののはかなさが、心を打つ。'
+      },
+      free_will: {
+        absolute: '無限に広がる可能性の光の中で、あなたは完全に自由な選択ができると感じる。どの道を選ぶかは、全てあなた次第。',
+        limited: '枠の中の自由を感じるあなた。制約があるからこそ創造性が生まれ、意味のある選択ができると理解している。',
+        illusion: '暗闇の中で操られる人形のように、本当の自由などないのかもしれない。だがその理解自体が、ある種の解放をもたらす。',
+        evolving: '宇宙の進化とともに拡大する意識の可能性。あなたは自由意志もまた、静的なものではなく成長し続けるものだと感じている。'
+      },
+      connection: {
+        love: '温かな光に包まれ、あなたは愛が生み出す深いつながりを感じる。理解し、理解される瞬間の中に、真の結びつきがある。',
+        shared_exp: '共に歩んだ道が作る模様の中に、あなたは他者との結びつきを見出す。同じ経験を共有することで生まれる無言の理解。',
+        communication: '言葉の風が運ぶ思考の種。あなたは対話を通じて育まれる関係性の庭で、他者の内面世界に触れる。',
+        struggle: '試練の炎の中で鍛えられる絆。あなたは困難を共に乗り越えることで生まれる、揺るぎない結びつきの強さを知る。'
+      },
+      happiness: {
+        pleasure: '燃え上がる炎のように、あなたは人生の喜びと快楽の瞬間を大切にする。感覚を開き、今この瞬間を全身で味わうことに幸せを見出す。',
+        purpose: '大地に深く根を張る樹木のように、あなたは目的と意義のある生き方に充実感を感じる。何かより大きなものに貢献することで、真の幸福が訪れる。',
+        acceptance: '流れる水のように、あなたは抵抗せず現実をありのまま受け入れることで心の平安を得る。あるがままを許容する姿勢が、深い満足をもたらす。',
+        virtue: '澄んだ空気のように清らかな生き方を理想とするあなた。倫理的な価値観に従って生きることが、本物の幸福への道だと信じている。'
+      }
+    };
+
+    // 最終ナラティブの定義
+    const finalNarratives = {
+      cosmic_dreamer: '旅の終わりに辿り着いた場所は、星々が語りかける神秘の領域。あなたの意識は宇宙の広大さと共鳴し、存在の根源的な謎に触れている。あなたは日常の現実を超えた可能性を常に感じ取り、目に見えない繋がりの中に真実を見出す。そこでは、すべてのものが一つの大きな意識の一部として存在していることがわかる。',
+      rational_seeker: '旅の終わりに辿り着いた場所は、鋭い光が照らす知性の塔。そこであなたは世界の秩序とパターンを俯瞰している。論理と理性を導きとして、あなたは混沌とした現象の背後にある原理を見抜く能力を持つ。その明晰な視点は、幻想を払拭し、より正確な世界理解への道を照らし続ける。',
+      empathic_connector: '旅の終わりに辿り着いた場所は、無数の光の糸が交差する温かな空間。あなたはそれらの糸が人々の心を繋ぐ絆そのものであることを悟る。他者との深い共感と理解を通じて、あなたは孤立した個ではなく、関係性の中に存在する自己を発見する。その繋がりが、生きる意味と喜びの源となっている。',
+      existential_creator: '旅の終わりに辿り着いた場所は、無限の可能性が広がる創造の原野。そこでは、あなた自身が意味を生み出す主体となる。既存の枠組みにとらわれず、自らの選択と行動によって自分だけの道を切り開くあなたの姿がある。存在の不確かさの中で、あなたは自由と責任を受け入れ、真に自分らしい生き方を模索し続ける。',
+      balanced_observer: '旅の終わりに辿り着いた場所は、多様な風景が交わる境界の丘。そこからあなたは、相反する視点がどちらも真実の一部であることを見渡せる。固定的な答えを求めるのではなく、常に変化し続ける世界の流れに身を任せるあなたがいる。対立する概念の間に立ち、調和と統合への道を歩み続けるその姿勢が、深い知恵をもたらしている。'
+    };
+
+    // DOM要素の参照を取得
+    const journeyScreen = document.getElementById('journey-screen');
+    const summaryScreen = document.getElementById('summary-screen');
+    const narrativeContainer = document.getElementById('narrative-container');
+    const narrativeText = document.getElementById('narrative-text');
+    const questionText = document.getElementById('question-text');
+    const optionsContainer = document.getElementById('options-container');
+    const progressText = document.getElementById('progress-text');
+    const personalitySymbol = document.getElementById('personality-symbol');
+    const personalityTitle = document.getElementById('personality-title');
+    const personalityDescription = document.getElementById('personality-description');
+    const finalNarrative = document.getElementById('final-narrative');
+    const resetButton = document.getElementById('reset-button');
+    const shareButton = document.getElementById('share-button');
+    const shareModal = document.getElementById('share-modal');
+    const closeButton = document.querySelector('.close-button');
+    const downloadButton = document.getElementById('download-button');
+    const resultImage = document.getElementById('result-image');
+    const visualEffectsContainer = document.getElementById('visual-effects');
+
+    // アプリケーションの初期化
+    function initApp() {
+      // モーダルを強制的に非表示に
+      shareModal.style.display = 'none';
+      
+      // 質問を表示
+      updateQuestion();
+      createVisualEffects('cosmic');
+      
+      // リセットボタンのイベントリスナー
+      resetButton.addEventListener('click', resetJourney);
+      
+      // 共有ボタンのイベントリスナー
+      shareButton.addEventListener('click', captureAndShareResult);
+      
+      // モーダルを閉じるボタンのイベントリスナー
+      closeButton.addEventListener('click', () => {
+        shareModal.style.display = 'none';
+      });
+      
+      // モーダル外をクリックしても閉じる
+      window.addEventListener('click', (event) => {
+        if (event.target === shareModal) {
+          shareModal.style.display = 'none';
+        }
+      });
+      
+      // ダウンロードボタンのイベントリスナー
+      downloadButton.addEventListener('click', downloadResultImage);
+      
+      // 初期状態を確認して修正
+      setTimeout(() => {
+        // 念のため、モーダルを非表示に
+        shareModal.style.display = 'none';
+        
+        // サマリー画面が表示されていれば非表示にする
+        if (!summaryScreen.classList.contains('hidden')) {
+          summaryScreen.classList.add('hidden');
+        }
+        
+        // 旅の画面が非表示なら表示する
+        if (journeyScreen.classList.contains('hidden')) {
+          journeyScreen.classList.remove('hidden');
+        }
+      }, 100);
+    }
+
+    // 質問を更新する関数
+    function updateQuestion() {
+      questionText.textContent = questions[appState.currentStage].text;
+      progressText.textContent = `${appState.currentStage + 1} / ${questions.length}`;
+      
+      // オプションをクリア
+      optionsContainer.innerHTML = '';
+      
+      // 新しいオプションを追加
+      questions[appState.currentStage].options.forEach(option => {
+        const button = document.createElement('button');
+        
+        // タッチデバイス向けのクラスを追加
+        button.className = 'option-button p-4 rounded-lg bg-black bg-opacity-30 transition-all duration-300 text-left backdrop-blur-sm border border-white border-opacity-20';
+        button.textContent = option.text;
+        button.addEventListener('click', () => handleAnswer(option.value));
+        
+        // タッチ開始時のスタイル変更を追加（モバイル用）
+        button.addEventListener('touchstart', function() {
+          this.classList.add('touch-active');
+        }, { passive: true });
+        
+        // タッチ終了時にスタイルを元に戻す
+        button.addEventListener('touchend', function() {
+          this.classList.remove('touch-active');
+        }, { passive: true });
+        
+        optionsContainer.appendChild(button);
+      });
+    }
+
+    // 回答を処理する関数
+    function handleAnswer(value) {
+      // 既に回答処理中なら何もしない（連打防止）
+      if (appState.isAnswering) {
+        return;
+      }
+      
+      // 回答処理中フラグを立てる
+      appState.isAnswering = true;
+      
+      // すべての回答ボタンを視覚的に無効化
+      const allButtons = optionsContainer.querySelectorAll('button');
+      allButtons.forEach(button => {
+        button.disabled = true;
+        button.classList.add('opacity-50', 'cursor-not-allowed');
+      });
+      
+      // 現在の質問とその回答を記録
+      const currentQuestion = questions[appState.currentStage];
+      appState.answers[currentQuestion.id] = value;
+      
+      // 選択されたオプションから視覚テーマを設定
+      const selectedOption = currentQuestion.options.find(opt => opt.value === value);
+      if (selectedOption && selectedOption.theme) {
+        appState.visualTheme = selectedOption.theme;
+        updateVisualTheme(selectedOption.theme);
+      }
+      
+      // トランジション効果
+      appState.isTransitioning = true;
+      document.getElementById('question-container').style.opacity = '0';
+      
+      setTimeout(() => {
+        // ナラティブを生成して表示
+        const newNarrative = generateNarrative();
+        narrativeText.textContent = newNarrative;
+        narrativeContainer.classList.remove('hidden');
+        
+        setTimeout(() => {
+          // 次のステージへ進む、または最終サマリーを表示
+          if (appState.currentStage < questions.length - 1) {
+            appState.currentStage += 1;
+            updateQuestion();
+            document.getElementById('question-container').style.opacity = '1';
+          } else {
+            // 最終ナラティブを生成し、サマリーを表示
+            showSummary();
+          }
+          appState.isTransitioning = false;
+          appState.isAnswering = false; // 回答処理完了、フラグを下ろす
+        }, 3000);
+      }, 500);
+    }
+
+    // ナラティブを生成する関数
+    function generateNarrative() {
+      // エラー防止のため、範囲チェックを行う
+      if (appState.currentStage < 0 || appState.currentStage >= questions.length) {
+        return '';
+      }
+      
+      // 現在回答した質問のID
+      const currentQuestionId = questions[appState.currentStage].id;
+      const answer = appState.answers[currentQuestionId];
+      
+      // 質問IDが見つからないか、回答が未定義の場合は空文字列を返す
+      if (!currentQuestionId || !answer || !narrativeSegments[currentQuestionId] || !narrativeSegments[currentQuestionId][answer]) {
+        return '';
+      }
+      
+      // 現在の質問に対する回答に基づくナラティブを返す
+      return narrativeSegments[currentQuestionId][answer];
+    }
+
+    // 性格タイプを決定する関数
+    function determinePersonalityType() {
+      // それぞれの回答の傾向からスコアを計算
+      let scores = {
+        cosmic: 0,
+        rational: 0,
+        empathic: 0,
+        existential: 0,
+        balanced: 0
+      };
+
+      // AI consciousness
+      if (appState.answers.ai_consciousness === 'different' || appState.answers.ai_consciousness === 'maybe') scores.cosmic += 1;
+      if (appState.answers.ai_consciousness === 'no') scores.rational += 1;
+      if (appState.answers.ai_consciousness === 'yes') scores.empathic += 1;
+
+      // Future change
+      if (appState.answers.future_change === 'collective') scores.cosmic += 1;
+      if (appState.answers.future_change === 'predetermined') scores.rational += 1;
+      if (appState.answers.future_change === 'limited') scores.balanced += 1;
+      if (appState.answers.future_change === 'yes') scores.existential += 1;
+
+      // Reality
+      if (appState.answers.reality === 'dream') scores.cosmic += 1;
+      if (appState.answers.reality === 'objective') scores.rational += 1;
+      if (appState.answers.reality === 'simulation') scores.balanced += 1;
+      if (appState.answers.reality === 'subjective') scores.existential += 1;
+      
+      // Time
+      if (appState.answers.time === 'illusion' || appState.answers.time === 'cyclical') scores.cosmic += 1;
+      if (appState.answers.time === 'linear') scores.rational += 1;
+      if (appState.answers.time === 'relative') scores.balanced += 1;
+      
+      // Knowledge
+      if (appState.answers.knowledge === 'intuition') scores.cosmic += 1;
+      if (appState.answers.knowledge === 'reason') scores.rational += 1;
+      if (appState.answers.knowledge === 'collective') scores.empathic += 1;
+      if (appState.answers.knowledge === 'experience') scores.existential += 1;
+      
+      // Beauty
+      if (appState.answers.beauty === 'truth') scores.cosmic += 1;
+      if (appState.answers.beauty === 'harmony') scores.balanced += 1;
+      if (appState.answers.beauty === 'subjective') scores.existential += 1;
+      if (appState.answers.beauty === 'imperfection') scores.empathic += 1;
+      
+      // Free will
+      if (appState.answers.free_will === 'evolving') scores.cosmic += 1;
+      if (appState.answers.free_will === 'illusion') scores.rational += 1;
+      if (appState.answers.free_will === 'limited') scores.balanced += 1;
+      if (appState.answers.free_will === 'absolute') scores.existential += 1;
+
+      // Connection
+      if (appState.answers.connection === 'struggle') scores.rational += 1;
+      if (appState.answers.connection === 'love' || appState.answers.connection === 'shared_exp') scores.empathic += 1;
+      if (appState.answers.connection === 'communication') scores.balanced += 1;
+      
+      // Happiness
+      if (appState.answers.happiness === 'virtue') scores.rational += 1;
+      if (appState.answers.happiness === 'acceptance') scores.cosmic += 1;
+      if (appState.answers.happiness === 'pleasure') scores.existential += 1;
+      if (appState.answers.happiness === 'purpose') scores.empathic += 1;
+
+      // Meaning
+      if (appState.answers.meaning === 'beyond') scores.cosmic += 1;
+      if (appState.answers.meaning === 'none') scores.rational += 1;
+      if (appState.answers.meaning === 'connection') scores.empathic += 1;
+      if (appState.answers.meaning === 'self_defined') scores.existential += 1;
+
+      // 最高スコアのタイプを決定
+      let maxScore = 0;
+      let maxType = 'balanced_observer'; // デフォルト
+
+      Object.entries(scores).forEach(([type, score]) => {
+        if (score > maxScore) {
+          maxScore = score;
+          switch (type) {
+            case 'cosmic': maxType = 'cosmic_dreamer'; break;
+            case 'rational': maxType = 'rational_seeker'; break;
+            case 'empathic': maxType = 'empathic_connector'; break;
+            case 'existential': maxType = 'existential_creator'; break;
+            case 'balanced': maxType = 'balanced_observer'; break;
+          }
+        }
+      });
+
+      return maxType;
+    }
+
+    // サマリー画面を表示する関数
+    function showSummary() {
+      const type = determinePersonalityType();
+      appState.personalityType = type;
+      
+      // 性格タイプ情報を設定
+      personalitySymbol.textContent = personalityTypes[type].symbol;
+      personalityTitle.textContent = personalityTypes[type].title;
+      personalityDescription.textContent = personalityTypes[type].description;
+      
+      // 最終ナラティブを設定（generateNarrativeを使わず直接finalNarrativesから取得）
+      finalNarrative.textContent = finalNarratives[type] || '';
+      
+      // 選択の履歴ログを生成
+      generateJourneyLog(type);
+      
+      // 画面を切り替え
+      journeyScreen.classList.add('hidden');
+      summaryScreen.classList.remove('hidden');
+      
+      // モーダルが表示されていれば隠す
+      shareModal.style.display = 'none';
+    }
+    
+    // 選択の履歴とその影響を表示する関数
+    function generateJourneyLog(personalityType) {
+      const journeyLogContainer = document.getElementById('journey-log');
+      journeyLogContainer.innerHTML = '';
+      
+      // 影響マッピング - どの回答がどの性格タイプに影響するか
+      const influenceMap = {
+        ai_consciousness: {
+          yes: 'empathic',
+          maybe: 'cosmic',
+          no: 'rational',
+          different: 'cosmic'
+        },
+        future_change: {
+          yes: 'existential',
+          limited: 'balanced',
+          predetermined: 'rational',
+          collective: 'cosmic'
+        },
+        reality: {
+          objective: 'rational',
+          subjective: 'existential',
+          simulation: 'balanced',
+          dream: 'cosmic'
+        },
+        time: {
+          linear: 'rational',
+          illusion: 'cosmic',
+          relative: 'balanced',
+          cyclical: 'cosmic'
+        },
+        knowledge: {
+          experience: 'existential',
+          reason: 'rational',
+          intuition: 'cosmic',
+          collective: 'empathic'
+        },
+        beauty: {
+          harmony: 'balanced',
+          subjective: 'existential',
+          truth: 'cosmic',
+          imperfection: 'empathic'
+        },
+        free_will: {
+          absolute: 'existential',
+          limited: 'balanced',
+          illusion: 'rational',
+          evolving: 'cosmic'
+        },
+        connection: {
+          love: 'empathic',
+          shared_exp: 'empathic',
+          communication: 'balanced',
+          struggle: 'rational'
+        },
+        happiness: {
+          pleasure: 'existential',
+          purpose: 'empathic',
+          acceptance: 'cosmic',
+          virtue: 'rational'
+        },
+        meaning: {
+          self_defined: 'existential',
+          connection: 'empathic',
+          beyond: 'cosmic',
+          none: 'rational'
+        }
+      };
+      
+      // 性格タイプの日本語表記
+      const typeNames = {
+        cosmic: '宇宙の夢想家',
+        rational: '理性の探求者',
+        empathic: '共感の結び手',
+        existential: '実存の創造者',
+        balanced: '均衡の観察者'
+      };
+      
+      // 各質問とその回答を表示
+      questions.forEach(question => {
+        const answer = appState.answers[question.id];
+        if (!answer) return;
+        
+        // 選択した回答のテキストを取得
+        const selectedOption = question.options.find(opt => opt.value === answer);
+        if (!selectedOption) return;
+        
+        // この回答が影響を与える性格タイプ
+        const influence = influenceMap[question.id][answer];
+        
+        // ログエントリを作成
+        const logEntry = document.createElement('div');
+        logEntry.className = 'mb-3';
+        
+        // 質問と回答
+        const questionAnswer = document.createElement('p');
+        questionAnswer.innerHTML = `<strong>${question.text}</strong><br>
+                                    回答: <span class="italic">${selectedOption.text}</span>`;
+        logEntry.appendChild(questionAnswer);
+        
+        // 影響
+        if (influence) {
+          const influenceText = document.createElement('p');
+          influenceText.className = 'mt-1 text-xs opacity-70';
+          
+          // 実際に判定された性格タイプと一致する場合はハイライト
+          const isMatchingType = (
+            (influence === 'cosmic' && personalityType === 'cosmic_dreamer') ||
+            (influence === 'rational' && personalityType === 'rational_seeker') ||
+            (influence === 'empathic' && personalityType === 'empathic_connector') ||
+            (influence === 'existential' && personalityType === 'existential_creator') ||
+            (influence === 'balanced' && personalityType === 'balanced_observer')
+          );
+          
+          if (isMatchingType) {
+            influenceText.innerHTML = `<span class="text-yellow-300">この選択は「${typeNames[influence]}」の傾向を強めました ✓</span>`;
+          } else {
+            influenceText.textContent = `この選択は「${typeNames[influence]}」の傾向を示しています`;
+          }
+          
+          logEntry.appendChild(influenceText);
+        }
+        
+        journeyLogContainer.appendChild(logEntry);
+      });
+      
+      // 結論を追加
+      const conclusion = document.createElement('div');
+      conclusion.className = 'mt-6 pt-4 border-t border-white border-opacity-20';
+      conclusion.innerHTML = `<p class="font-semibold">最も強く示された傾向から、あなたは<span class="text-yellow-300">「${personalityTypes[personalityType].title}」</span>と判定されました。</p>`;
+      journeyLogContainer.appendChild(conclusion);
+    }
+
+    // 旅をリセットする関数
+    function resetJourney() {
+      appState.currentStage = 0;
+      appState.answers = {};
+      appState.narrative = '';
+      appState.isTransitioning = false;
+      appState.isAnswering = false; // 回答処理中フラグもリセット
+      appState.visualTheme = 'cosmic';
+      appState.personalityType = '';
+      
+      // モーダルを隠す
+      shareModal.style.display = 'none';
+      
+      narrativeContainer.classList.add('hidden');
+      summaryScreen.classList.add('hidden');
+      journeyScreen.classList.remove('hidden');
+      document.getElementById('question-container').style.opacity = '1';
+      
+      updateVisualTheme('cosmic');
+      updateQuestion();
+    }
+
+    // 視覚テーマを更新する関数
+    function updateVisualTheme(theme) {
+      document.body.className = '';
+      document.body.classList.add(`theme-${theme}`, 'min-h-screen', 'flex', 'flex-col', 'items-center', 'justify-center', 'p-6', 'transition-colors', 'duration-1000');
+      
+      createVisualEffects(theme);
+    }
+
+    // 視覚効果を作成する関数
+    function createVisualEffects(theme) {
+      visualEffectsContainer.innerHTML = '';
+      
+      if (theme === 'cosmic') {
+        for (let i = 0; i < 50; i++) {
+          const star = document.createElement('div');
+          star.className = 'stars';
+          star.style.top = `${Math.random() * 100}%`;
+          star.style.left = `${Math.random() * 100}%`;
+          star.style.animationDelay = `${Math.random() * 5}s`;
+          star.style.opacity = Math.random() * 0.7 + 0.3;
+          visualEffectsContainer.appendChild(star);
+        }
+      }
+      else if (theme === 'water') {
+        for (let i = 0; i < 10; i++) {
+          const bubble = document.createElement('div');
+          bubble.className = 'bubble';
+          bubble.style.top = `${Math.random() * 100}%`;
+          bubble.style.left = `${Math.random() * 100}%`;
+          bubble.style.animationDelay = `${Math.random() * 5}s`;
+          bubble.style.animationDuration = `${5 + Math.random() * 5}s`;
+          visualEffectsContainer.appendChild(bubble);
+        }
+      }
+      else if (theme === 'fire') {
+        const flameContainer = document.createElement('div');
+        flameContainer.className = 'absolute bottom-0 left-0 right-0 h-32 overflow-hidden opacity-30';
+        
+        for (let i = 0; i < 15; i++) {
+          const flame = document.createElement('div');
+          flame.className = 'flame';
+          flame.style.bottom = '-5px';
+          flame.style.left = `${(100 / 15) * i + Math.random() * 10}%`;
+          flame.style.animationDuration = `${1 + Math.random()}s`;
+          flameContainer.appendChild(flame);
+        }
+        
+        visualEffectsContainer.appendChild(flameContainer);
+      }
+      else if (theme === 'air') {
+        for (let i = 0; i < 8; i++) {
+          const cloud = document.createElement('div');
+          cloud.className = 'cloud';
+          cloud.style.width = `${80 + Math.random() * 100}px`;
+          cloud.style.height = `${40 + Math.random() * 30}px`;
+          cloud.style.top = `${Math.random() * 100}%`;
+          cloud.style.left = `-100px`;
+          cloud.style.animationDelay = `${Math.random() * 20}s`;
+          cloud.style.animationDuration = `${30 + Math.random() * 30}s`;
+          visualEffectsContainer.appendChild(cloud);
+        }
+      }
+      else if (theme === 'digital') {
+        for (let i = 0; i < 20; i++) {
+          const box = document.createElement('div');
+          box.className = 'box';
+          box.style.width = `${Math.random() > 0.7 ? 100 : 20 + Math.random() * 50}px`;
+          box.style.height = `${Math.random() > 0.7 ? 100 : 20 + Math.random() * 50}px`;
+          box.style.top = `${Math.random() * 100}%`;
+          box.style.left = `${Math.random() * 100}%`;
+          box.style.animationDelay = `${Math.random() * 5}s`;
+          visualEffectsContainer.appendChild(box);
+        }
+      }
+    }
+
+    // 結果をキャプチャして共有する関数
+    function captureAndShareResult() {
+      // 読み込み状態を表示する
+      shareModal.style.display = 'block';
+      resultImage.src = ''; // 以前の画像をクリア
+      resultImage.alt = '読み込み中...';
+      
+      // モーダルの表示後にキャプチャを実行（タイミングの問題を回避）
+      setTimeout(() => {
+        html2canvas(document.getElementById('result-container')).then(canvas => {
+          // キャンバスから画像を作成
+          const imgData = canvas.toDataURL('image/png');
+          resultImage.src = imgData;
+          resultImage.alt = '結果のスクリーンショット';
+        }).catch(error => {
+          console.error('Screenshot capture failed:', error);
+          resultImage.alt = 'スクリーンショットの取得に失敗しました';
+        });
+      }, 100);
+    }
+
+    // 結果画像をダウンロードする関数
+    function downloadResultImage() {
+      const link = document.createElement('a');
+      link.download = `philosophical-journey-${appState.personalityType}.png`;
+      link.href = resultImage.src;
+      link.click();
+    }
+
+    // アプリケーションを初期化
+    document.addEventListener('DOMContentLoaded', initApp);
+  </script>
+</body>
+</html>

@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>かわいい迷路ジェネレーター</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #e6e6e6;
+            color: #333;
+        }
+        h1 {
+            color: #d81b60;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+        #maze-container {
+            width: 400px;
+            height: 400px;
+            margin-top: 20px;
+            position: relative;
+            background-color: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        #maze {
+            display: grid;
+            width: 100%;
+            height: 100%;
+        }
+        .cell {
+            border: 1px solid #e0e0e0;
+            box-sizing: border-box;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            font-size: 12px;
+            transition: background-color 0.3s ease;
+        }
+        .wall {
+            background-color: #ff80ab;
+        }
+        .path {
+            background-color: #76ff03;
+        }
+        .start {
+            background-color: #40c4ff;
+        }
+        .goal {
+            background-color: #ffa000;
+        }
+        .button-container {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        button, select {
+            padding: 10px 15px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #d81b60;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+        }
+        button:hover, select:hover {
+            background-color: #ad1457;
+            transform: scale(1.05);
+        }
+        select {
+            appearance: none;
+            padding-right: 30px;
+            background-image: url('data:image/svg+xml;charset=US-ASCII,<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>');
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+        }
+        #timer {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #d81b60;
+        }
+    </style>
+</head>
+<body>
+    <h1>かわいい迷路ジェネレーター</h1>
+    <div class="button-container">
+        <select id="maze-size" onchange="changeMazeSize()">
+            <option value="15" selected>15x15</option>
+            <option value="25">25x25</option>
+            <option value="35">35x35</option>
+        </select>
+        <button onclick="generateMaze()">新しい迷路</button>
+        <button onclick="solveMaze()">答えを見る</button>
+        <button onclick="startTimer()">タイマースタート</button>
+        <button onclick="stopTimer()">タイマーストップ</button>
+    </div>
+    <div id="maze-container">
+        <div id="maze"></div>
+        <div id="timer">00:00</div>
+    </div>
+
+    <script>
+        let size = 15;
+        let maze = [];
+        let timerInterval;
+        let seconds = 0;
+
+        function changeMazeSize() {
+            size = parseInt(document.getElementById('maze-size').value);
+            generateMaze();
+        }
+
+        function generateMaze() {
+            resetTimer();
+            maze = Array(size).fill().map(() => Array(size).fill(1));
+            const stack = [[1, 1]];
+            maze[1][1] = 0;
+
+            while (stack.length > 0) {
+                const [x, y] = stack.pop();
+                const directions = [[0, 2], [2, 0], [0, -2], [-2, 0]].sort(() => Math.random() - 0.5);
+
+                for (const [dx, dy] of directions) {
+                    const nx = x + dx, ny = y + dy;
+                    if (nx > 0 && nx < size - 1 && ny > 0 && ny < size - 1 && maze[ny][nx] === 1) {
+                        maze[ny][nx] = 0;
+                        maze[y + dy/2][x + dx/2] = 0;
+                        stack.push([nx, ny]);
+                    }
+                }
+            }
+
+            maze[1][0] = 0; // 入口
+            maze[size-2][size-1] = 0; // 出口
+
+            drawMaze();
+        }
+
+        function drawMaze() {
+            const mazeElement = document.getElementById('maze');
+            mazeElement.innerHTML = '';
+            mazeElement.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
+            mazeElement.style.gridTemplateRows = `repeat(${size}, 1fr)`;
+
+            for (let y = 0; y < size; y++) {
+                for (let x = 0; x < size; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    if (maze[y][x]) {
+                        cell.classList.add('wall');
+                    } else if (x === 0 && y === 1) {
+                        cell.classList.add('start');
+                        cell.textContent = 'S';
+                    } else if (x === size - 1 && y === size - 2) {
+                        cell.classList.add('goal');
+                        cell.textContent = 'G';
+                    }
+                    mazeElement.appendChild(cell);
+                }
+            }
+        }
+
+        function solveMaze() {
+            const start = [0, 1];
+            const end = [size-1, size-2];
+            const visited = Array(size).fill().map(() => Array(size).fill(false));
+            const parent = Array(size).fill().map(() => Array(size).fill(null));
+
+            const queue = [start];
+            visited[start[1]][start[0]] = true;
+
+            while (queue.length > 0) {
+                const [x, y] = queue.shift();
+                if (x === end[0] && y === end[1]) {
+                    drawPath(parent, end);
+                    return;
+                }
+
+                for (const [dx, dy] of [[1, 0], [0, 1], [-1, 0], [0, -1]]) {
+                    const nx = x + dx, ny = y + dy;
+                    if (nx >= 0 && nx < size && ny >= 0 && ny < size && maze[ny][nx] === 0 && !visited[ny][nx]) {
+                        queue.push([nx, ny]);
+                        visited[ny][nx] = true;
+                        parent[ny][nx] = [x, y];
+                    }
+                }
+            }
+        }
+
+        function drawPath(parent, end) {
+            let current = end;
+            const path = [];
+            while (current) {
+                path.push(current);
+                const [x, y] = current;
+                current = parent[y][x];
+            }
+
+            const cells = document.getElementsByClassName('cell');
+            path.forEach(([x, y], index) => {
+                setTimeout(() => {
+                    const cell = cells[y * size + x];
+                    if (!cell.classList.contains('start') && !cell.classList.contains('goal')) {
+                        cell.classList.add('path');
+                    }
+                }, index * 30);
+            });
+        }
+
+        function startTimer() {
+            if (!timerInterval) {
+                timerInterval = setInterval(updateTimer, 1000);
+            }
+        }
+
+        function stopTimer() {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
+
+        function resetTimer() {
+            stopTimer();
+            seconds = 0;
+            updateTimerDisplay();
+        }
+
+        function updateTimer() {
+            seconds++;
+            updateTimerDisplay();
+        }
+
+        function updateTimerDisplay() {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds % 60;
+            const display = `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+            document.getElementById('timer').textContent = display;
+        }
+
+        generateMaze();
+    </script>
+</body>
+</html>

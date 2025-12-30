@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>ファスナーアニマル体験</title>
+  <style>
+    body {
+      background: #f2f5f7;
+      font-family: 'Hiragino Sans', 'Meiryo', sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h1 {
+      margin: 24px 0 8px;
+      font-size: 1.8em;
+      letter-spacing: 0.1em;
+    }
+    .animal-list {
+      display: flex;
+      gap: 40px;
+      margin: 32px 0 24px;
+    }
+    .animal-container {
+      position: relative;
+      width: 110px;
+      height: 180px;
+      cursor: pointer;
+      transition: transform 0.12s;
+    }
+    .animal-container:hover {
+      transform: scale(1.06);
+    }
+    .zipper {
+      position: absolute;
+      left: 50%;
+      top: 30px;
+      width: 12px;
+      height: 90px;
+      background: linear-gradient(to bottom, #aaa 65%, #eee 80%, #aaa 95%);
+      border-radius: 8px;
+      z-index: 2;
+      transform: translateX(-50%);
+      overflow: hidden;
+      transition: height 0.5s;
+    }
+    .zipper.open {
+      height: 0;
+      transition: height 0.4s cubic-bezier(.3,.65,.45,1.5);
+    }
+    .puller {
+      position: absolute;
+      left: 50%;
+      top: 110px;
+      width: 20px;
+      height: 16px;
+      background: #bbb;
+      border-radius: 6px 6px 12px 12px;
+      border: 1.5px solid #888;
+      transform: translateX(-50%);
+      z-index: 2;
+      box-shadow: 0 2px 4px #8882;
+    }
+    .shine {
+      position: absolute;
+      left: 50%;
+      top: 30px;
+      width: 60px;
+      height: 90px;
+      transform: translateX(-50%);
+      background: radial-gradient(circle at 50% 30%, #fff9 0%, #fff5 50%, #fff0 100%);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 3;
+      transition: opacity 0.6s;
+    }
+    .shine.visible {
+      opacity: 1;
+      transition: opacity 0.12s;
+    }
+    .message {
+      margin-top: 18px;
+      font-size: 1.2em;
+      color: #333;
+      letter-spacing: 0.06em;
+      min-height: 2em;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h1>ファスナーアニマル体験</h1>
+  <div class="animal-list">
+    <!-- 猫 -->
+    <div class="animal-container" data-animal="猫">
+      <svg width="110" height="180" viewBox="0 0 110 180">
+        <ellipse cx="55" cy="130" rx="43" ry="45" fill="#c7a76c"/>
+        <ellipse cx="55" cy="67" rx="28" ry="35" fill="#c7a76c"/>
+        <ellipse cx="33" cy="41" rx="9" ry="18" fill="#c7a76c"/>
+        <ellipse cx="77" cy="41" rx="9" ry="18" fill="#c7a76c"/>
+        <ellipse cx="55" cy="162" rx="12" ry="8" fill="#fff"/>
+        <!-- シンプル縞 -->
+        <rect x="45" y="90" width="6" height="35" fill="#a28b57" rx="2"/>
+        <rect x="60" y="95" width="4" height="22" fill="#a28b57" rx="2"/>
+      </svg>
+      <div class="zipper"></div>
+      <div class="puller"></div>
+      <div class="shine"></div>
+    </div>
+    <!-- 犬 -->
+    <div class="animal-container" data-animal="犬">
+      <svg width="110" height="180" viewBox="0 0 110 180">
+        <ellipse cx="55" cy="135" rx="40" ry="45" fill="#e6b877"/>
+        <ellipse cx="55" cy="75" rx="28" ry="36" fill="#e6b877"/>
+        <ellipse cx="35" cy="40" rx="11" ry="19" fill="#ad7d3c"/>
+        <ellipse cx="75" cy="40" rx="11" ry="19" fill="#ad7d3c"/>
+        <ellipse cx="55" cy="166" rx="11" ry="7" fill="#fff"/>
+      </svg>
+      <div class="zipper"></div>
+      <div class="puller"></div>
+      <div class="shine"></div>
+    </div>
+    <!-- 狐 -->
+    <div class="animal-container" data-animal="狐">
+      <svg width="110" height="180" viewBox="0 0 110 180">
+        <ellipse cx="55" cy="132" rx="39" ry="42" fill="#e07a1a"/>
+        <ellipse cx="55" cy="65" rx="25" ry="32" fill="#e07a1a"/>
+        <polygon points="38,36 48,12 53,40" fill="#e07a1a"/>
+        <polygon points="72,36 62,12 57,40" fill="#e07a1a"/>
+        <ellipse cx="55" cy="161" rx="16" ry="11" fill="#fff"/>
+      </svg>
+      <div class="zipper"></div>
+      <div class="puller"></div>
+      <div class="shine"></div>
+    </div>
+    <!-- クマ -->
+    <div class="animal-container" data-animal="クマ">
+      <svg width="110" height="180" viewBox="0 0 110 180">
+        <ellipse cx="55" cy="137" rx="43" ry="47" fill="#7d5a32"/>
+        <ellipse cx="55" cy="73" rx="31" ry="39" fill="#7d5a32"/>
+        <ellipse cx="38" cy="38" rx="12" ry="12" fill="#7d5a32"/>
+        <ellipse cx="72" cy="38" rx="12" ry="12" fill="#7d5a32"/>
+        <ellipse cx="55" cy="170" rx="18" ry="10" fill="#fff"/>
+      </svg>
+      <div class="zipper"></div>
+      <div class="puller"></div>
+      <div class="shine"></div>
+    </div>
+    <!-- ペンギン -->
+    <div class="animal-container" data-animal="ペンギン">
+      <svg width="110" height="180" viewBox="0 0 110 180">
+        <ellipse cx="55" cy="135" rx="37" ry="45" fill="#333"/>
+        <ellipse cx="55" cy="75" rx="26" ry="35" fill="#333"/>
+        <ellipse cx="55" cy="115" rx="23" ry="60" fill="#fff"/>
+        <ellipse cx="36" cy="60" rx="8" ry="14" fill="#333"/>
+        <ellipse cx="74" cy="60" rx="8" ry="14" fill="#333"/>
+        <ellipse cx="55" cy="166" rx="9" ry="6" fill="#fff"/>
+      </svg>
+      <div class="zipper"></div>
+      <div class="puller"></div>
+      <div class="shine"></div>
+    </div>
+  </div>
+  <div class="message" id="message"></div>
+  <script>
+    const results = [
+      'まばゆい光があふれ出た。',
+      '空洞が広がっていた。',
+      '中から小さな自分が覗いていた。',
+      'まるで何もなかったように闇が広がった。',
+      '柔らかな羽根がひらりと舞った。',
+      'みてはいけないものを見てしまった気がした。'
+    ];
+    document.querySelectorAll('.animal-container').forEach(container => {
+      container.addEventListener('click', function(){
+        // 既に開いていたら戻す
+        if (container.classList.contains('opened')) {
+          container.classList.remove('opened');
+          container.querySelector('.zipper').classList.remove('open');
+          container.querySelector('.shine').classList.remove('visible');
+          document.getElementById('message').textContent = '';
+          return;
+        }
+        // 一度に1つだけ開く
+        document.querySelectorAll('.animal-container.opened').forEach(c=>{
+          c.classList.remove('opened');
+          c.querySelector('.zipper').classList.remove('open');
+          c.querySelector('.shine').classList.remove('visible');
+        });
+        container.classList.add('opened');
+        // ファスナー開アニメーション
+        const zipper = container.querySelector('.zipper');
+        zipper.classList.add('open');
+        // 光エフェクト
+        const shine = container.querySelector('.shine');
+        setTimeout(()=>{
+          shine.classList.add('visible');
+        }, 180);
+        // メッセージ（効果音や振動も追加可）
+        const msg = document.getElementById('message');
+        setTimeout(()=>{
+          msg.textContent = results[Math.floor(Math.random()*results.length)];
+        }, 350);
+      });
+    });
+  </script>
+</body>
+</html>

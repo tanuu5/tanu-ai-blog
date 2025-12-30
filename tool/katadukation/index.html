@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="かたづケーション - 楽しく続けられる整理整頓支援アプリ。5分間の片付けで、理想の空間づくりをサポートします。">
+    <meta name="keywords" content="片付け,整理整頓,タイマー,目標管理,かたづけ,整理,収納,片付けアプリ">
+    <meta name="author" content="たぬ">
+    <meta property="og:title" content="かたづケーション - 片付けを楽しく習慣化">
+    <meta property="og:description" content="5分間の片付けで、理想の空間づくりをサポート。目標設定から進捗管理まで、楽しく続けられる整理整頓支援アプリです。">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary">
+    <title>かたづケーション - 片付けを楽しく習慣化</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+    <style>
+        /* ベーススタイル */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            background: #f0f2f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* 共通のカードスタイル */
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        /* タイマーセクション */
+        .timer-section {
+            text-align: center;
+        }
+
+        .timer-display {
+            font-size: 48px;
+            font-weight: bold;
+            color: #2d3748;
+            margin: 10px 0;
+            font-family: monospace;
+        }
+
+        /* ボタンスタイル */
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 0 5px;
+        }
+
+        .btn-primary {
+            background: #4299e1;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #f56565;
+            color: white;
+        }
+
+        .btn-success {
+            background: #48bb78;
+            color: white;
+        }
+
+        /* 目標管理セクション */
+        .goals-section {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .goal-card {
+            flex: 1 1 300px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            position: relative;
+            cursor: default;
+            /* 長文を折り返す */
+            word-wrap: break-word;
+        }
+
+        .goal-card.active {
+            border: 2px solid #4299e1;
+        }
+
+        .goal-card h3 {
+            margin-bottom: 10px;
+        }
+
+        .goal-card p {
+            margin-bottom: 10px;
+        }
+
+        /* カンバンボード */
+        .kanban-board {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+            overflow-x: auto;
+            padding-bottom: 20px;
+        }
+
+        .kanban-column {
+            flex: 1;
+            min-width: 300px;
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .item-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 8px;
+            cursor: move;
+        }
+
+        /* モーダル */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+        }
+
+        /* フォーム要素 */
+        input,
+        textarea {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        /* タブ */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .tab.active {
+            background: #4299e1;
+            color: white;
+        }
+
+        /* 進捗グラフ */
+        .progress-section {
+            margin-top: 20px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        /* データ管理 */
+        .data-management {
+            margin-top: 20px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+        }
+
+        /* タイマー設定フォーム */
+        .timer-setup-form {
+            margin-bottom: 10px;
+        }
+
+        .timer-setup-form input {
+            width: auto;
+            display: inline-block;
+            text-align: right;
+        }
+
+        .timer-setup-form span {
+            margin-left: 4px;
+        }
+
+        .goal-card-actions {
+            margin-top: 10px;
+        }
+
+        /* チュートリアル関連のスタイル */
+        .tutorial-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            display: none;
+        }
+
+        .tutorial-box {
+            position: fixed;
+            /* absoluteからfixedに変更 */
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 400px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            /* 画面からはみ出ないように制約を追加 */
+            margin: 20px;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+        }
+
+        .tutorial-box h3 {
+            margin-bottom: 10px;
+            color: #2d3748;
+        }
+
+        .tutorial-box p {
+            margin-bottom: 15px;
+            color: #4a5568;
+        }
+
+        .tutorial-buttons {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .tutorial-highlight {
+            position: fixed;
+            /* absoluteからfixedに変更 */
+            border: 3px solid #4299e1;
+            border-radius: 4px;
+            animation: pulse 2s infinite;
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(66, 153, 225, 0.4);
+            }
+
+            70% {
+                box-shadow: 0 0 0 10px rgba(66, 153, 225, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(66, 153, 225, 0);
+            }
+        }
+
+        .tutorial-progress {
+            display: flex;
+            justify-content: center;
+            margin-top: 10px;
+            gap: 5px;
+        }
+
+        .tutorial-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #CBD5E0;
+        }
+
+        .tutorial-dot.active {
+            background: #4299e1;
+        }
+
+        .app-header {
+            margin-bottom: 20px;
+            padding: 30px 20px;
+            background: linear-gradient(135deg, #ffffff 0%, #f0f4f8 100%);
+            text-align: center;
+        }
+
+        .app-header h1 {
+            color: #2d3748;
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .app-header p {
+            color: #4a5568;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.7;
+            font-size: 1rem;
+        }
+
+        /* フッターのスタイル修正 */
+        footer {
+            background: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+            margin-top: 2.5rem;
+            padding: 1.25rem;
+            text-align: center;
+            color: #4a5568;
+        }
+
+        footer p {
+            margin: 0.75rem 0;
+            font-size: 0.875rem;
+        }
+
+        footer .inline-list {
+            display: inline;
+            list-style: none;
+            font-size: 0.75rem;
+            margin-top: 0.5rem;
+        }
+
+        footer .inline-list li {
+            display: inline;
+            margin: 0 5px;
+        }
+
+        /* レスポンシブ対応 */
+        @media (max-width: 640px) {
+            .app-header h1 {
+                font-size: 2rem;
+            }
+
+            .app-header p {
+                font-size: 0.9rem;
+            }
+
+            footer {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- チュートリアルセクション -->
+        <div id="tutorialOverlay" class="tutorial-overlay">
+            <div id="tutorialHighlight" class="tutorial-highlight"></div>
+            <div id="tutorialBox" class="tutorial-box">
+                <h3></h3>
+                <p></p>
+                <div class="tutorial-buttons">
+                    <button class="btn btn-primary" onclick="previousStep()">前へ</button>
+                    <button class="btn btn-primary" onclick="nextStep()">次へ</button>
+                </div>
+                <div class="tutorial-progress"></div>
+            </div>
+        </div>
+        <!-- タイトルセクション -->
+        <div class="app-header card">
+            <h1 class="text-3xl font-bold text-center mb-2">かたづケーション</h1>
+            <p class="text-center text-gray-600 mb-4">
+                片付けを楽しく習慣化。5分間の小さな一歩から、理想の空間づくりをサポートします。<br>
+                目標を設定し、一つずつ整理することで、快適な暮らしを実現しましょう。
+            </p>
+        </div>
+        <!-- タイマーセクション -->
+        <div class="card timer-section">
+            <h2>5分片付け（カスタム可能）</h2>
+            <div class="timer-setup-form">
+                <label for="customMinutes">分数を設定：</label>
+                <input type="number" id="customMinutes" min="1" value="5">
+                <span>分</span>
+            </div>
+            <div class="timer-display" id="timer">5:00</div>
+            <div class="timer-controls">
+                <button class="btn btn-primary" onclick="toggleTimer()">開始/一時停止</button>
+                <button class="btn btn-primary" onclick="resetTimer()">リセット</button>
+            </div>
+        </div>
+
+        <!-- タブ -->
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('goals')">目標管理</div>
+            <div class="tab" onclick="switchTab('items')">アイテム整理</div>
+            <div class="tab" onclick="switchTab('progress')">進捗確認</div>
+            <div class="tab" onclick="switchTab('data')">データ管理</div>
+        </div>
+
+        <!-- 目標管理セクション -->
+        <div id="goalsTab" class="tab-content">
+            <div class="card">
+                <h2>新しい目標を追加</h2>
+                <input type="text" id="goalSpace" placeholder="場所（例：書斎の本棚）">
+                <textarea id="goalVision" placeholder="理想の状態（例：好きな本だけが並び、心地よい空間になっている）"></textarea>
+                <button class="btn btn-primary" onclick="addGoal()">目標を追加</button>
+            </div>
+            <div class="goals-section" id="goalsList"></div>
+        </div>
+
+        <!-- アイテム整理セクション -->
+        <div id="itemsTab" class="tab-content" style="display: none;">
+            <div class="kanban-board">
+                <div class="kanban-column">
+                    <h3>未整理 <span class="item-count">0</span></h3>
+                    <div class="item-list" id="unsorted"></div>
+                </div>
+                <div class="kanban-column">
+                    <h3>保管する <span class="item-count">0</span></h3>
+                    <div class="item-list" id="keep"></div>
+                </div>
+                <div class="kanban-column">
+                    <h3>処分する <span class="item-count">0</span></h3>
+                    <div class="item-list" id="remove"></div>
+                </div>
+            </div>
+            <div class="card">
+                <input type="text" id="newItemInput" placeholder="整理したいものを入力">
+                <button class="btn btn-success" onclick="addNewItem()">追加</button>
+            </div>
+        </div>
+
+        <!-- 進捗確認セクション -->
+        <div id="progressTab" class="tab-content" style="display: none;">
+            <div class="card progress-section">
+                <h2>進捗状況</h2>
+                <div class="chart-container">
+                    <canvas id="progressChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <canvas id="statusChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- データ管理セクション -->
+        <div id="dataTab" class="tab-content" style="display: none;">
+            <div class="card data-management">
+                <h2>データ管理</h2>
+                <div style="margin-bottom: 20px;">
+                    <button class="btn btn-primary" onclick="exportData()">データをエクスポート</button>
+                    <input type="file" id="importFile" accept=".json" style="display: none;">
+                    <button class="btn btn-primary"
+                        onclick="document.getElementById('importFile').click()">データをインポート</button>
+                    <button class="btn btn-danger" onclick="resetData()">データをリセット</button>
+                </div>
+                <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
+                    <h3 style="margin-bottom: 10px;">チュートリアル</h3>
+                    <button class="btn btn-primary" onclick="resetTutorial()">チュートリアルを再表示</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- アイテム編集モーダル -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <h3>アイテムを編集</h3>
+            <input type="text" id="editItemInput">
+            <textarea id="editItemMemo" placeholder="メモを入力（任意）"></textarea>
+            <button class="btn btn-primary" onclick="saveEdit()">保存</button>
+            <button class="btn btn-danger" onclick="closeModal()">キャンセル</button>
+        </div>
+    </div>
+
+    <!-- 目標編集モーダル -->
+    <div id="editGoalModal" class="modal">
+        <div class="modal-content">
+            <h3>目標を編集</h3>
+            <input type="text" id="editGoalSpace">
+            <textarea id="editGoalVision"></textarea>
+            <button class="btn btn-primary" onclick="saveGoalEdit()">保存</button>
+            <button class="btn btn-danger" onclick="closeGoalModal()">キャンセル</button>
+        </div>
+    </div>
+
+    <!-- フッター -->
+    <footer class="mt-8 p-4 text-center text-sm text-gray-600 border-t">
+        <p>© 2024 かたづケーション All Rights Reserved.</p>
+        <p class="my-2">制作: たぬ | 開発支援: Claude 3.5 Sonnet (Anthropic AI)</p>
+        <p class="mb-2">Version 1.0.0 "Declutter Assistant" (2024-01-05)</p>
+        <div class="text-xs">
+            This application uses:
+            <ul class="inline-list">
+                <li>* Sortable.js (MIT License)</li>
+                <li>* Chart.js (MIT License)</li>
+            </ul>
+        </div>
+    </footer>
+
+    <script>
+        // データ構造
+        let appData = {
+            goals: [],
+            items: [],
+            activeGoalId: null
+        };
+
+        // 編集対象ID（アイテム or 目標）
+        let currentEditId = null;
+        let currentEditGoalId = null;
+
+        // LocalStorage管理
+        function saveToLocalStorage() {
+            localStorage.setItem('declutterApp', JSON.stringify(appData));
+        }
+
+        function loadFromLocalStorage() {
+            const saved = localStorage.getItem('declutterApp');
+            if (saved) {
+                appData = JSON.parse(saved);
+                renderGoals();
+                renderItems();
+                updateCharts();
+            }
+        }
+
+        // タブ切り替え
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+
+            document.getElementById(`${tabName}Tab`).style.display = 'block';
+            document.querySelector(`.tab[onclick*="${tabName}"]`).classList.add('active');
+
+            if (tabName === 'progress') {
+                updateCharts();
+            }
+        }
+
+        // 目標管理 ---------------------------------------
+        function addGoal() {
+            const space = document.getElementById('goalSpace').value.trim();
+            const vision = document.getElementById('goalVision').value.trim();
+
+            if (space && vision) {
+                const goal = {
+                    id: Date.now(),
+                    space,
+                    vision,
+                    createdAt: new Date().toISOString()
+                };
+
+                appData.goals.push(goal);
+                if (!appData.activeGoalId) {
+                    appData.activeGoalId = goal.id;
+                }
+
+                saveToLocalStorage();
+                renderGoals();
+
+                document.getElementById('goalSpace').value = '';
+                document.getElementById('goalVision').value = '';
+            }
+        }
+
+        function renderGoals() {
+            const goalsList = document.getElementById('goalsList');
+            goalsList.innerHTML = '';
+
+            appData.goals.forEach(goal => {
+                const goalCard = document.createElement('div');
+                goalCard.className = `goal-card ${goal.id === appData.activeGoalId ? 'active' : ''}`;
+                goalCard.onclick = (e) => {
+                    // カードクリックで選択を変更
+                    // ただし、編集/削除ボタンがクリックされた場合はここまで伝播しないように
+                    if (e.target.nodeName !== 'BUTTON') {
+                        selectGoal(goal.id);
+                    }
+                };
+                goalCard.innerHTML = `
+                    <h3>${goal.space}</h3>
+                    <p>${goal.vision}</p>
+                    <div class="goal-card-actions">
+                        <button class="btn btn-primary" onclick="editGoal(event, ${goal.id})">編集</button>
+                        <button class="btn btn-danger" onclick="deleteGoal(event, ${goal.id})">削除</button>
+                    </div>
+                `;
+                goalsList.appendChild(goalCard);
+            });
+        }
+
+        function selectGoal(goalId) {
+            appData.activeGoalId = goalId;
+            saveToLocalStorage();
+            renderGoals();
+            renderItems();
+        }
+
+        function editGoal(event, goalId) {
+            // クリックイベントがカードまで伝播しないようにする
+            event.stopPropagation();
+            currentEditGoalId = goalId;
+            // モーダルを開く
+            const goal = appData.goals.find(g => g.id === goalId);
+            if (goal) {
+                document.getElementById('editGoalSpace').value = goal.space;
+                document.getElementById('editGoalVision').value = goal.vision;
+                document.getElementById('editGoalModal').classList.add('active');
+            }
+        }
+
+        function saveGoalEdit() {
+            const newSpace = document.getElementById('editGoalSpace').value.trim();
+            const newVision = document.getElementById('editGoalVision').value.trim();
+
+            if (newSpace && newVision && currentEditGoalId) {
+                const goalIndex = appData.goals.findIndex(g => g.id === currentEditGoalId);
+                if (goalIndex !== -1) {
+                    appData.goals[goalIndex].space = newSpace;
+                    appData.goals[goalIndex].vision = newVision;
+                    saveToLocalStorage();
+                    renderGoals();
+                }
+            }
+            closeGoalModal();
+        }
+
+        function closeGoalModal() {
+            document.getElementById('editGoalModal').classList.remove('active');
+            currentEditGoalId = null;
+        }
+
+        function deleteGoal(event, goalId) {
+            event.stopPropagation();
+            if (confirm('この目標を削除してもよろしいですか？')) {
+                appData.goals = appData.goals.filter(goal => goal.id !== goalId);
+                appData.items = appData.items.filter(item => item.goalId !== goalId);
+
+                if (appData.activeGoalId === goalId) {
+                    appData.activeGoalId = appData.goals[0]?.id || null;
+                }
+
+                saveToLocalStorage();
+                renderGoals();
+                renderItems();
+                updateCharts();
+            }
+        }
+
+        // アイテム管理 -----------------------------------
+        function addNewItem() {
+            const input = document.getElementById('newItemInput');
+            const text = input.value.trim();
+
+            if (text && appData.activeGoalId) {
+                const item = {
+                    id: Date.now(),
+                    text: text,
+                    memo: '',
+                    status: 'unsorted',
+                    goalId: appData.activeGoalId,
+                    createdAt: new Date().toISOString()
+                };
+
+                appData.items.push(item);
+                saveToLocalStorage();
+                renderItems();
+                updateCharts();
+                input.value = '';
+            }
+        }
+
+        function renderItems() {
+            document.querySelectorAll('.item-list').forEach(list => list.innerHTML = '');
+
+            const activeItems = appData.items.filter(item => item.goalId === appData.activeGoalId);
+            activeItems.forEach(item => {
+                const itemElement = createItemCard(item);
+                document.getElementById(item.status).appendChild(itemElement);
+            });
+
+            updateItemCounts();
+        }
+
+        function createItemCard(item) {
+            const card = document.createElement('div');
+            card.className = 'item-card';
+            card.dataset.id = item.id;
+            card.innerHTML = `
+                <h4>${item.text}</h4>
+                ${item.memo ? `<p class="memo">${item.memo}</p>` : ''}
+                <div class="item-meta">
+                    追加日: ${new Date(item.createdAt).toLocaleDateString()}
+                </div>
+                <div class="item-actions">
+                    <button class="btn btn-primary" onclick="editItem(${item.id})">編集</button>
+                    <button class="btn btn-danger" onclick="deleteItem(${item.id})">削除</button>
+                </div>
+            `;
+            return card;
+        }
+
+        function editItem(id) {
+            const item = appData.items.find(item => item.id === id);
+            if (item) {
+                currentEditId = id;
+                document.getElementById('editItemInput').value = item.text;
+                document.getElementById('editItemMemo').value = item.memo || '';
+                document.getElementById('editModal').classList.add('active');
+            }
+        }
+
+        function saveEdit() {
+            const newText = document.getElementById('editItemInput').value.trim();
+            const newMemo = document.getElementById('editItemMemo').value.trim();
+
+            if (newText && currentEditId) {
+                const itemIndex = appData.items.findIndex(item => item.id === currentEditId);
+                if (itemIndex !== -1) {
+                    appData.items[itemIndex].text = newText;
+                    appData.items[itemIndex].memo = newMemo;
+                    saveToLocalStorage();
+                    renderItems();
+                }
+            }
+            closeModal();
+        }
+
+        function closeModal() {
+            document.getElementById('editModal').classList.remove('active');
+            currentEditId = null;
+        }
+
+        function deleteItem(id) {
+            if (confirm('このアイテムを削除してもよろしいですか？')) {
+                appData.items = appData.items.filter(item => item.id !== id);
+                saveToLocalStorage();
+                renderItems();
+                updateCharts();
+            }
+        }
+
+        // 進捗グラフ -------------------------------------
+        let progressChart = null;
+        let statusChart = null;
+
+        function updateCharts() {
+            updateProgressChart();
+            updateStatusChart();
+        }
+
+        function updateProgressChart() {
+            const ctx = document.getElementById('progressChart').getContext('2d');
+
+            const goalData = appData.goals.map(goal => {
+                const items = appData.items.filter(item => item.goalId === goal.id);
+                const total = items.length;
+                const completed = items.filter(item => item.status !== 'unsorted').length;
+                return {
+                    label: goal.space,
+                    completed: total ? (completed / total * 100) : 0
+                };
+            });
+
+            if (progressChart) {
+                progressChart.destroy();
+            }
+
+            progressChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: goalData.map(d => d.label),
+                    datasets: [{
+                        label: '進捗率 (%)',
+                        data: goalData.map(d => d.completed),
+                        backgroundColor: '#4299e1'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateStatusChart() {
+            const ctx = document.getElementById('statusChart').getContext('2d');
+
+            const statusCounts = {
+                unsorted: 0,
+                keep: 0,
+                remove: 0
+            };
+
+            appData.items.forEach(item => {
+                statusCounts[item.status]++;
+            });
+
+            if (statusChart) {
+                statusChart.destroy();
+            }
+
+            statusChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['未整理', '保管', '処分'],
+                    datasets: [{
+                        data: [statusCounts.unsorted, statusCounts.keep, statusCounts.remove],
+                        backgroundColor: ['#718096', '#48bb78', '#f56565']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+
+        // データ管理 -------------------------------------
+        function exportData() {
+            const dataStr = JSON.stringify(appData, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `declutter-data-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    try {
+                        const importedData = JSON.parse(e.target.result);
+                        if (confirm('既存のデータを上書きしますか？')) {
+                            appData = importedData;
+                            saveToLocalStorage();
+                            renderGoals();
+                            renderItems();
+                            updateCharts();
+                        }
+                    } catch (error) {
+                        alert('データの読み込みに失敗しました。');
+                    }
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        function resetData() {
+            if (confirm('すべてのデータをリセットしますか？この操作は取り消せません。')) {
+                appData = {
+                    goals: [],
+                    items: [],
+                    activeGoalId: null
+                };
+                saveToLocalStorage();
+                renderGoals();
+                renderItems();
+                updateCharts();
+            }
+        }
+
+        // タイマー機能 -----------------------------------
+        let timeLeft = 300;
+        let timerId = null;
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function toggleTimer() {
+            if (timerId) {
+                clearInterval(timerId);
+                timerId = null;
+            } else {
+                timerId = setInterval(() => {
+                    timeLeft--;
+                    document.getElementById('timer').textContent = formatTime(timeLeft);
+                    if (timeLeft <= 0) {
+                        clearInterval(timerId);
+                        timerId = null;
+                        alert('時間終了！今日の片付けお疲れ様でした！');
+                    }
+                }, 1000);
+            }
+        }
+
+        function resetTimer() {
+            clearInterval(timerId);
+            timerId = null;
+            // カスタム設定された分数を再取得
+            const customMins = parseInt(document.getElementById('customMinutes').value);
+            // 入力値が有効なら反映、そうでなければ5分
+            const validMins = !isNaN(customMins) && customMins > 0 ? customMins : 5;
+            timeLeft = validMins * 60;
+            document.getElementById('timer').textContent = formatTime(timeLeft);
+        }
+
+        // アイテムドロップ時の処理 ------------------------
+        function updateItemCounts() {
+            // 各ステータスのアイテム数をカウント
+            const counts = {
+                unsorted: appData.items.filter(item =>
+                    item.goalId === appData.activeGoalId &&
+                    item.status === 'unsorted'
+                ).length,
+                keep: appData.items.filter(item =>
+                    item.goalId === appData.activeGoalId &&
+                    item.status === 'keep'
+                ).length,
+                remove: appData.items.filter(item =>
+                    item.goalId === appData.activeGoalId &&
+                    item.status === 'remove'
+                ).length
+            };
+
+            // カウント表示を更新
+            Object.entries(counts).forEach(([status, count]) => {
+                const column = document.querySelector(`#${status}`).closest('.kanban-column');
+                const countElement = column.querySelector('.item-count');
+                if (countElement) {
+                    countElement.textContent = count;
+                }
+            });
+        }
+
+        // ドラッグ＆ドロップの初期化 ----------------------
+        document.getElementById('importFile').addEventListener('change', importData);
+        window.addEventListener('load', function () {
+            loadFromLocalStorage();
+            updateItemCounts();
+            updateCharts();
+            resetTimer(); // 初期タイマーセット
+            initTutorial(); // チュートリアルの初期化を追加
+        });
+
+        // チュートリアルの各ステップを定義
+        const tutorialSteps = [
+            {
+                title: "ようこそ！",
+                content: "片付けサポートアプリへようこそ。このチュートリアルでは、アプリの基本的な使い方を説明します。",
+                target: null,
+                position: { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' },
+                tab: 'goals' // デフォルトタブ
+            },
+            {
+                title: "目標設定",
+                content: "まずは片付けの目標を設定しましょう。場所と理想の状態を入力して、目標を作成できます。",
+                target: '.goal-form',
+                position: { top: '30%', left: '50%', transform: 'translate(-50%, 0)' },
+                tab: 'goals'
+            },
+            {
+                title: "5分タイマー",
+                content: "毎日5分だけ片付けに取り組みましょう。このタイマーを使って時間を管理できます。",
+                target: '.timer-section',
+                position: { top: '150px', left: '50%', transform: 'translate(-50%, 0)' },
+                tab: 'goals'
+            },
+            {
+                title: "アイテム整理",
+                content: "整理したいものを登録し、ドラッグ&ドロップで「保管する」「処分する」に分類できます。",
+                target: '.kanban-board',
+                position: { top: '40%', left: '50%', transform: 'translate(-50%, 0)' },
+                tab: 'items'
+            },
+            {
+                title: "進捗確認",
+                content: "グラフで片付けの進捗状況を確認できます。目標達成に向けて頑張りましょう！",
+                target: '.progress-section',
+                position: { top: '40%', left: '50%', transform: 'translate(-50%, 0)' },
+                tab: 'progress'
+            },
+            {
+                title: "データ管理",
+                content: "データのエクスポート/インポートやチュートリアルの再表示ができます。",
+                target: '.data-management',
+                position: { top: '40%', left: '50%', transform: 'translate(-50%, 0)' },
+                tab: 'data'
+            },
+            {
+                title: "準備完了！",
+                content: "基本的な使い方の説明は以上です。さっそく片付けを始めましょう！",
+                target: null,
+                position: { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' },
+                tab: 'goals'
+            }
+        ];
+
+        let currentStep = 0;
+
+        // チュートリアルの初期化
+        function initTutorial() {
+            const hasSeenTutorial = localStorage.getItem('hasSeenTutorial');
+            if (!hasSeenTutorial) {
+                startTutorial();
+            }
+        }
+
+        // チュートリアルの開始
+        function startTutorial() {
+            document.getElementById('tutorialOverlay').style.display = 'block';
+            updateTutorialStep();
+        }
+
+        // チュートリアルステップの更新
+        function updateTutorialStep() {
+            const step = tutorialSteps[currentStep];
+            const tutorialBox = document.getElementById('tutorialBox');
+            const tutorialHighlight = document.getElementById('tutorialHighlight');
+
+            // タブの切り替え
+            if (step.tab) {
+                switchTab(step.tab);
+            }
+
+            // 少し遅延を入れてハイライトの位置を調整（タブ切り替えのアニメーション対応）
+            setTimeout(() => {
+                // タイトルとコンテンツの更新
+                tutorialBox.querySelector('h3').textContent = step.title;
+                tutorialBox.querySelector('p').textContent = step.content;
+
+                // ハイライトの位置更新
+                if (step.target) {
+                    const targetElement = document.querySelector(step.target);
+                    if (targetElement) {
+                        const rect = targetElement.getBoundingClientRect();
+                        tutorialHighlight.style.display = 'block';
+                        tutorialHighlight.style.top = `${rect.top}px`;
+                        tutorialHighlight.style.left = `${rect.left}px`;
+                        tutorialHighlight.style.width = `${rect.width}px`;
+                        tutorialHighlight.style.height = `${rect.height}px`;
+                    }
+                } else {
+                    tutorialHighlight.style.display = 'none';
+                }
+
+                // チュートリアルボックスの位置更新
+                Object.keys(step.position).forEach(key => {
+                    tutorialBox.style[key] = step.position[key];
+                });
+
+                // プログレスドットの更新
+                updateProgressDots();
+
+                // ボタンテキストの更新
+                const nextButton = tutorialBox.querySelector('.tutorial-buttons button:last-child');
+                nextButton.textContent = currentStep === tutorialSteps.length - 1 ? '完了' : '次へ';
+
+                const prevButton = tutorialBox.querySelector('.tutorial-buttons button:first-child');
+                prevButton.style.visibility = currentStep === 0 ? 'hidden' : 'visible';
+            }, 100); // 100ms の遅延を設定
+        }
+
+        // プログレスドットの更新
+        function updateProgressDots() {
+            const progressContainer = document.querySelector('.tutorial-progress');
+            progressContainer.innerHTML = '';
+
+            for (let i = 0; i < tutorialSteps.length; i++) {
+                const dot = document.createElement('div');
+                dot.className = `tutorial-dot ${i === currentStep ? 'active' : ''}`;
+                progressContainer.appendChild(dot);
+            }
+        }
+
+        // 次のステップへ
+        function nextStep() {
+            if (currentStep < tutorialSteps.length - 1) {
+                currentStep++;
+                updateTutorialStep();
+            } else {
+                completeTutorial();
+            }
+        }
+
+        // 前のステップへ
+        function previousStep() {
+            if (currentStep > 0) {
+                currentStep--;
+                updateTutorialStep();
+            }
+        }
+
+        // チュートリアル完了
+        function completeTutorial() {
+            document.getElementById('tutorialOverlay').style.display = 'none';
+            localStorage.setItem('hasSeenTutorial', 'true');
+        }
+
+        // チュートリアルのリセット（開発用）
+        function resetTutorial() {
+            localStorage.removeItem('hasSeenTutorial');
+            currentStep = 0;
+            startTutorial();
+        }
+
+        document.querySelectorAll('.item-list').forEach(list => {
+            new Sortable(list, {
+                group: 'shared',
+                animation: 150,
+                ghostClass: 'dragging',
+                onEnd: function (evt) {
+                    const itemId = parseInt(evt.item.dataset.id);
+                    const newStatus = evt.to.id;
+
+                    const itemIndex = appData.items.findIndex(item => item.id === itemId);
+                    if (itemIndex !== -1) {
+                        appData.items[itemIndex].status = newStatus;
+                        saveToLocalStorage();
+                        updateItemCounts();
+                        updateCharts();
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

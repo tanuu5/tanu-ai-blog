@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iPhoneバッテリー残量確認アプリ</title>
+    <meta name="description" content="iPhoneのバッテリー残量を簡単に確認できるWebアプリ。端末名、充電回数、実測残量などの詳細情報を提供します。">
+    <meta name="keywords" content="iPhone, バッテリー残量, バッテリー健康度, 充電回数, Webアプリ">
+    <meta name="author" content="たぬ">
+    <meta property="og:title" content="iPhoneバッテリー残量確認アプリ">
+    <meta property="og:description" content="iPhoneのバッテリー残量を簡単に確認できるWebアプリ。端末名、充電回数、実測残量などの詳細情報を提供します。">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://tanu-ai.blog/tool/ibattery/">
+    <meta property="og:image" content="https://tanu-ai.blog/tool/ibattery/iphone-battery-check-app-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="iPhoneバッテリー残量確認アプリのスクリーンショット">
+    <link rel="canonical" href="https://tanu-ai.blog/tool/ibattery/">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-100 to-gray-200 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <div class="bg-white shadow-2xl rounded-lg overflow-hidden">
+            <div class="bg-gradient-to-r from-blue-500 to-purple-600 p-6">
+                <h1 class="text-3xl font-bold text-white">iPhoneバッテリー残量確認アプリ</h1>
+            </div>
+            <div class="p-6 space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="deviceModel" class="block text-sm font-medium text-gray-700 mb-2">端末名</label>
+                        <select id="deviceModel" class="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" onchange="updateCapacity()">
+                            <!-- デバイスオプションはJavaScriptで動的に生成されます -->
+                        </select>
+                    </div>
+                    <div>
+                        <label for="initialCapacity" class="block text-sm font-medium text-gray-700 mb-2">初期搭載容量</label>
+                        <input id="initialCapacity" type="number" class="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" readonly>
+                    </div>
+                </div>
+                <div>
+                    <label for="logInput" class="block text-sm font-medium text-gray-700 mb-2">ログデータ</label>
+                    <textarea id="logInput" class="w-full h-40 p-3 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="ここにログを貼り付けてください。「Analytics-YYYY-MM-DD.synced」ファイルの中身を貼り付けてください。"></textarea>
+                </div>
+                <div>
+                    <label for="fileInput" class="block text-sm font-medium text-gray-700 mb-2">または、ログファイルをアップロード</label>
+                    <input type="file" id="fileInput" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="flex justify-center">
+                    <button id="extractButton" class="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold rounded-md shadow-lg hover:from-blue-600 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-300">抽出</button>
+                </div>
+                <div id="result" class="bg-gray-50 p-6 rounded-lg shadow-inner"></div>
+                <div class="mt-8 p-6 bg-blue-50 rounded-lg shadow-md">
+                    <p class="text-gray-700 mb-4">iPhone14以前のモデルでは、フル充電サイクルを500回繰り返した後も本来の蓄電容量の80%を維持するよう設計されています。</p>
+                    <a href="https://support.apple.com/ja-jp/106348" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 transition duration-300">
+                        詳細情報 ※Apple公式サポートサイトへリンクします。
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-gray-800 text-white py-8 mt-12">
+        <div class="container mx-auto px-4 text-center">
+            <p>&copy; 2024 iPhoneバッテリー残量確認アプリ All Rights Reserved.</p>
+            <p class="mt-2">制作: たぬ | 開発支援: Claude 3.5 (Anthropic AI)</p>
+            <p class="mt-2">Version 1.0.0 "Battery Health Checker" (2024-08-08 12:00)</p>
+            <p class="mt-4 text-sm">
+                This application uses:
+                <a href="https://tailwindcss.com/" target="_blank" rel="noopener noreferrer" class="text-blue-300 hover:text-blue-100">Tailwind CSS</a> (MIT License)
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        const deviceCapacities = {
+            "iPhone": 1400,
+            "iPhone 3G": 1150,
+            "iPhone 3GS": 1219,
+            "iPhone 4": 1432,
+            "iPhone 4s": 1419,
+            "iPhone 5": 1434,
+            "iPhone 5c": 1508,
+            "iPhone 5s": 1558,
+            "iPhone 6": 1810,
+            "iPhone 6 Plus": 2906,
+            "iPhone 6s": 1715,
+            "iPhone 6s Plus": 2705,
+            "iPhone SE": 1624,
+            "iPhone 7": 1961,
+            "iPhone 7 Plus": 2906,
+            "iPhone 8": 1821,
+            "iPhone 8 Plus": 2675,
+            "iPhone X": 2700,
+            "iPhone XS": 2658,
+            "iPhone XS Max": 3174,
+            "iPhone XR": 2942,
+            "iPhone 11": 3110,
+            "iPhone 11 Pro": 3046,
+            "iPhone 11 Pro Max": 3969,
+            "iPhone SE (2nd generation)": 1821,
+            "iPhone 12": 2815,
+            "iPhone 12 mini": 2227,
+            "iPhone 12 Pro": 2815,
+            "iPhone 12 Pro Max": 3687,
+            "iPhone 13": 3095,
+            "iPhone 13 mini": 2406,
+            "iPhone 13 Pro": 3095,
+            "iPhone 13 Pro Max": 4352,
+            "iPhone 14": 3279,
+            "iPhone 14 Plus": 4325,
+            "iPhone 14 Pro": 3200,
+            "iPhone 14 Pro Max": 4323,
+            "iPhone 15": 3349,
+            "iPhone 15 Plus": 4383,
+            "iPhone 15 Pro": 3274,
+            "iPhone 15 Pro Max": 4422
+        };
+
+        function populateDeviceOptions() {
+            const deviceModel = document.getElementById('deviceModel');
+            Object.keys(deviceCapacities).forEach(model => {
+                const option = document.createElement('option');
+                option.value = model;
+                option.textContent = model;
+                deviceModel.appendChild(option);
+            });
+        }
+
+        function updateCapacity() {
+            const deviceModel = document.getElementById('deviceModel');
+            const initialCapacity = document.getElementById('initialCapacity');
+            initialCapacity.value = deviceCapacities[deviceModel.value];
+        }
+
+        document.getElementById('deviceModel').addEventListener('change', updateCapacity);
+
+        document.getElementById('extractButton').addEventListener('click', function() {
+            const logText = document.getElementById('logInput').value;
+            const fileInput = document.getElementById('fileInput');
+            
+            if (fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const result = extractInfo(e.target.result);
+                    displayResult(result);
+                };
+                reader.readAsText(file);
+            } else if (logText) {
+                const result = extractInfo(logText);
+                displayResult(result);
+            } else {
+                alert('ログデータを入力するか、ファイルをアップロードしてください。');
+            }
+        });
+
+        function extractInfo(logText) {
+            const patterns = {
+                timestamp: /"timestamp":"([^"]+)"/,
+                cycleCount: /"last_value_CycleCount":(\d+)/,
+                nominalCapacity: /"last_value_NominalChargeCapacity":(\d+)/,
+                actualCapacity: /"last_value_AppleRawMaxCapacity":(\d+)/
+            };
+
+            const extracted = {};
+            let isValid = true;
+
+            for (const [key, pattern] of Object.entries(patterns)) {
+                const match = logText.match(pattern);
+                if (match) {
+                    extracted[key] = match[1];
+                } else {
+                    isValid = false;
+                    break;
+                }
+            }
+
+            return isValid ? extracted : null;
+        }
+
+        function calculatePercentage(value, total) {
+            return ((value / total) * 100).toFixed(2);
+        }
+
+        function getBatteryHealthComment(degradation) {
+            if (degradation < 5) return "新品同様でしょう！";
+            if (degradation < 10) return "ほぼ新品同様！";
+            if (degradation < 15) return "少し心配だけどまだ大丈夫！";
+            if (degradation < 20) return "そろそろ交換かも";
+            return "交換した方が良いかも";
+        }
+
+        function displayResult(result) {
+            const resultDiv = document.getElementById('result');
+            if (result) {
+                const deviceModel = document.getElementById('deviceModel');
+                const initialCapacity = document.getElementById('initialCapacity');
+
+                const modelName = deviceModel.value;
+                const capacity = initialCapacity.value;
+
+                const nominalPercentage = calculatePercentage(result.nominalCapacity, capacity);
+                const actualPercentage = calculatePercentage(result.actualCapacity, capacity);
+                const degradation = (100 - actualPercentage).toFixed(2);
+                const healthComment = getBatteryHealthComment(parseFloat(degradation));
+
+                resultDiv.innerHTML = `
+                    <h2 class="text-2xl font-semibold mb-4 text-gray-800">抽出結果</h2>
+                    <div class="space-y-3">
+                        <p><span class="font-medium text-gray-700">端末名:</span> <span class="text-blue-600">${modelName}</span></p>
+                        <p><span class="font-medium text-gray-700">初期搭載容量:</span> <span class="text-blue-600">${capacity} mAh</span></p>
+                        <p><span class="font-medium text-gray-700">確認日:</span> <span class="text-blue-600">${result.timestamp}</span></p>
+                        <p><span class="font-medium text-gray-700">充電回数:</span> <span class="text-blue-600">${result.cycleCount}</span></p>
+                        <p><span class="font-medium text-gray-700">公称残量:</span> <span class="text-blue-600">${result.nominalCapacity} mAh (${nominalPercentage}%)</span></p>
+                        <p><span class="font-medium text-gray-700">実測残量:</span> <span class="text-blue-600">${result.actualCapacity} mAh (${actualPercentage}%)</span></p>
+                        <p><span class="font-medium text-gray-700">バッテリー消耗率:</span> <span class="text-blue-600">${degradation}%</span></p>
+                        <p><span class="font-medium text-gray-700">バッテリー状態:</span> <span class="text-green-600 font-bold">${healthComment}</span></p>
+                    </div>
+                `;
+            } else {
+                resultDiv.innerHTML = '<p class="text-red-500 font-medium">エラー: 無効なログファイルです。必要な情報が見つかりません。</p>';
+            }
+        }
+
+        // 初期化
+        populateDeviceOptions();
+        updateCapacity();
+    </script>
+</body>
+</html>

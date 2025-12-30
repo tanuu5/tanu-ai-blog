@@ -1,0 +1,1086 @@
+<!--
+MIT License
+
+Copyright (c) 2023 YourName
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+-->
+
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>リバーシゲーム</title>
+    <style>
+        :root {
+            --primary-color: #4a4e69;
+            --secondary-color: #9a8c98;
+            --background-color: #f2e9e4;
+            --board-color: #22223b;
+            --cell-color: #4a6951;
+            --white-disc: #f2e9e4;
+            --black-disc: #22223b;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: var(--background-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: var(--primary-color);
+        }
+
+        .game-container {
+            background-color: var(--primary-color);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(8, 60px);
+            grid-gap: 4px;
+            background-color: var(--board-color);
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .cell {
+            width: 60px;
+            height: 60px;
+            background-color: var(--cell-color);
+            border-radius: 5px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .cell:hover {
+            background-color: var(--secondary-color);
+        }
+
+        .disc {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            transition: all 0.5s ease;
+        }
+
+        .black {
+            background-color: var(--black-disc);
+        }
+
+        .white {
+            background-color: var(--white-disc);
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            background-color: var(--primary-color);
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+            margin-right: 10px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked+.slider {
+            background-color: var(--primary-color);
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(26px);
+        }
+
+        .slider-text {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 12px;
+            font-weight: bold;
+            color: var(--background-color);
+        }
+
+        .slider-text.off {
+            left: 8px;
+        }
+
+        .slider-text.on {
+            right: 8px;
+        }
+
+        select {
+            padding: 8px;
+            border-radius: 5px;
+            border: none;
+            background-color: var(--secondary-color);
+            color: var(--background-color);
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        #status {
+            text-align: center;
+            font-size: 1.2em;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+
+        .flip-disc {
+            animation: flipDisc 0.5s ease-out;
+        }
+
+        @keyframes flipDisc {
+            0% {
+                transform: perspective(400px) rotateY(90deg);
+                opacity: 0;
+            }
+
+            100% {
+                transform: perspective(400px) rotateY(0deg);
+                opacity: 1;
+            }
+        }
+
+        .valid-move {
+            box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.5);
+        }
+
+        .game-over {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 1.5em;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .game-over-content {
+            background-color: var(--primary-color);
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .game-over h2 {
+            margin-top: 0;
+        }
+
+        .game-over p {
+            margin: 10px 0;
+        }
+
+        .game-over button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 1em;
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .game-over button:hover {
+            background-color: var(--board-color);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        /* ポップアップのスタイル */
+        .popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: var(--primary-color);
+            color: var(--background-color);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            text-align: center;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .popup h2 {
+            margin-top: 0;
+        }
+
+        .popup button {
+            margin-top: 15px;
+            padding: 10px 20px;
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .popup button:hover {
+            background-color: var(--board-color);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        /* 障害物のスタイル */
+        .obstacle {
+            background-color: #8B4513;
+            border-radius: 5px;
+        }
+
+        /* 障害物切り替えスイッチのスタイル */
+        .obstacle-switch {
+            margin-left: 20px;
+            color: var(--background-color);
+            /* 背景色と同じ変数を使用 */
+        }
+
+        .switch-label {
+            display: flex;
+            align-items: center;
+            margin-right: 15px;
+            color: var(--background-color);
+            font-weight: bold;
+        }
+
+        .switch-label input[type="checkbox"] {
+            margin-right: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="game-container">
+        <div class="controls">
+            <div class="control-group">
+                <label class="switch-label">
+                    CPU対戦
+                    <div class="switch">
+                        <input type="checkbox" id="cpuSwitch">
+                        <span class="slider">
+                            <span class="slider-text off">OFF</span>
+                            <span class="slider-text on">ON</span>
+                        </span>
+                    </div>
+                </label>
+                <select hidden id="cpuColor">
+                    <option value="white">CPU: 白</option>
+                    <option value="black">CPU: 黒</option>
+                </select>
+                <select id="cpuLevel">
+                    <option value="easy">弱い</option>
+                    <option value="normal" selected>普通</option>
+                    <option value="hard">強い</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label class="switch-label">
+                    障害物
+                    <div class="switch">
+                        <input type="checkbox" id="obstacleSwitch">
+                        <span class="slider">
+                            <span class="slider-text off">OFF</span>
+                            <span class="slider-text on">ON</span>
+                        </span>
+                    </div>
+                </label>
+            </div>
+        </div>
+        <div id="board" class="board"></div>
+        <div id="status"></div>
+    </div>
+
+    <script>
+        // ゲームの状態を管理するオブジェクト
+        const gameState = {
+            board: [],
+            currentPlayer: 'black',
+            isCPUEnabled: false,
+            cpuColor: 'white',
+            cpuLevel: 'normal',
+            obstaclesEnabled: false
+        };
+
+        // DOMエレメントの参照
+        const domElements = {
+            board: document.getElementById('board'),
+            status: document.getElementById('status'),
+            cpuSwitch: document.getElementById('cpuSwitch'),
+            cpuColorSelect: document.getElementById('cpuColor'),
+            cpuLevelSelect: document.getElementById('cpuLevel'),
+            obstacleSwitch: document.getElementById('obstacleSwitch'),
+            discCount: document.createElement('div'),
+            resetButton: document.createElement('button')
+        };
+
+        // 定数
+        const BOARD_SIZE = 8;
+        const NUM_OBSTACLES = 4;
+        const DIRECTIONS = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]];
+
+        // ゲームボードの初期化
+        function initializeBoard() {
+            gameState.board = Array(BOARD_SIZE).fill().map(() => Array(BOARD_SIZE).fill(''));
+            domElements.board.innerHTML = '';
+
+            for (let i = 0; i < BOARD_SIZE; i++) {
+                for (let j = 0; j < BOARD_SIZE; j++) {
+                    const cell = createBoardCell(i, j);
+                    domElements.board.appendChild(cell);
+                }
+            }
+
+            setDisc(3, 3, 'white');
+            setDisc(3, 4, 'black');
+            setDisc(4, 3, 'black');
+            setDisc(4, 4, 'white');
+
+            if (gameState.obstaclesEnabled) {
+                placeObstacles();
+            }
+
+            gameState.currentPlayer = 'black';
+            updateStatus();
+            highlightValidMoves();
+            updateDiscCount();
+
+            // CPUが先手の場合、CPUの手を実行
+            if (gameState.isCPUEnabled && gameState.cpuColor === 'black') {
+                setTimeout(makeCPUMove, 1000);
+            }
+        }
+
+        // ボードのセルを作成する関数
+        function createBoardCell(row, col) {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            cell.dataset.row = row;
+            cell.dataset.col = col;
+            cell.addEventListener('click', handleCellClick);
+            return cell;
+        }
+
+        // 障害物を配置する関数
+        function placeObstacles() {
+            let obstaclesPlaced = 0;
+            while (obstaclesPlaced < NUM_OBSTACLES) {
+                const row = Math.floor(Math.random() * BOARD_SIZE);
+                const col = Math.floor(Math.random() * BOARD_SIZE);
+                if (gameState.board[row][col] === '' && !isInitialPosition(row, col)) {
+                    gameState.board[row][col] = 'obstacle';
+                    const cell = domElements.board.children[row * BOARD_SIZE + col];
+                    cell.classList.add('obstacle');
+                    obstaclesPlaced++;
+                }
+            }
+        }
+
+        // 初期位置かどうかを判定する関数
+        function isInitialPosition(row, col) {
+            return (row === 3 && col === 3) || (row === 3 && col === 4) ||
+                (row === 4 && col === 3) || (row === 4 && col === 4);
+        }
+
+        // 有効な手かどうかを判定する関数
+        function isValidMove(row, col) {
+            if (row < 0 || row >= BOARD_SIZE || col < 0 || col >= BOARD_SIZE) {
+                return false;
+            }
+            if (gameState.board[row][col] !== '') return false;
+            return DIRECTIONS.some(dir => isValidDirection(row, col, dir[0], dir[1]));
+        }
+
+        // 指定した方向に有効な手があるかを判定する関数
+        function isValidDirection(row, col, dRow, dCol) {
+            let r = row + dRow;
+            let c = col + dCol;
+            if (r < 0 || r >= BOARD_SIZE || c < 0 || c >= BOARD_SIZE ||
+                gameState.board[r][c] !== getOpponentColor()) return false;
+
+            while (true) {
+                r += dRow;
+                c += dCol;
+                if (r < 0 || r >= BOARD_SIZE || c < 0 || c >= BOARD_SIZE) return false;
+                if (gameState.board[r][c] === '') return false;
+                if (gameState.board[r][c] === 'obstacle') return false;
+                if (gameState.board[r][c] === gameState.currentPlayer) return true;
+            }
+        }
+
+        // 手を実行する関数
+        function makeMove(row, col) {
+            setDisc(row, col, gameState.currentPlayer);
+            DIRECTIONS.forEach(dir => {
+                if (isValidDirection(row, col, dir[0], dir[1], gameState.currentPlayer)) {
+                    flipDiscs(row, col, dir[0], dir[1]);
+                }
+            });
+            updateDiscCount();
+        }
+
+        // ディスクをひっくり返す関数
+        function flipDiscs(row, col, dRow, dCol) {
+            let r = row + dRow;
+            let c = col + dCol;
+            while (gameState.board[r][c] === getOpponentColor(gameState.currentPlayer)) {
+                setDisc(r, c, gameState.currentPlayer);
+                r += dRow;
+                c += dCol;
+            }
+        }
+
+        // ディスクを配置する関数
+        function setDisc(row, col, color) {
+            gameState.board[row][col] = color;
+            const cell = domElements.board.children[row * BOARD_SIZE + col];
+            cell.innerHTML = `<div class="disc ${color}"></div>`;
+            cell.firstChild.classList.add('flip-disc');
+        }
+
+        // セルクリック時の処理
+        function handleCellClick(e) {
+            if (gameState.isCPUEnabled && gameState.currentPlayer === gameState.cpuColor) return;
+
+            const row = parseInt(e.target.dataset.row);
+            const col = parseInt(e.target.dataset.col);
+
+            if (isNaN(row) || isNaN(col)) {
+                console.warn('Invalid cell clicked');
+                return;
+            }
+
+            if (isValidMove(row, col, gameState.currentPlayer)) {
+                makeMove(row, col);
+                gameState.currentPlayer = getOpponentColor(gameState.currentPlayer);
+                updateStatus();
+                highlightValidMoves();
+                checkGameState();
+            }
+        }
+
+        // 相手の色を取得する関数
+        function getOpponentColor() {
+            return gameState.currentPlayer === 'black' ? 'white' : 'black';
+        }
+
+        // 有効な手を取得する関数
+        function getValidMoves(player = gameState.currentPlayer) {
+            const validMoves = [];
+            for (let i = 0; i < BOARD_SIZE; i++) {
+                for (let j = 0; j < BOARD_SIZE; j++) {
+                    if (isValidMove(i, j, player)) {
+                        validMoves.push({ row: i, col: j });
+                    }
+                }
+            }
+            return validMoves;
+        }
+
+        // 有効な手をハイライトする関数
+        function highlightValidMoves() {
+            const cells = domElements.board.children;
+            for (let cell of cells) {
+                cell.classList.remove('valid-move');
+            }
+            const validMoves = getValidMoves();
+            for (let move of validMoves) {
+                const cell = cells[move.row * BOARD_SIZE + move.col];
+                cell.classList.add('valid-move');
+            }
+        }
+
+        // ステータスを更新する関数
+        function updateStatus() {
+            domElements.status.textContent = `現在の手番: ${gameState.currentPlayer === 'black' ? '黒' : '白'}`;
+        }
+
+        // コンソールにログを出力する関数
+        function logDebugInfo(message) {
+            console.log(`[DEBUG] ${message}`);
+        }
+
+        // ゲームの状態をチェックする関数
+        function checkGameState() {
+            const { blackCount, whiteCount, emptyCount } = countDiscs();
+            logDebugInfo(`Disc count - Black: ${blackCount}, White: ${whiteCount}, Empty: ${emptyCount}`);
+
+            if (emptyCount === 0) {
+                logDebugInfo("Game ending: All cells are filled");
+                endGame();
+                return;
+            }
+
+            const currentPlayerHasMove = hasValidMove(gameState.currentPlayer);
+            const opponentHasMove = hasValidMove(getOpponentColor(gameState.currentPlayer));
+
+            logDebugInfo(`Current player (${gameState.currentPlayer}) has move: ${currentPlayerHasMove}`);
+            logDebugInfo(`Opponent (${getOpponentColor(gameState.currentPlayer)}) has move: ${opponentHasMove}`);
+
+            if (!currentPlayerHasMove) {
+                if (!opponentHasMove) {
+                    logDebugInfo("Neither player can move, but empty cells remain. Ending the game.");
+                    endGame();
+                } else {
+                    logDebugInfo(`${gameState.currentPlayer}'s turn is skipped due to no valid moves`);
+                    showNoMovesDialog(`${gameState.currentPlayer === 'black' ? '黒' : '白'}の手番をスキップします。相手の番に切り替えます。`, () => {
+                        gameState.currentPlayer = getOpponentColor(gameState.currentPlayer);
+                        updateStatus();
+                        highlightValidMoves();
+                        if (gameState.isCPUEnabled && gameState.currentPlayer === gameState.cpuColor) {
+                            setTimeout(makeCPUMove, 1000);
+                        }
+                    });
+                }
+            } else if (gameState.isCPUEnabled && gameState.currentPlayer === gameState.cpuColor) {
+                setTimeout(makeCPUMove, 1000);
+            }
+
+            logDebugInfo(`Current game state: ${JSON.stringify(gameState.board)}`);
+        }
+
+        // 手番をスキップするダイアログを表示する関数
+        function showNoMovesDialog(message, callback) {
+            const dialog = document.createElement('div');
+            dialog.className = 'popup';
+            dialog.innerHTML = `
+        <h2>手番スキップ</h2>
+        <p>${message}</p>
+        <button id="okButton">OK</button>
+    `;
+            document.body.appendChild(dialog);
+
+            const okButton = dialog.querySelector('#okButton');
+            okButton.addEventListener('click', () => {
+                dialog.remove();
+                if (callback) callback();
+            });
+        }
+
+        // 空のセルを埋める関数を追加
+        /*function fillEmptyCells() {
+            for (let i = 0; i < BOARD_SIZE; i++) {
+                for (let j = 0; j < BOARD_SIZE; j++) {
+                    if (gameState.board[i][j] === '') {
+                        const surroundingColors = getSurroundingColors(i, j);
+                        const majorityColor = surroundingColors.black > surroundingColors.white ? 'black' : 'white';
+                        setDisc(i, j, majorityColor);
+                        logDebugInfo(`Filled empty cell at [${i}, ${j}] with ${majorityColor}`);
+                    }
+                }
+            }
+            updateDiscCount();
+            endGame();
+        }*/
+
+        // 周囲のディスクの色をカウントする関数を追加
+        /*function getSurroundingColors(row, col) {
+            let black = 0, white = 0;
+            for (let dRow = -1; dRow <= 1; dRow++) {
+                for (let dCol = -1; dCol <= 1; dCol++) {
+                    if (dRow === 0 && dCol === 0) continue;
+                    const r = row + dRow;
+                    const c = col + dCol;
+                    if (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE) {
+                        if (gameState.board[r][c] === 'black') black++;
+                        else if (gameState.board[r][c] === 'white') white++;
+                    }
+                }
+            }
+            return { black, white };
+        }*/
+
+        // どちらのプレイヤーも有効な手がないかをチェック
+        function hasAnyValidMove() {
+            return hasValidMove(gameState.currentPlayer) || hasValidMove(getOpponentColor(gameState.currentPlayer));
+        }
+
+        // 指定したプレイヤーの有効な手があるかどうかを判定する関数を更新
+        function hasValidMove(player) {
+            for (let i = 0; i < BOARD_SIZE; i++) {
+                for (let j = 0; j < BOARD_SIZE; j++) {
+                    if (isValidMove(i, j, player)) {
+                        logDebugInfo(`Valid move found for ${player} at [${i}, ${j}]`);
+                        return true;
+                    }
+                }
+            }
+            logDebugInfo(`No valid moves found for ${player}`);
+            return false;
+        }
+
+        // 有効な手かどうかを判定する関数を更新
+        function isValidMove(row, col, player) {
+            if (gameState.board[row][col] !== '') {
+                return false;
+            }
+            const isValid = DIRECTIONS.some(dir => isValidDirection(row, col, dir[0], dir[1], player));
+            if (isValid) {
+                logDebugInfo(`Valid move for ${player} at [${row}, ${col}]`);
+            }
+            return isValid;
+        }
+
+        // 指定した方向に有効な手があるかを判定する関数を更新
+        function isValidDirection(row, col, dRow, dCol, player) {
+            let r = row + dRow;
+            let c = col + dCol;
+            let hasOpponent = false;
+
+            while (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE) {
+                if (gameState.board[r][c] === '') return false;
+                if (gameState.board[r][c] === 'obstacle') return false;
+                if (gameState.board[r][c] === getOpponentColor(player)) {
+                    hasOpponent = true;
+                } else if (gameState.board[r][c] === player) {
+                    return hasOpponent;
+                }
+                r += dRow;
+                c += dCol;
+            }
+            return false;
+        }
+
+        // 相手の色を取得する関数を更新
+        function getOpponentColor(player = gameState.currentPlayer) {
+            return player === 'black' ? 'white' : 'black';
+        }
+
+        // 有効な手があるかどうかを判定する関数
+        function hasValidMove() {
+            return getValidMoves().length > 0;
+        }
+
+        // ゲーム終了時の処理
+        function endGame() {
+            const { blackCount, whiteCount, emptyCount } = countDiscs();
+            let result;
+            if (blackCount > whiteCount) {
+                result = '黒の勝利!';
+            } else if (whiteCount > blackCount) {
+                result = '白の勝利!';
+            } else {
+                result = '引き分け!';
+            }
+            logDebugInfo(`Game ended. Result: ${result}, Black: ${blackCount}, White: ${whiteCount}, Empty: ${emptyCount}`);
+            showGameOverScreen(result, blackCount, whiteCount);
+        }
+
+        // ゲーム終了画面を表示する関数
+        function showGameOverScreen(result, blackCount, whiteCount) {
+            const gameOverScreen = document.createElement('div');
+            gameOverScreen.className = 'game-over';
+            gameOverScreen.innerHTML = `
+            <div class="game-over-content">
+                <h2>ゲーム終了</h2>
+                <p>${result}</p>
+                <p>黒: ${blackCount} 個</p>
+                <p>白: ${whiteCount} 個</p>
+                <button onclick="retryGame()">もう一度プレイ</button>
+            </div>
+        `;
+            document.body.appendChild(gameOverScreen);
+        }
+
+        // ゲームをリトライする関数
+        function retryGame() {
+            const gameOverScreen = document.querySelector('.game-over');
+            if (gameOverScreen) {
+                gameOverScreen.remove();
+            }
+            initializeBoard();
+        }
+
+        // CPUの手を実行する関数
+        function makeCPUMove() {
+            let move;
+            switch (gameState.cpuLevel) {
+                case 'easy':
+                    move = makeEasyMove();
+                    break;
+                case 'normal':
+                    move = makeNormalMove();
+                    break;
+                case 'hard':
+                    move = makeHardMove();
+                    break;
+            }
+
+            if (move) {
+                makeMove(move.row, move.col);
+                gameState.currentPlayer = getOpponentColor(gameState.currentPlayer);
+                updateStatus();
+                highlightValidMoves();
+                console.log(`CPU move: Row ${move.row}, Col ${move.col}`);
+            }
+
+            checkGameState();
+        }
+
+        // 簡単なCPUの手を選択する関数
+        function makeEasyMove() {
+            const validMoves = getValidMoves();
+            if (validMoves.length === 0) return null;
+
+            const moveScores = validMoves.map(move => {
+                const score = evaluateMove(move.row, move.col);
+                return { ...move, score };
+            });
+
+            moveScores.sort((a, b) => a.score - b.score);
+
+            const worstMoveIndex = Math.floor(Math.random() * Math.floor(moveScores.length / 3));
+            return moveScores[worstMoveIndex];
+        }
+
+        // 普通のCPUの手を選択する関数
+        function makeNormalMove() {
+            const validMoves = getValidMoves();
+            if (validMoves.length === 0) return null;
+            return validMoves[Math.floor(Math.random() * validMoves.length)];
+        }
+
+        // 難しいCPUの手を選択する関数
+        function makeHardMove() {
+            const validMoves = getValidMoves();
+            if (validMoves.length === 0) return null;
+
+            let bestMove = null;
+            let bestScore = -Infinity;
+
+            for (const move of validMoves) {
+                const tempBoard = gameState.board.map(row => [...row]);
+                const tempPlayer = gameState.currentPlayer;
+
+                makeMoveCopy(tempBoard, move.row, move.col, tempPlayer);
+                const score = minimax(tempBoard, 3, false, tempPlayer === 'black' ? 'white' : 'black');
+
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestMove = move;
+                }
+            }
+
+            return bestMove;
+        }
+
+        // ミニマックスアルゴリズムの実装
+        function minimax(board, depth, isMaximizing, player) {
+            if (depth === 0 || !hasValidMoveCopy(board, player)) {
+                return evaluateBoardCopy(board);
+            }
+
+            const validMoves = getValidMovesCopy(board, player);
+
+            if (isMaximizing) {
+                let bestScore = -Infinity;
+                for (const move of validMoves) {
+                    const tempBoard = board.map(row => [...row]);
+                    makeMoveCopy(tempBoard, move.row, move.col, player);
+                    const score = minimax(tempBoard, depth - 1, false, player === 'black' ? 'white' : 'black');
+                    bestScore = Math.max(score, bestScore);
+                }
+                return bestScore;
+            } else {
+                let bestScore = Infinity;
+                for (const move of validMoves) {
+                    const tempBoard = board.map(row => [...row]);
+                    makeMoveCopy(tempBoard, move.row, move.col, player);
+                    const score = minimax(tempBoard, depth - 1, true, player === 'black' ? 'white' : 'black');
+                    bestScore = Math.min(score, bestScore);
+                }
+                return bestScore;
+            }
+        }
+
+        // ボードのコピーに対して手を実行する関数
+        function makeMoveCopy(board, row, col, player) {
+            board[row][col] = player;
+            DIRECTIONS.forEach(dir => {
+                if (isValidDirectionCopy(board, row, col, dir[0], dir[1], player)) {
+                    flipDiscsCopy(board, row, col, dir[0], dir[1], player);
+                }
+            });
+        }
+
+        // ボードのコピーに対して方向の有効性をチェックする関数
+        function isValidDirectionCopy(board, row, col, dRow, dCol, player) {
+            let r = row + dRow;
+            let c = col + dCol;
+            if (r < 0 || r >= BOARD_SIZE || c < 0 || c >= BOARD_SIZE || board[r][c] !== (player === 'black' ? 'white' : 'black')) return false;
+            while (true) {
+                r += dRow;
+                c += dCol;
+                if (r < 0 || r >= BOARD_SIZE || c < 0 || c >= BOARD_SIZE) return false;
+                if (board[r][c] === '') return false;
+                if (board[r][c] === player) return true;
+            }
+        }
+
+        // ボードのコピーに対してディスクをひっくり返す関数
+        function flipDiscsCopy(board, row, col, dRow, dCol, player) {
+            let r = row + dRow;
+            let c = col + dCol;
+            while (board[r][c] !== player) {
+                board[r][c] = player;
+                r += dRow;
+                c += dCol;
+            }
+        }
+
+        // ボードのコピーに対して有効な手があるかをチェックする関数
+        function hasValidMoveCopy(board, player) {
+            for (let i = 0; i < BOARD_SIZE; i++) {
+                for (let j = 0; j < BOARD_SIZE; j++) {
+                    if (isValidMoveCopy(board, i, j, player)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        // ボードのコピーに対して有効な手かどうかをチェックする関数
+        function isValidMoveCopy(board, row, col, player) {
+            if (board[row][col] !== '') return false;
+            return DIRECTIONS.some(dir => isValidDirectionCopy(board, row, col, dir[0], dir[1], player));
+        }
+
+        // ボードのコピーに対して有効な手を取得する関数
+        function getValidMovesCopy(board, player) {
+            const validMoves = [];
+            for (let i = 0; i < BOARD_SIZE; i++) {
+                for (let j = 0; j < BOARD_SIZE; j++) {
+                    if (isValidMoveCopy(board, i, j, player)) {
+                        validMoves.push({ row: i, col: j });
+                    }
+                }
+            }
+            return validMoves;
+        }
+
+        // ボードの評価関数
+        function evaluateBoardCopy(board) {
+            const weights = [
+                [100, -10, 8, 6, 6, 8, -10, 100],
+                [-10, -25, -4, -4, -4, -4, -25, -10],
+                [8, -4, 6, 4, 4, 6, -4, 8],
+                [6, -4, 4, 0, 0, 4, -4, 6],
+                [6, -4, 4, 0, 0, 4, -4, 6],
+                [8, -4, 6, 4, 4, 6, -4, 8],
+                [-10, -25, -4, -4, -4, -4, -25, -10],
+                [100, -10, 8, 6, 6, 8, -10, 100]
+            ];
+
+            let score = 0;
+            for (let i = 0; i < BOARD_SIZE; i++) {
+                for (let j = 0; j < BOARD_SIZE; j++) {
+                    if (board[i][j] === gameState.cpuColor) {
+                        score += weights[i][j];
+                    } else if (board[i][j] === (gameState.cpuColor === 'black' ? 'white' : 'black')) {
+                        score -= weights[i][j];
+                    }
+                }
+            }
+            return score;
+        }
+
+        // 現在のボードを評価する関数
+        function evaluateBoard() {
+            return evaluateBoardCopy(gameState.board);
+        }
+
+        // 手を評価する関数
+        function evaluateMove(row, col) {
+            return evaluateBoard();
+        }
+
+        // ディスクの数を数える関数
+        function countDiscs() {
+            let blackCount = 0, whiteCount = 0, emptyCount = 0;
+            for (let i = 0; i < BOARD_SIZE; i++) {
+                for (let j = 0; j < BOARD_SIZE; j++) {
+                    if (gameState.board[i][j] === 'black') blackCount++;
+                    else if (gameState.board[i][j] === 'white') whiteCount++;
+                    else if (gameState.board[i][j] === '') emptyCount++;
+                }
+            }
+            logDebugInfo(`Disc count - Black: ${blackCount}, White: ${whiteCount}, Empty: ${emptyCount}`);
+            return { blackCount, whiteCount, emptyCount };
+        }
+
+        // ディスクカウントを更新する関数
+        function updateDiscCount() {
+            const { blackCount, whiteCount } = countDiscs();
+            domElements.discCount.textContent = `黒: ${blackCount} | 白: ${whiteCount}`;
+        }
+
+        // ポップアップを表示する関数
+        function showPopup(message) {
+            const popup = document.createElement('div');
+            popup.className = 'popup';
+            popup.innerHTML = `
+            <h2>ゲーム情報</h2>
+            <p>${message}</p>
+            <button onclick="this.parentElement.remove()">OK</button>
+        `;
+            document.body.appendChild(popup);
+        }
+
+        // イベントリスナーの設定
+        domElements.cpuSwitch.addEventListener('change', (e) => {
+            gameState.isCPUEnabled = e.target.checked;
+            domElements.cpuColorSelect.disabled = !gameState.isCPUEnabled;
+            domElements.cpuLevelSelect.disabled = !gameState.isCPUEnabled;
+            initializeBoard();
+
+            if (gameState.isCPUEnabled) {
+                const playerColor = gameState.cpuColor === 'white' ? '黒' : '白';
+                const playerTurn = playerColor === '黒' ? '先行' : '後攻';
+                showPopup(`CPUとの対戦をONにしました！<br>あなたは${playerColor}、${playerTurn}です。<br>難易度: ${domElements.cpuLevelSelect.options[domElements.cpuLevelSelect.selectedIndex].text}`);
+            }
+        });
+
+        domElements.cpuColorSelect.addEventListener('change', (e) => {
+            gameState.cpuColor = e.target.value;
+            initializeBoard();
+
+            if (gameState.isCPUEnabled) {
+                const playerColor = gameState.cpuColor === 'white' ? '黒' : '白';
+                const playerTurn = playerColor === '黒' ? '先行' : '後攻';
+                showPopup(`プレイヤーの色が変更されました。<br>あなたは${playerColor}、${playerTurn}です。`);
+            }
+        });
+
+        domElements.cpuLevelSelect.addEventListener('change', (e) => {
+            gameState.cpuLevel = e.target.value;
+            if (gameState.isCPUEnabled) {
+                showPopup(`CPU難易度が変更されました。<br>新しい難易度: ${domElements.cpuLevelSelect.options[domElements.cpuLevelSelect.selectedIndex].text}`);
+            }
+        });
+
+        domElements.obstacleSwitch.addEventListener('change', (e) => {
+            gameState.obstaclesEnabled = e.target.checked;
+            initializeBoard();
+            if (gameState.obstaclesEnabled) {
+                showPopup("障害物モードがONになりました。ランダムな位置に障害物が配置されます。");
+            } else {
+                showPopup("障害物モードがOFFになりました。通常のオセロボードで遊べます。");
+            }
+        });
+
+        // リセットボタンの設定
+        domElements.resetButton.textContent = 'ゲームをリセット';
+        domElements.resetButton.style.marginTop = '20px';
+        domElements.resetButton.style.padding = '10px 20px';
+        domElements.resetButton.style.backgroundColor = 'var(--secondary-color)';
+        domElements.resetButton.style.color = 'white';
+        domElements.resetButton.style.border = 'none';
+        domElements.resetButton.style.borderRadius = '5px';
+        domElements.resetButton.style.cursor = 'pointer';
+        domElements.resetButton.addEventListener('click', retryGame);
+        document.querySelector('.game-container').appendChild(domElements.resetButton);
+
+        // ディスクカウント表示の設定
+        domElements.discCount.style.textAlign = 'center';
+        domElements.discCount.style.marginTop = '10px';
+        document.querySelector('.game-container').appendChild(domElements.discCount);
+
+        // ゲーム開始
+        initializeBoard();
+    </script>
+</body>
+
+</html>

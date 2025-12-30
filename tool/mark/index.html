@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>マークシート生成</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center">マークシート生成</h1>
+        <div class="form-group">
+            <label for="sheetTitle">タイトルを入力してください</label>
+            <input type="text" class="form-control" id="sheetTitle" placeholder="例: 数学テスト">
+        </div>
+        <div class="form-group">
+            <label for="questionCount">問題数を入力してください</label>
+            <input type="number" class="form-control" id="questionCount" min="1" placeholder="例: 20">
+        </div>
+        <div class="form-group">
+            <label for="passingScore">合格ラインを入力してください（%）</label>
+            <input type="number" class="form-control" id="passingScore" min="0" max="100" placeholder="例: 60" oninput="updatePassingScore()">
+            <div id="passingScoreDisplay" class="mt-2"></div>
+        </div>
+        <button class="btn btn-primary btn-block" onclick="generateMarkSheet()">送信</button>
+        <div id="errorMessage" class="text-danger mt-2"></div>
+    </div>
+
+    <script>
+        function updatePassingScore() {
+            const passingScore = document.getElementById('passingScore').value;
+            const passingScoreDisplay = document.getElementById('passingScoreDisplay');
+            passingScoreDisplay.innerText = `合格ライン：${passingScore}%`;
+        }
+
+        function generateMarkSheet() {
+            const sheetTitle = document.getElementById('sheetTitle').value;
+            const questionCount = document.getElementById('questionCount').value;
+            const passingScore = document.getElementById('passingScore').value;
+            const errorMessage = document.getElementById('errorMessage');
+            errorMessage.innerHTML = '';
+
+            if (questionCount < 1) {
+                errorMessage.innerHTML = '問題数は1以上の数を入力してください。';
+                return;
+            }
+
+            if (passingScore < 0 || passingScore > 100) {
+                errorMessage.innerHTML = '合格ラインは0から100の間で入力してください。';
+                return;
+            }
+
+            const startTime = Date.now();
+            const queryParams = new URLSearchParams({ sheetTitle, questionCount, passingScore, startTime });
+            window.location.href = `marksheet.html?${queryParams.toString()}`;
+        }
+    </script>
+</body>
+</html>

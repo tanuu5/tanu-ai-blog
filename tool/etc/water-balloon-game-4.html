@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Splash Breeze: 涼しげな水風船割りゲーム</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #87CEEB, #E0F6FF);
+            overflow: hidden;
+        }
+        #game-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        .balloon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            position: absolute;
+            cursor: pointer;
+            transition: transform 0.1s;
+            z-index: 10;
+        }
+        .balloon:hover {
+            transform: scale(1.05);
+        }
+        .pop-effect {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 70%);
+            animation: pop 0.5s ease-out;
+            pointer-events: none;
+            z-index: 20;
+        }
+        @keyframes pop {
+            0% { transform: scale(0); opacity: 1; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+        #score-container, #timer, #highscore {
+            position: absolute;
+            font-size: 24px;
+            color: #333;
+            z-index: 30;
+        }
+        #score-container { top: 10px; left: 10px; }
+        #timer { top: 10px; right: 10px; }
+        #highscore { top: 40px; left: 10px; }
+        #start-screen, #end-screen, #difficulty-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 100;
+        }
+        #start-button, #retry-button, .difficulty-button {
+            font-size: 24px;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        #game-over-text {
+            font-size: 48px;
+            color: white;
+            margin-bottom: 20px;
+        }
+        #difficulty-text {
+            font-size: 36px;
+            color: white;
+            margin-bottom: 20px;
+        }
+        #game-title {
+            font-size: 64px;
+            color: #FFFFFF;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        #game-subtitle {
+            font-size: 32px;
+            color: #E0F6FF;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            margin-bottom: 40px;
+        }
+        .water-droplet {
+            position: absolute;
+            background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8), rgba(255,255,255,0.4));
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 5;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="score-container">スコア: <span id="score">0</span></div>
+        <div id="timer">残り時間: <span id="time">60</span>秒</div>
+        <div id="highscore">ハイスコア: <span id="highscore-value">0</span></div>
+        <div id="start-screen">
+            <div id="game-title">Splash Breeze</div>
+            <div id="game-subtitle">～涼しげな水風船割りゲーム～</div>
+            <button id="start-button">スタート</button>
+        </div>
+        <div id="difficulty-screen" style="display: none;">
+            <div id="difficulty-text">難易度を選択してください</div>
+            <button class="difficulty-button" data-difficulty="easy">かんたん</button>
+            <button class="difficulty-button" data-difficulty="normal">普通</button>
+            <button class="difficulty-button" data-difficulty="hard">難しい</button>
+            <button class="difficulty-button" data-difficulty="veryhard">超難しい</button>
+        </div>
+        <div id="end-screen" style="display: none;">
+            <div id="game-over-text">タイムアップ！</div>
+            <div id="final-score"></div>
+            <button id="retry-button">リトライ</button>
+        </div>
+    </div>
+
+    <script>
+        const gameContainer = document.getElementById('game-container');
+        const scoreElement = document.getElementById('score');
+        const timeElement = document.getElementById('time');
+        const highscoreElement = document.getElementById('highscore-value');
+        const startScreen = document.getElementById('start-screen');
+        const difficultyScreen = document.getElementById('difficulty-screen');
+        const endScreen = document.getElementById('end-screen');
+        const startButton = document.getElementById('start-button');
+        const retryButton = document.getElementById('retry-button');
+        const finalScoreElement = document.getElementById('final-score');
+
+        let score = 0;
+        let timeLeft = 60;
+        let highscores = { easy: 0, normal: 0, hard: 0, veryhard: 0 };
+        let balloons = [];
+        let gameInterval;
+        let timerInterval;
+        let currentDifficulty = 'normal';
+
+        const difficulties = {
+            easy: { maxBalloons: 15, speedMultiplier: 0.7, timeLimit: 90, color: '#87CEFA' },
+            normal: { maxBalloons: 10, speedMultiplier: 1, timeLimit: 60, color: '#1E90FF' },
+            hard: { maxBalloons: 7, speedMultiplier: 1.5, timeLimit: 45, color: '#4169E1' },
+            veryhard: { maxBalloons: 5, speedMultiplier: 2, timeLimit: 30, color: '#0000CD' }
+        };
+
+        startButton.addEventListener('click', showDifficultyScreen);
+        retryButton.addEventListener('click', showDifficultyScreen);
+        document.querySelectorAll('.difficulty-button').forEach(button => {
+            button.addEventListener('click', (e) => {
+                currentDifficulty = e.target.dataset.difficulty;
+                startGame();
+            });
+        });
+
+        function showDifficultyScreen() {
+            startScreen.style.display = 'none';
+            endScreen.style.display = 'none';
+            difficultyScreen.style.display = 'flex';
+        }
+
+        // 水滴を生成する関数
+        function createWaterDroplet() {
+            const droplet = document.createElement('div');
+            droplet.className = 'water-droplet';
+            const size = Math.random() * 20 + 10; // 10px から 30px のランダムなサイズ
+            droplet.style.width = `${size}px`;
+            droplet.style.height = `${size}px`;
+            droplet.style.left = `${Math.random() * 100}%`;
+            droplet.style.top = '-30px'; // 画面上部から開始
+            droplet.style.opacity = Math.random() * 0.5 + 0.1; // 0.1 から 0.6 のランダムな透明度
+            gameContainer.appendChild(droplet);
+
+            // 水滴を下に移動させるアニメーション
+            let position = -30;
+            const speed = Math.random() * 1 + 0.5; // 0.5 から 1.5 のランダムな速度
+            function moveDroplet() {
+                position += speed;
+                droplet.style.top = `${position}px`;
+                if (position < window.innerHeight) {
+                    requestAnimationFrame(moveDroplet);
+                } else {
+                    gameContainer.removeChild(droplet);
+                }
+            }
+            requestAnimationFrame(moveDroplet);
+        }
+
+        // 定期的に水滴を生成
+        setInterval(createWaterDroplet, 300);
+
+        // ゲーム開始時に既存の水滴を削除する関数
+        function clearWaterDroplets() {
+            document.querySelectorAll('.water-droplet').forEach(droplet => droplet.remove());
+        }
+
+        // startGame 関数を更新
+        function startGame() {
+            score = 0;
+            timeLeft = difficulties[currentDifficulty].timeLimit;
+            balloons = [];
+            scoreElement.textContent = score;
+            timeElement.textContent = timeLeft;
+            highscoreElement.textContent = highscores[currentDifficulty];
+
+            document.querySelectorAll('.balloon').forEach(balloon => balloon.remove());
+
+            difficultyScreen.style.display = 'none';
+            endScreen.style.display = 'none';
+
+            for (let i = 0; i < difficulties[currentDifficulty].maxBalloons; i++) {
+                createBalloon();
+            }
+
+            gameInterval = setInterval(updateGame, 16);
+            timerInterval = setInterval(updateTimer, 1000);
+        }
+
+        function createBalloon() {
+            const balloon = document.createElement('div');
+            balloon.className = 'balloon';
+            const x = Math.random() * (window.innerWidth - 50);
+            const y = Math.random() * (window.innerHeight - 50);
+            balloon.style.left = x + 'px';
+            balloon.style.top = y + 'px';
+            balloon.style.background = `radial-gradient(circle at 30% 30%, ${difficulties[currentDifficulty].color}, ${darkenColor(difficulties[currentDifficulty].color, 20)})`;
+            balloon.addEventListener('click', (e) => popBalloon(balloon, e));
+            gameContainer.appendChild(balloon);
+            balloons.push({
+                element: balloon,
+                x: x,
+                y: y,
+                dx: (Math.random() - 0.5) * 2 * difficulties[currentDifficulty].speedMultiplier,
+                dy: (Math.random() - 0.5) * 2 * difficulties[currentDifficulty].speedMultiplier,
+                radius: 25
+            });
+        }
+
+        function darkenColor(color, percent) {
+            const num = parseInt(color.replace("#",""), 16),
+                  amt = Math.round(2.55 * percent),
+                  R = (num >> 16) - amt,
+                  G = (num >> 8 & 0x00FF) - amt,
+                  B = (num & 0x0000FF) - amt;
+            return "#" + (0x1000000 + (R<255?R<1?0:R:255)*0x10000 + (G<255?G<1?0:G:255)*0x100 + (B<255?B<1?0:B:255)).toString(16).slice(1);
+        }
+
+        function popBalloon(balloon, event) {
+            score++;
+            scoreElement.textContent = score;
+            if (score > highscores[currentDifficulty]) {
+                highscores[currentDifficulty] = score;
+                highscoreElement.textContent = highscores[currentDifficulty];
+            }
+            gameContainer.removeChild(balloon);
+            balloons = balloons.filter(b => b.element !== balloon);
+            createPopEffect(event.clientX, event.clientY);
+        }
+
+        function createPopEffect(x, y) {
+            const effect = document.createElement('div');
+            effect.className = 'pop-effect';
+            effect.style.left = (x - 25) + 'px';
+            effect.style.top = (y - 25) + 'px';
+            gameContainer.appendChild(effect);
+            setTimeout(() => {
+                if (effect.parentNode === gameContainer) {
+                    gameContainer.removeChild(effect);
+                }
+            }, 500);
+        }
+
+        function moveBalloons() {
+            for (let i = 0; i < balloons.length; i++) {
+                let balloon = balloons[i];
+                balloon.x += balloon.dx;
+                balloon.y += balloon.dy;
+
+                // 壁との衝突判定
+                if (balloon.x <= balloon.radius || balloon.x >= window.innerWidth - balloon.radius) {
+                    balloon.dx *= -1;
+                    balloon.x = Math.max(balloon.radius, Math.min(window.innerWidth - balloon.radius, balloon.x));
+                }
+                if (balloon.y <= balloon.radius || balloon.y >= window.innerHeight - balloon.radius) {
+                    balloon.dy *= -1;
+                    balloon.y = Math.max(balloon.radius, Math.min(window.innerHeight - balloon.radius, balloon.y));
+                }
+
+                // 他の風船との衝突判定
+                for (let j = i + 1; j < balloons.length; j++) {
+                    let other = balloons[j];
+                    let dx = other.x - balloon.x;
+                    let dy = other.y - balloon.y;
+                    let distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < balloon.radius + other.radius) {
+                        // 衝突時の速度交換
+                        let angle = Math.atan2(dy, dx);
+                        let sin = Math.sin(angle);
+                        let cos = Math.cos(angle);
+
+                        // 回転した速度
+                        let vx1 = balloon.dx * cos + balloon.dy * sin;
+                        let vy1 = balloon.dy * cos - balloon.dx * sin;
+                        let vx2 = other.dx * cos + other.dy * sin;
+                        let vy2 = other.dy * cos - other.dx * sin;
+
+                        // 衝突後の速度
+                        let finalVx1 = vx2;
+                        let finalVx2 = vx1;
+
+                        // 速度を元の座標系に戻す
+                        balloon.dx = finalVx1 * cos - vy1 * sin;
+                        balloon.dy = vy1 * cos + finalVx1 * sin;
+                        other.dx = finalVx2 * cos - vy2 * sin;
+                        other.dy = vy2 * cos + finalVx2 * sin;
+
+                        // 重なりを解消
+                        let overlap = (balloon.radius + other.radius - distance) / 2;
+                        balloon.x -= overlap * (balloon.x - other.x) / distance;
+                        balloon.y -= overlap * (balloon.y - other.y) / distance;
+                        other.x += overlap * (balloon.x - other.x) / distance;
+                        other.y += overlap * (balloon.y - other.y) / distance;
+                    }
+                }
+
+                balloon.element.style.left = (balloon.x - balloon.radius) + 'px';
+                balloon.element.style.top = (balloon.y - balloon.radius) + 'px';
+            }
+
+            // 超難しいモードの場合、風船を徐々に加速
+            if (currentDifficulty === 'veryhard') {
+                balloons.forEach(balloon => {
+                    balloon.dx *= 1.001;
+                    balloon.dy *= 1.001;
+                });
+            }
+        }
+
+        function updateGame() {
+            moveBalloons();
+            if (balloons.length < difficulties[currentDifficulty].maxBalloons) {
+                createBalloon();
+            }
+        }
+
+        function updateTimer() {
+            timeLeft--;
+            timeElement.textContent = timeLeft;
+            if (timeLeft <= 0) {
+                endGame();
+            }
+        }
+
+        function endGame() {
+            clearInterval(gameInterval);
+            clearInterval(timerInterval);
+            finalScoreElement.textContent = `最終スコア: ${score} (${currentDifficulty})`;
+            endScreen.style.display = 'flex';
+        }
+    </script>
+</body>
+</html>

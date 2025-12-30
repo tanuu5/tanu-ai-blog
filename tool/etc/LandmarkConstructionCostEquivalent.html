@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="たぬ">
+    <meta name="copyright" content="© 2024 たぬ. All rights reserved.">
+    <title>ランドマーク建設費換算</title>
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes scaleIn {
+            from { transform: scale(0); }
+            to { transform: scale(1); }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(-20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        /* スイッチのスタイル */
+        .switch-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 20px 0;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #2196F3;
+        }
+
+        input:focus + .slider {
+            box-shadow: 0 0 1px #2196F3;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        .switch-label {
+            font-size: 14px;
+            color: #666;
+        }
+
+        label {
+            margin-bottom: 5px;
+            color: #555;
+        }
+
+        input {
+            width: 200px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        input:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0,123,255,0.25);
+            outline: none;
+        }
+
+        select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        select:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0,123,255,0.25);
+            outline: none;
+        }
+
+        .tabs-container {
+            margin-bottom: 20px;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        .tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .tab-group {
+            margin-bottom: 10px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        .tab-group-label {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .tab {
+            padding: 8px 16px;
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .tab:hover {
+            background-color: #e9ecef;
+            transform: translateY(-2px);
+        }
+
+        .tab.active {
+            background-color: #007bff;
+            color: white;
+            border-color: #0056b3;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            font-size: 18px;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .visual-result {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            min-height: 120px;
+        }
+
+        .landmark-icon {
+            width: 40px;
+            height: 100px;
+            display: inline-block;
+            margin: 2px;
+            animation: scaleIn 0.5s ease-out;
+        }
+
+        .landmark-icon:hover {
+            animation: pulse 1s infinite;
+        }
+
+        .partial-icon {
+            opacity: 0.5;
+        }
+
+        .landmark-info {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        .explanation {
+            margin-top: 20px;
+            color: #666;
+            font-size: 14px;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .error-message {
+            color: #dc3545;
+            font-weight: bold;
+            padding: 8px;
+            border-radius: 4px;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            margin: 10px 0;
+        }
+
+        .visually-hidden {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            border: 0;
+        }
+
+        dl {
+            margin: 0;
+            padding: 0;
+        }
+
+        dt {
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        dd {
+            margin-left: 0;
+            margin-bottom: 5px;
+        }
+
+        .copyright {
+            text-align: center;
+            padding: 20px;
+            margin-top: 40px;
+            font-size: 12px;
+            color: #666;
+            border-top: 1px solid #eee;
+        }
+
+        .copyright a {
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        .copyright a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 600px) {
+            .input-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            input, select {
+                width: 100%;
+            }
+
+            .tab {
+                padding: 12px 16px;
+                font-size: 16px;
+            }
+
+            .switch-container {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container" role="main">
+        <h1>ランドマーク建設費換算</h1>
+        
+        <div class="switch-container">
+            <label class="switch">
+                <input type="checkbox" id="adjustInflation" checked>
+                <span class="slider round"></span>
+            </label>
+            <span class="switch-label">建設費を現在価値（2024年）に換算</span>
+        </div>
+
+        <div class="tabs-container" role="tablist" aria-label="ランドマークの分類">
+            <div class="tab-group">
+                <div class="tab-group-label" id="tower-category">タワー・超高層ビル</div>
+                <div class="tabs" role="tablist" aria-labelledby="tower-category">
+                    <button class="tab active" role="tab" aria-selected="true" aria-controls="panel-skytree" id="tab-skytree" data-landmark="skytree">
+                        スカイツリー
+                    </button>
+                    <button class="tab" role="tab" aria-selected="false" aria-controls="panel-abeno" id="tab-abeno" data-landmark="abeno">
+                        あべのハルカス
+                    </button>
+                    <button class="tab" role="tab" aria-selected="false" aria-controls="panel-tokyotower" id="tab-tokyotower" data-landmark="tokyotower">
+                        東京タワー
+                    </button>
+                    <button class="tab" role="tab" aria-selected="false" aria-controls="panel-midtown" id="tab-midtown" data-landmark="midtown">
+                        東京ミッドタウン
+                    </button>
+                </div>
+            </div>
+
+            <div class="tab-group">
+                <div class="tab-group-label" id="stadium-category">スタジアム・ドーム</div>
+                <div class="tabs" role="tablist" aria-labelledby="stadium-category">
+                    <button class="tab" role="tab" aria-selected="false" aria-controls="panel-stadium" id="tab-stadium" data-landmark="stadium">
+                        新国立競技場
+                    </button>
+                    <button class="tab" role="tab" aria-selected="false" aria-controls="panel-sapporo" id="tab-sapporo" data-landmark="sapporo">
+                        札幌ドーム
+                    </button>
+                    <button class="tab" role="tab" aria-selected="false" aria-controls="panel-toyota" id="tab-toyota" data-landmark="toyota">
+                        豊田スタジアム
+                    </button>
+                </div>
+            </div>
+
+            <div class="tab-group">
+                <div class="tab-group-label" id="culture-category">文化施設・その他</div>
+                <div class="tabs" role="tablist" aria-labelledby="culture-category">
+                    <button class="tab" role="tab" aria-selected="false" aria-controls="panel-disneysea" id="tab-disneysea" data-landmark="disneysea">
+                        ディズニーシー
+                    </button>
+                    <button class="tab" role="tab" aria-selected="false" aria-controls="panel-miraikan" id="tab-miraikan" data-landmark="miraikan">
+                        日本科学未来館
+                    </button>
+                    <button class="tab" role="tab" aria-selected="false" aria-controls="panel-skycircus" id="tab-skycircus" data-landmark="skycircus">
+                        サンシャイン60展望台
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label for="amount" class="amount-label">金額:</label>
+            <input 
+                type="number" 
+                id="amount" 
+                min="0" 
+                step="1" 
+                placeholder="金額を入力" 
+                aria-describedby="amount-error"
+                required
+            >
+            <select id="unit" aria-label="金額の単位">
+                <option value="1">円</option>
+                <option value="10000">万円</option>
+                <option value="100000000">億円</option>
+            </select>
+        </div>
+
+        <div id="amount-error" class="error-message" role="alert" aria-live="polite" hidden></div>
+
+        <div class="result" id="result" role="status" aria-live="polite">
+            結果がここに表示されます
+        </div>
+
+        <div class="visual-result" id="visualResult" role="img" aria-label="建物の視覚的な比較"></div>
+
+        <div class="landmark-info" id="landmarkInfo" role="complementary"></div>
+
+        <div class="explanation" id="explanation" role="note"></div>
+    </div>
+
+    <footer class="copyright">
+        <p>© 2024 たぬ. All rights reserved.</p>
+        <p>
+            データソース: 
+            <a href="https://www.e-stat.go.jp/" target="_blank" rel="noopener noreferrer">e-Stat（政府統計の総合窓口）</a>、
+            <a href="https://www.mlit.go.jp/" target="_blank" rel="noopener noreferrer">国土交通省</a>、
+            各施設の公式発表
+        </p>
+        <p>
+            本アプリケーションは教育目的で作成されています。<br>
+            掲載されている建設費用は概算であり、実際の費用とは異なる場合があります。
+        </p>
+    </footer>
+
+    <script>
+    const CONSTRUCTION_PRICE_INDEX = {
+            // 建設工事費デフレーターを基に、2024年を100として概算
+            1958: 17.0,    // 東京タワー
+            1978: 42.0,   // サンシャイン60
+            2001: 82.0,   // ディズニーシー、札幌ドーム、豊田スタジアム、未来館
+            2007: 88.0,   // 東京ミッドタウン
+            2012: 93.0,   // スカイツリー
+            2014: 95.0,   // あべのハルカス
+            2019: 98.0,   // 新国立競技場
+            2024: 100.0   // 現在
+        };
+
+        const LANDMARKS = {
+            skytree: {
+                name: '東京スカイツリー',
+                cost: 65000000000,
+                height: '634m',
+                completed: '2012年',
+                location: '東京都墨田区',
+                constructionYear: 2012,
+                svg: `<svg viewBox="0 0 40 100" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20 0 L25 60 L30 70 L25 75 L23 90 L20 100 L17 90 L15 75 L10 70 L15 60 Z" 
+                    fill="#4a90e2" stroke="#2171c7" stroke-width="1"/>
+                </svg>`
+            },
+            abeno: {
+                name: 'あべのハルカス',
+                cost: 130000000000,
+                height: '300m',
+                completed: '2014年',
+                location: '大阪府大阪市',
+                constructionYear: 2014,
+                svg: `<svg viewBox="0 0 40 100" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M10 100 L15 80 L20 70 L25 80 L30 100 L10 100" fill="#82b1ff" stroke="#2171c7" stroke-width="1"/>
+                    <rect x="15" y="0" width="10" height="70" fill="#4a90e2" stroke="#2171c7" stroke-width="1"/>
+                </svg>`
+            },
+            stadium: {
+                name: '新国立競技場',
+                cost: 346200000000,
+                height: '47.4m',
+                completed: '2019年',
+                location: '東京都新宿区',
+                constructionYear: 2019,
+                svg: `<svg viewBox="0 0 40 100" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M5 70 C5 40 35 40 35 70 L35 80 C35 90 5 90 5 80 Z" fill="#64b5f6" stroke="#2171c7" stroke-width="1"/>
+                </svg>`
+            },
+            tokyotower: {
+                name: '東京タワー',
+                cost: 3000000000,
+                height: '333m',
+                completed: '1958年',
+                location: '東京都港区',
+                constructionYear: 1958,
+                svg: `<svg viewBox="0 0 40 100" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20 0 L30 80 L25 90 L20 100 L15 90 L10 80 Z" fill="#ff6b6b" stroke="#cc5555" stroke-width="1"/>
+                </svg>`
+            },
+            midtown: {
+                name: '東京ミッドタウン',
+                cost: 132200000000,
+                height: '248m',
+                completed: '2007年',
+                location: '東京都港区',
+                constructionYear: 2007,
+                svg: `<svg viewBox="0 0 40 100" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="10" y="0" width="20" height="100" fill="#a4a4a4" stroke="#858585" stroke-width="1"/>
+                    <rect x="15" y="10" width="10" height="90" fill="#c4c4c4" stroke="#858585" stroke-width="1"/>
+                </svg>`
+            },
+            sapporo: {
+                name: '札幌ドーム',
+                cost: 42200000000,
+                height: '53m',
+                completed: '2001年',
+                location: '北海道札幌市',
+                constructionYear: 2001,
+                svg: `<svg viewBox="0 0 40 100" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M5 60 A15 15 0 0 1 35 60 L35 80 L5 80 Z" fill="#90caf9" stroke="#2171c7" stroke-width="1"/>
+                </svg>`
+            },
+            toyota: {
+                name: '豊田スタジアム',
+                cost: 37000000000,
+                height: '45m',
+                completed: '2001年',
+                location: '愛知県豊田市',
+                constructionYear: 2001,
+                svg: `<svg viewBox="0 0 40 100" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M5 65 Q20 40 35 65 L35 80 L5 80 Z" fill="#81c784" stroke="#4caf50" stroke-width="1"/>
+                </svg>`
+            },
+            disneysea: {
+                name: 'ディズニーシー',
+                cost: 335000000000,
+                height: '直径約500m',
+                completed: '2001年',
+                location: '千葉県浦安市',
+                constructionYear: 2001,
+                svg: `<svg viewBox="0 0 40 100" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M5 60 Q20 30 35 60 Q35 80 20 90 Q5 80 5 60" fill="#4fc3f7" stroke="#29b6f6" stroke-width="1"/>
+                </svg>`
+            },
+            miraikan: {
+                name: '日本科学未来館',
+                cost: 27000000000,
+                height: '43m',
+                completed: '2001年',
+                location: '東京都江東区',
+                constructionYear: 2001,
+                svg: `<svg viewBox="0 0 40 100" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="5" y="40" width="30" height="40" fill="#b39ddb" stroke="#9575cd" stroke-width="1"/>
+                    <path d="M5 40 Q20 20 35 40" fill="none" stroke="#9575cd" stroke-width="2"/>
+                </svg>`
+            },
+            skycircus: {
+                name: 'サンシャイン60展望台',
+                cost: 190000000000,
+                height: '251m',
+                completed: '1978年',
+                location: '東京都豊島区',
+                constructionYear: 1978,
+                svg: `<svg viewBox="0 0 40 100" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="10" y="0" width="20" height="80" fill="#fff176" stroke="#ffd54f" stroke-width="1"/>
+                    <rect x="5" y="80" width="30" height="20" fill="#ffd54f" stroke="#ffc107" stroke-width="1"/>
+                </svg>`
+            }
+        };
+
+        let currentLandmark = 'skytree';
+
+        function adjustForInflation(cost, year) {
+            const inflationRate = CONSTRUCTION_PRICE_INDEX[2024] / CONSTRUCTION_PRICE_INDEX[year];
+            return Math.round(cost * inflationRate);
+        }
+
+        function formatCost(cost, year, adjustInflation) {
+            const adjustedCost = adjustInflation ? adjustForInflation(cost, year) : cost;
+            const billions = adjustedCost / 100000000;
+            if (billions >= 1) {
+                return `約${billions.toFixed(1)}億円${adjustInflation ? '（現在価値）' : '（当時）'}`;
+            } else {
+                return `約${Math.round(adjustedCost / 10000)}万円${adjustInflation ? '（現在価値）' : '（当時）'}`;
+            }
+        }
+
+        function setElementHTML(element, html) {
+            element.innerHTML = '';
+            const template = document.createElement('template');
+            template.innerHTML = html.trim();
+            element.appendChild(template.content);
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('amount-error');
+            errorDiv.textContent = message;
+            errorDiv.hidden = false;
+        }
+
+        function hideError() {
+            const errorDiv = document.getElementById('amount-error');
+            errorDiv.hidden = true;
+        }
+
+        function formatNumber(number) {
+            return new Intl.NumberFormat('ja-JP').format(number);
+        }
+
+        function updateVisualResult(ratio) {
+            const visualResult = document.getElementById('visualResult');
+            visualResult.innerHTML = '';
+            
+            const fullCount = Math.floor(ratio);
+            const partial = ratio - fullCount;
+            
+            const addIcon = (index, isPartial = false) => {
+                setTimeout(() => {
+                    const icon = document.createElement('div');
+                    icon.className = `landmark-icon${isPartial ? ' partial-icon' : ''}`;
+                    icon.innerHTML = LANDMARKS[currentLandmark].svg;
+                    icon.style.animation = `scaleIn 0.5s ease-out ${index * 0.1}s`;
+                    visualResult.appendChild(icon);
+                }, index * 100);
+            };
+
+            for (let i = 0; i < Math.min(fullCount, 10); i++) {
+                addIcon(i);
+            }
+            
+            if (partial > 0) {
+                addIcon(Math.min(fullCount, 10), true);
+            }
+
+            if (fullCount > 10) {
+                setTimeout(() => {
+                    const more = document.createElement('div');
+                    more.className = 'more-buildings';
+                    more.textContent = `+ ${fullCount - 10} 棟`;
+                    more.style.animation = 'fadeIn 0.5s ease-out';
+                    visualResult.appendChild(more);
+                }, Math.min(fullCount, 10) * 100);
+            }
+        }
+
+        function calculateComparison() {
+            const amountInput = document.getElementById('amount');
+            const unitSelect = document.getElementById('unit');
+            const adjustInflation = document.getElementById('adjustInflation').checked;
+            const resultDiv = document.getElementById('result');
+            
+            const amount = parseFloat(amountInput.value) * parseFloat(unitSelect.value);
+
+            if (!amountInput.value) {
+                showError('金額を入力してください');
+                return;
+            }
+            if (isNaN(amount)) {
+                showError('有効な数値を入力してください');
+                return;
+            }
+            if (amount <= 0) {
+                showError('正の金額を入力してください');
+                return;
+            }
+            if (amount >= Number.MAX_SAFE_INTEGER) {
+                showError('金額が大きすぎます');
+                return;
+            }
+
+            hideError();
+
+            const landmark = LANDMARKS[currentLandmark];
+            const landmarkCost = adjustInflation ? 
+                adjustForInflation(landmark.cost, landmark.constructionYear) : 
+                landmark.cost;
+            
+            const ratio = amount / landmarkCost;
+            const formattedRatio = ratio.toFixed(2);
+
+            resultDiv.textContent = ratio < 0.01 
+                ? `約${(ratio * 100).toFixed(2)}%の${landmark.name}が建設できる金額です`
+                : `約${formattedRatio}棟分の${landmark.name}が建設できる金額です`;
+
+            updateVisualResult(ratio);
+            updateLandmarkInfo();
+        }
+
+        function updateLandmarkInfo() {
+            const landmark = LANDMARKS[currentLandmark];
+            const adjustInflation = document.getElementById('adjustInflation').checked;
+            const landmarkInfo = document.getElementById('landmarkInfo');
+            
+            const infoHTML = `
+                <h3>${landmark.name}について</h3>
+                <dl>
+                    <dt>建設費用:</dt>
+                    <dd>
+                        ${formatCost(landmark.cost, landmark.constructionYear, false)}<br>
+                        ${adjustInflation ? `${formatCost(landmark.cost, landmark.constructionYear, true)}` : ''}
+                    </dd>
+                    <dt>高さ:</dt>
+                    <dd>${landmark.height}</dd>
+                    <dt>完成年:</dt>
+                    <dd>${landmark.completed}</dd>
+                    <dt>所在地:</dt>
+                    <dd>${landmark.location}</dd>
+                </dl>
+            `;
+            
+            setElementHTML(landmarkInfo, infoHTML);
+        }
+
+        function updateExplanation() {
+            const explanation = document.getElementById('explanation');
+            const adjustInflation = document.getElementById('adjustInflation').checked;
+            
+            const content = Object.entries(LANDMARKS)
+                .sort((a, b) => {
+                    const costA = adjustInflation ? 
+                        adjustForInflation(a[1].cost, a[1].constructionYear) : 
+                        a[1].cost;
+                    const costB = adjustInflation ? 
+                        adjustForInflation(b[1].cost, b[1].constructionYear) : 
+                        b[1].cost;
+                    return costB - costA;
+                })
+                .map(([_, landmark]) => 
+                    `・${landmark.name}: ${formatCost(landmark.cost, landmark.constructionYear, adjustInflation)}`)
+                .join('<br>');
+            
+            setElementHTML(explanation, `
+                ※ 建設費用（${adjustInflation ? '2024年価値換算' : '建設当時'}の概算）:<br>
+                ${content}<br>
+                ※ これらの換算は概算です。実際の建設費用は諸条件により変動する可能性があります。
+                ${adjustInflation ? '<br>※ 現在価値への換算には建設工事費デフレーターを参考にしています。' : ''}
+            `);
+        }
+
+        Array.from(document.querySelectorAll('.tab')).forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                const tabs = Array.from(document.querySelectorAll('.tab'));
+                tabs.forEach(t => {
+                    t.classList.remove('active');
+                    t.setAttribute('aria-selected', 'false');
+                });
+                e.target.classList.add('active');
+                e.target.setAttribute('aria-selected', 'true');
+                currentLandmark = e.target.dataset.landmark;
+                calculateComparison();
+            });
+
+            tab.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    tab.click();
+                }
+            });
+        });
+
+        document.getElementById('amount').addEventListener('input', calculateComparison);
+        document.getElementById('unit').addEventListener('change', calculateComparison);
+        document.getElementById('adjustInflation').addEventListener('change', () => {
+            calculateComparison();
+            updateLandmarkInfo();
+            updateExplanation();
+        });
+
+        // 初期表示
+        document.getElementById('amount').value = 100000000; // 1億円を初期値として設定
+        calculateComparison();
+        updateLandmarkInfo();
+        updateExplanation();
+</script>
+</body>
+</html>

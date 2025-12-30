@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>夏の海と入道雲と海中生物</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Noto Sans JP', sans-serif;
+        }
+        #scene {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, #87CEEB 0%, #E0F6FF 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        .sea {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 60%;
+            background: linear-gradient(to bottom, #0077BE, #00416A);
+        }
+        .wave {
+            position: absolute;
+            bottom: 60%;
+            left: 0;
+            width: 200%;
+            height: 100px;
+            background: url('data:image/svg+xml;utf8,<svg viewBox="0 0 350 100" xmlns="http://www.w3.org/2000/svg"><path d="M0 50 Q50 0 100 50 Q150 100 200 50 Q250 0 300 50 Q350 100 400 50 L400 100 L0 100 Z" fill="%234A90E2"/></svg>') repeat-x;
+            animation: wave 10s linear infinite;
+        }
+        @keyframes wave {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+        .cloud {
+            position: absolute;
+            width: 200px;
+            height: 200px;
+            background: white;
+            border-radius: 50%;
+            box-shadow: 
+                100px 10px 0 -10px white,
+                200px 20px 0 -20px white,
+                150px -20px 0 -10px white,
+                50px -20px 0 -15px white;
+            animation: float 20s linear infinite;
+        }
+        @keyframes float {
+            0% { transform: translateX(-250px); }
+            100% { transform: translateX(calc(100vw + 250px)); }
+        }
+        .sun {
+            position: absolute;
+            top: 50px;
+            right: 50px;
+            width: 80px;
+            height: 80px;
+            background: #FFD700;
+            border-radius: 50%;
+            box-shadow: 0 0 20px #FFD700;
+        }
+        .bird {
+            position: absolute;
+            font-size: 20px;
+            cursor: pointer;
+        }
+        .fish, .squid {
+            position: absolute;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        .seaweed {
+            position: absolute;
+            bottom: 0;
+            width: 20px;
+            height: 100px;
+            background: linear-gradient(to top, #006400, #008000);
+            border-radius: 50% 50% 0 0;
+        }
+        .info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #333;
+            font-size: 18px;
+            text-shadow: 1px 1px 2px rgba(255,255,255,0.5);
+        }
+    </style>
+</head>
+<body>
+    <div id="scene">
+        <div class="sun"></div>
+        <div class="cloud" style="top: 100px;"></div>
+        <div class="cloud" style="top: 200px; left: 300px; transform: scale(0.8);"></div>
+        <div class="sea"></div>
+        <div class="wave"></div>
+        <div class="info">海の生き物をクリックしてみてください</div>
+    </div>
+
+    <audio id="seagullSound" src="https://freesound.org/data/previews/16/16289_18799-lq.mp3"></audio>
+    <audio id="bubbleSound" src="https://freesound.org/data/previews/106/106735_1709943-lq.mp3"></audio>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
+    <script>
+        const scene = document.getElementById('scene');
+        const seagullSound = document.getElementById('seagullSound');
+        const bubbleSound = document.getElementById('bubbleSound');
+
+        function createBird() {
+            const bird = document.createElement('div');
+            bird.classList.add('bird');
+            bird.innerHTML = '🐦';
+            bird.style.left = Math.random() * window.innerWidth + 'px';
+            bird.style.top = Math.random() * window.innerHeight / 3 + 'px';
+            scene.appendChild(bird);
+
+            bird.addEventListener('click', () => {
+                seagullSound.currentTime = 0;
+                seagullSound.play();
+                gsap.to(bird, {
+                    y: '-=50',
+                    duration: 0.5,
+                    yoyo: true,
+                    repeat: 1
+                });
+            });
+
+            gsap.to(bird, {
+                x: '+=' + (Math.random() * 200 - 100),
+                y: '+=' + (Math.random() * 100 - 50),
+                duration: Math.random() * 10 + 5,
+                repeat: -1,
+                yoyo: true,
+                ease: 'power1.inOut'
+            });
+        }
+
+        function createSeaCreature(emoji, isSquid = false) {
+            const creature = document.createElement('div');
+            creature.classList.add(isSquid ? 'squid' : 'fish');
+            creature.innerHTML = emoji;
+            creature.style.left = Math.random() * window.innerWidth + 'px';
+            creature.style.top = (Math.random() * window.innerHeight / 2) + (window.innerHeight / 2) + 'px';
+            scene.appendChild(creature);
+
+            creature.addEventListener('click', () => {
+                bubbleSound.currentTime = 0;
+                bubbleSound.play();
+                gsap.to(creature, {
+                    scale: 1.2,
+                    duration: 0.3,
+                    yoyo: true,
+                    repeat: 1
+                });
+            });
+
+            gsap.to(creature, {
+                x: '+=' + (Math.random() * 300 - 150),
+                y: '+=' + (Math.random() * 100 - 50),
+                duration: Math.random() * 20 + 10,
+                repeat: -1,
+                yoyo: true,
+                ease: 'power1.inOut'
+            });
+        }
+
+        function createSeaweed() {
+            const seaweed = document.createElement('div');
+            seaweed.classList.add('seaweed');
+            seaweed.style.left = Math.random() * window.innerWidth + 'px';
+            scene.appendChild(seaweed);
+
+            gsap.to(seaweed, {
+                scaleY: 1.1,
+                duration: 2,
+                repeat: -1,
+                yoyo: true,
+                ease: 'power1.inOut'
+            });
+        }
+
+        for (let i = 0; i < 3; i++) {
+            createBird();
+        }
+
+        for (let i = 0; i < 5; i++) {
+            createSeaCreature('🐠');
+        }
+
+        for (let i = 0; i < 3; i++) {
+            createSeaCreature('🐙', true);
+        }
+
+        for (let i = 0; i < 8; i++) {
+            createSeaweed();
+        }
+
+        gsap.to('.sun', {
+            y: '+=20',
+            duration: 4,
+            repeat: -1,
+            yoyo: true,
+            ease: 'power1.inOut'
+        });
+
+        gsap.to('.cloud', {
+            y: '+=30',
+            duration: 3,
+            repeat: -1,
+            yoyo: true,
+            ease: 'power1.inOut',
+            stagger: 1
+        });
+    </script>
+</body>
+</html>

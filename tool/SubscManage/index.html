@@ -1,0 +1,1750 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="月額・年額のサブスクリプションを一元管理できるWebアプリ。料金、支払日、更新タイプなどの管理や、グラフによる可視化機能を提供します。">
+    <meta name="keywords" content="サブスクリプション管理, 月額課金, 年額課金, 支払い管理, 家計簿, Webアプリ">
+    <title>サブスクリプション管理</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        @media (max-width: 640px) {
+            .table-scroll {
+                display: block;
+                width: 100%;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .table-scroll table {
+                white-space: nowrap;
+            }
+        }
+
+        /* プルダウンメニューのスタイルを追加 */
+        .dark select {
+            background-color: #1f2937;
+            /* ダークモード時の背景色 */
+            color: #e5e5e5;
+            /* ダークモード時のテキスト色 */
+            border-color: #4b5563;
+            /* ダークモード時のボーダー色 */
+        }
+
+        .dark select:hover {
+            border-color: #6b7280;
+            /* ホバー時のボーダー色 */
+        }
+
+        .dark select:focus {
+            border-color: #60a5fa;
+            /* フォーカス時のボーダー色 */
+            outline: none;
+            ring-color: #3b82f6;
+            /* フォーカス時のリング色 */
+        }
+
+        /* オプションのスタイル */
+        .dark select option {
+            background-color: #1f2937;
+            /* オプションの背景色 */
+            color: #e5e5e5;
+            /* オプションのテキスト色 */
+        }
+
+        /* disabled状態のスタイル */
+        .dark select:disabled {
+            background-color: #374151;
+            /* 無効時の背景色 */
+            color: #9ca3af;
+            /* 無効時のテキスト色 */
+            cursor: not-allowed;
+        }
+
+        /* プレースホルダーのスタイル */
+        .dark select:invalid {
+            color: #9ca3af;
+            /* プレースホルダーのテキスト色 */
+        }
+
+        /* ここに新しいセレクトボックススタイルを追加 */
+        .dark select {
+            background-color: #1f2937;
+            color: #e5e5e5;
+            border-color: #4b5563;
+        }
+
+        .dark select:hover {
+            border-color: #6b7280;
+        }
+
+        .dark select:focus {
+            border-color: #60a5fa;
+            outline: none;
+            ring-color: #3b82f6;
+        }
+
+        .dark select option {
+            background-color: #1f2937;
+            color: #e5e5e5;
+        }
+
+        .dark select:disabled {
+            background-color: #374151;
+            color: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        .dark select:invalid {
+            color: #9ca3af;
+        }
+
+        .modal-scroll {
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        @media (max-width: 640px) {
+            .chart-container {
+                height: 300px !important;
+            }
+        }
+
+        /* ダークモード用のスタイル */
+        .dark body {
+            background-color: #1a1a1a;
+            color: #e5e5e5;
+        }
+
+        .dark .bg-white {
+            background-color: #2d2d2d;
+        }
+
+        .dark .text-gray-500 {
+            color: #a0aec0;
+        }
+
+        .dark .text-gray-700 {
+            color: #e5e5e5;
+        }
+
+        .dark .text-gray-900 {
+            color: #ffffff;
+        }
+
+        .dark .border-gray-200 {
+            border-color: #404040;
+        }
+
+        .dark .bg-gray-50 {
+            background-color: #1a1a1a;
+        }
+
+        .dark .hover\:bg-gray-50:hover {
+            background-color: #363636;
+        }
+
+        .dark .shadow-lg {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3),
+                0 4px 6px -2px rgba(0, 0, 0, 0.2);
+        }
+
+        /* ダークモードでの通知スタイル */
+        .dark .bg-blue-100 {
+            background-color: rgba(59, 130, 246, 0.2);
+        }
+
+        .dark .bg-yellow-100 {
+            background-color: rgba(245, 158, 11, 0.2);
+        }
+
+        .dark .bg-green-100 {
+            background-color: rgba(16, 185, 129, 0.2);
+        }
+
+        .dark .bg-gray-100 {
+            background-color: rgba(107, 114, 128, 0.2);
+        }
+
+        /* ここに新しいセレクトボックススタイルを追加 */
+        .dark select {
+            background-color: #1f2937;
+            color: #e5e5e5;
+            border-color: #4b5563;
+        }
+
+        .dark select:hover {
+            border-color: #6b7280;
+        }
+
+        .dark select:focus {
+            border-color: #60a5fa;
+            outline: none;
+            ring-color: #3b82f6;
+        }
+
+        .dark select option {
+            background-color: #1f2937;
+            color: #e5e5e5;
+        }
+
+        .dark select:disabled {
+            background-color: #374151;
+            color: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        .dark select:invalid {
+            color: #9ca3af;
+        }
+
+        /* 新しく追加する入力欄のスタイル */
+        .dark input[type="text"],
+        .dark input[type="number"],
+        .dark input[type="search"] {
+            background-color: #1f2937;
+            color: #e5e5e5;
+            border-color: #4b5563;
+        }
+
+        .dark input[type="text"]:hover,
+        .dark input[type="number"]:hover,
+        .dark input[type="search"]:hover {
+            border-color: #6b7280;
+        }
+
+        .dark input[type="text"]:focus,
+        .dark input[type="number"]:focus,
+        .dark input[type="search"]:focus {
+            border-color: #60a5fa;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
+        }
+
+        .dark input::placeholder {
+            color: #9ca3af;
+        }
+
+        .dark input:disabled {
+            background-color: #374151;
+            color: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        .dark input:-webkit-autofill,
+        .dark input:-webkit-autofill:hover,
+        .dark input:-webkit-autofill:focus {
+            -webkit-text-fill-color: #e5e5e5;
+            -webkit-box-shadow: 0 0 0px 1000px #1f2937 inset;
+            transition: background-color 5000s ease-in-out 0s;
+        }
+
+        /* ダークモード切り替えボタンのアニメーション */
+        @keyframes switchTheme {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(0.9);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .theme-switch-animation {
+            animation: switchTheme 0.3s ease;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50">
+    <!-- ヘッダー -->
+    <header class="bg-white shadow-sm">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-bold text-gray-800">サブスクリプション管理ツール</h1>
+                    <p class="text-sm text-gray-600">あなたのサブスクリプションを賢く管理</p>
+                </div>
+                <div class="text-sm text-gray-600">
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- メインコンテンツ -->
+    <div id="root"></div>
+
+
+
+    <!-- フッター -->
+    <footer class="bg-gray-800 text-white py-8 mt-12">
+        <div class="container mx-auto px-4 text-center">
+            <p>&copy; 2024 サブスクリプション管理ツール All Rights Reserved.</p>
+            <p class="mt-2">制作: たぬ | 開発支援: Claude 3.5 (Anthropic AI)</p>
+            <p class="mt-2">Version 1.3.0 "Subscription Manager" (2024-12-13)</p>
+            <div class="mt-4 text-sm space-y-2">
+                <p>This application uses:</p>
+                <ul class="space-y-1">
+                    <li>
+                        <a href="https://react.dev/" target="_blank" rel="noopener noreferrer"
+                            class="text-blue-300 hover:text-blue-100">
+                            React
+                        </a> (MIT License)
+                    </li>
+                    <li>
+                        <a href="https://tailwindcss.com/" target="_blank" rel="noopener noreferrer"
+                            class="text-blue-300 hover:text-blue-100">
+                            Tailwind CSS
+                        </a> (MIT License)
+                    </li>
+                    <li>
+                        <a href="https://www.chartjs.org/" target="_blank" rel="noopener noreferrer"
+                            class="text-blue-300 hover:text-blue-100">
+                            Chart.js
+                        </a> (MIT License)
+                    </li>
+                    <li>
+                        <a href="https://babeljs.io/" target="_blank" rel="noopener noreferrer"
+                            class="text-blue-300 hover:text-blue-100">
+                            Babel
+                        </a> (MIT License)
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </footer>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo, useRef } = React;
+
+        // デフォルトデータ
+        const DEFAULT_SUBSCRIPTIONS = [
+            {
+                id: 1,
+                name: 'Claude Pro',
+                price: 3000,
+                billingType: '月額',
+                paymentDate: '1',
+                paymentMethod: 'クレジットカード',
+                renewalType: '自動更新',
+                cancelDeadline: '3',
+                notes: 'Anthropic AI アシスタント（20ドル）',
+                category: 'ビジネス',
+                url: 'https://claude.ai/'
+            },
+            {
+                id: 2,
+                name: 'ChatGPT Plus',
+                price: 3000,
+                billingType: '月額',
+                paymentDate: '15',
+                paymentMethod: 'クレジットカード',
+                renewalType: '自動更新',
+                cancelDeadline: '7',
+                notes: 'OpenAI AI アシスタント（20ドル）',
+                category: 'ビジネス',
+                url: 'https://chatgpt.com/'
+            },
+            {
+                id: 3,
+                name: 'Netflix',
+                price: 1980,
+                billingType: '月額',
+                paymentDate: '10',
+                paymentMethod: 'クレジットカード',
+                renewalType: '自動更新',
+                cancelDeadline: '3',
+                notes: 'スタンダードプラン',
+                category: 'エンタメ',
+                url: 'https://www.netflix.com/'
+            },
+            {
+                id: 4,
+                name: 'Microsoft 365',
+                price: 12980,
+                billingType: '年額',
+                paymentDate: '20',
+                paymentMethod: 'クレジットカード',
+                renewalType: '自動更新',
+                cancelDeadline: '15',
+                notes: 'Officeソフト＆クラウドストレージ',
+                category: 'ビジネス',
+                url: 'https://www.office.com/'
+            },
+            {
+                id: 5,
+                name: 'Spotify Premium',
+                price: 1280,
+                billingType: '月額',
+                paymentDate: '5',
+                paymentMethod: 'キャリア決済',
+                renewalType: '自動更新',
+                cancelDeadline: '3',
+                notes: '音楽ストリーミング',
+                category: 'エンタメ',
+                url: 'https://www.spotify.com/'
+            }
+        ];
+
+        // データ移行用の関数
+        const migrateSubscriptionData = (subscriptions) => {
+            return subscriptions.map(sub => ({
+                ...sub,
+                category: sub.category || 'その他', // 既存のカテゴリー移行
+                url: sub.url || '' // 新規URL項目の移行
+            }));
+        };
+
+        // デフォルトカテゴリーリスト
+        const DEFAULT_CATEGORIES = [
+            'エンタメ',
+            'ビジネス',
+            '学習',
+            'ユーティリティ',
+            'その他'
+        ];
+
+        // カテゴリー選択コンポーネント
+        const CategorySelect = ({ value, onChange, className }) => (
+            <select
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                className={className}
+            >
+                {DEFAULT_CATEGORIES.map(category => (
+                    <option key={category} value={category}>{category}</option>
+                ))}
+            </select>
+        );
+
+        // データ管理コンポーネント
+        const DataManagement = ({ onImport, onReset }) => {
+            // エクスポート処理
+            const handleExport = () => {
+                const subscriptions = JSON.parse(localStorage.getItem('subscriptions') || '[]');
+                const preferences = {
+                    preferredChartType: localStorage.getItem('preferredChartType'),
+                    preferredDataType: localStorage.getItem('preferredDataType'),
+                    notificationEnabled: localStorage.getItem('notificationEnabled'),
+                    darkMode: localStorage.getItem('darkMode')
+                };
+
+                const exportData = {
+                    subscriptions,
+                    preferences,
+                    exportDate: new Date().toISOString()
+                };
+
+                const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `subscription-data-${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            };
+
+            // インポート処理
+            const handleImport = (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const importedData = JSON.parse(e.target.result);
+                            // データの検証
+                            if (!importedData.subscriptions || !Array.isArray(importedData.subscriptions)) {
+                                throw new Error('無効なデータ形式です');
+                            }
+                            // カテゴリーの移行処理を適用
+                            const migratedData = migrateSubscriptionData(importedData.subscriptions);
+                            // 設定の復元
+                            if (importedData.preferences) {
+                                Object.entries(importedData.preferences).forEach(([key, value]) => {
+                                    if (value !== null) localStorage.setItem(key, value);
+                                });
+                            }
+                            onImport(migratedData);
+                            alert('データを正常にインポートしました');
+                        } catch (error) {
+                            alert('データのインポートに失敗しました: ' + error.message);
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+            };
+
+            // リセット処理
+            const handleReset = () => {
+                if (confirm('本当にすべてのデータをリセットしますか？この操作は取り消せません。※削除後、デフォルトデータに置き換わります。')) {
+                    // このアプリで使用しているローカルストレージの項目のみを削除
+                    const appStorageKeys = [
+                        'subscriptions',
+                        'preferredChartType',
+                        'preferredDataType',
+                        'notificationEnabled',
+                        'darkMode'
+                    ];
+                    appStorageKeys.forEach(key => localStorage.removeItem(key));
+                    onReset();
+                    alert('データを正常にリセットしました');
+                }
+            };
+
+            return (
+                <div className="mt-8 p-4 bg-white dark:bg-gray-800 rounded-lg shadow">
+                    <h3 className="text-lg font-semibold mb-4">データ管理</h3>
+                    <div className="flex flex-wrap gap-4">
+                        {/* エクスポートボタン */}
+                        <button
+                            onClick={handleExport}
+                            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                        >
+                            データをエクスポート
+                        </button>
+
+                        {/* インポートボタン */}
+                        <div className="relative">
+                            <input
+                                type="file"
+                                accept=".json"
+                                onChange={handleImport}
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                            />
+                            <button
+                                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
+                            >
+                                データをインポート
+                            </button>
+                        </div>
+
+                        {/* リセットボタン */}
+                        <button
+                            onClick={handleReset}
+                            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                        >
+                            データをリセット
+                        </button>
+                    </div>
+                    <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                        ※ エクスポートしたデータは安全な場所に保管してください
+                    </p>
+                </div>
+            );
+        };
+
+        // グラフセレクターコンポーネント
+        const ChartSelector = ({ onChartTypeChange, onDataTypeChange, initialChartType, initialDataType, disabled }) => {
+            return (
+                <div className="flex flex-col sm:flex-row gap-4 mb-4">
+                    <select
+                        value={initialChartType}
+                        onChange={(e) => onChartTypeChange(e.target.value)}
+                        className={`px-3 py-2 border rounded-lg ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        disabled={disabled}
+                    >
+                        <option value="pie">円グラフ</option>
+                        <option value="bar">棒グラフ</option>
+                        <option value="doughnut">ドーナツグラフ</option>
+                    </select>
+                    <select
+                        value={initialDataType}
+                        onChange={(e) => onDataTypeChange(e.target.value)}
+                        className={`px-3 py-2 border rounded-lg ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        disabled={disabled}
+                    >
+                        <option value="billing">課金タイプ別合計</option>
+                        <option value="payment">支払方法別件数</option>
+                        <option value="service">サービス別支払額</option>
+                        <option value="renewal">更新タイプ別件数</option>
+                        <option value="category">カテゴリー別合計</option>
+                    </select>
+                    {disabled && (
+                        <span className="text-sm text-gray-500 dark:text-gray-400">
+                            グラフを生成中...
+                        </span>
+                    )}
+                </div>
+            );
+        };
+
+        // カスタマイズ可能なグラフコンポーネント
+        const CustomizableChart = ({ data }) => {
+            const [chartType, setChartType] = React.useState(() => {
+                return localStorage.getItem('preferredChartType') || 'pie';
+            });
+            const [dataType, setDataType] = React.useState(() => {
+                return localStorage.getItem('preferredDataType') || 'billing';
+            });
+            const [isLocked, setIsLocked] = React.useState(false);
+
+            const chartRef = React.useRef(null);
+            const chartInstance = React.useRef(null);
+            const lockTimeoutRef = React.useRef(null);
+
+
+            // 操作をロックする関数
+            const lockControls = () => {
+                setIsLocked(true);
+                // 既存のタイムアウトをクリア
+                if (lockTimeoutRef.current) {
+                    clearTimeout(lockTimeoutRef.current);
+                }
+                // 1秒後にロックを解除
+                lockTimeoutRef.current = setTimeout(() => {
+                    setIsLocked(false);
+                }, 1000);
+            };
+
+            // コンポーネントのアンマウント時にタイムアウトをクリア
+            React.useEffect(() => {
+                return () => {
+                    if (lockTimeoutRef.current) {
+                        clearTimeout(lockTimeoutRef.current);
+                    }
+                };
+            }, []);
+
+            // データ集計関数
+            const aggregateData = (subscriptions, type) => {
+                try {
+                    switch (type) {
+                        case 'billing':
+                            const billingTotal = subscriptions.reduce((acc, sub) => {
+                                acc[sub.billingType] = (acc[sub.billingType] || 0) + Number(sub.price);
+                                return acc;
+                            }, {});
+                            return {
+                                labels: Object.keys(billingTotal),
+                                values: Object.values(billingTotal),
+                                title: '課金タイプ別合計金額'
+                            };
+
+                        case 'payment':
+                            const paymentCount = subscriptions.reduce((acc, sub) => {
+                                acc[sub.paymentMethod] = (acc[sub.paymentMethod] || 0) + 1;
+                                return acc;
+                            }, {});
+                            return {
+                                labels: Object.keys(paymentCount),
+                                values: Object.values(paymentCount),
+                                title: '支払方法別件数'
+                            };
+
+                        case 'service':
+                            const serviceTotal = subscriptions.reduce((acc, sub) => {
+                                if (!sub.name) return acc; // nameが undefined の場合はスキップ
+                                acc[sub.name] = Number(sub.price) || 0;
+                                return acc;
+                            }, {});
+                            const sortedEntries = Object.entries(serviceTotal)
+                                .sort(([, a], [, b]) => b - a);
+                            return {
+                                labels: sortedEntries.map(([name]) => name),
+                                values: sortedEntries.map(([, value]) => value),
+                                title: 'サービス別支払額'
+                            };
+
+                        case 'renewal':
+                            const renewalCount = subscriptions.reduce((acc, sub) => {
+                                acc[sub.renewalType] = (acc[sub.renewalType] || 0) + 1;
+                                return acc;
+                            }, {});
+                            return {
+                                labels: Object.keys(renewalCount),
+                                values: Object.values(renewalCount),
+                                title: '更新タイプ別件数'
+                            };
+
+                        case 'category':
+                            const categoryTotal = subscriptions.reduce((acc, sub) => {
+                                const category = sub.category || 'その他';
+                                acc[category] = (acc[category] || 0) + Number(sub.price);
+                                return acc;
+                            }, {});
+                            const sortedCategories = Object.entries(categoryTotal)
+                                .sort(([, a], [, b]) => b - a);
+                            return {
+                                labels: sortedCategories.map(([category]) => category),
+                                values: sortedCategories.map(([, value]) => value),
+                                title: 'カテゴリー別合計金額'
+                            };
+
+                        default:
+                            return { labels: [], values: [], title: '' };
+                    }
+                } catch (error) {
+                    console.error('データの集計中にエラーが発生しました:', error);
+                    return { labels: [], values: [], title: 'エラーが発生しました' };
+                }
+            };
+
+            // グラフの更新
+            const updateChart = React.useCallback(() => {
+                if (!chartRef.current) return;
+
+                try {
+                    if (chartInstance.current) {
+                        chartInstance.current.destroy();
+                    }
+
+                    const ctx = chartRef.current.getContext('2d');
+                    const chartData = aggregateData(data, dataType);
+
+                    // データの検証
+                    const hasUndefinedLabels = chartData.labels.some(label =>
+                        label === undefined || label === 'undefined'
+                    );
+                    const hasUndefinedValues = chartData.values.some(value =>
+                        value === undefined || value === 'undefined'
+                    );
+
+                    if (hasUndefinedLabels || hasUndefinedValues) {
+                        throw new Error('グラフデータに無効な値が含まれています');
+                    }
+
+                    const config = {
+                        type: chartType,
+                        data: {
+                            labels: chartData.labels,
+                            datasets: [{
+                                data: chartData.values,
+                                backgroundColor: [
+                                    '#60A5FA', '#34D399', '#F87171',
+                                    '#FBBF24', '#A78BFA', '#F472B6',
+                                    '#4ADE80', '#FB923C', '#38BDF8',
+                                    '#A855F7', '#EC4899', '#6366F1'
+                                ],
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            animation: {
+                                duration: 750,
+                                onComplete: () => {
+                                    // アニメーション完了時にもチェック
+                                    const chart = chartInstance.current;
+                                    if (chart && chart.data.labels.some(label =>
+                                        label === undefined || label === 'undefined'
+                                    )) {
+                                        showErrorNotification();
+                                    }
+                                }
+                            },
+                            plugins: {
+                                title: {
+                                    display: true,
+                                    text: chartData.title,
+                                    font: {
+                                        size: window.innerWidth < 640 ? 14 : 16
+                                    }
+                                },
+                                legend: {
+                                    position: 'bottom',
+                                    labels: {
+                                        boxWidth: window.innerWidth < 640 ? 12 : 40,
+                                        font: {
+                                            size: window.innerWidth < 640 ? 12 : 14
+                                        },
+                                        // ラベルのフィルタリング
+                                        filter: (legendItem) => {
+                                            return legendItem.text !== 'undefined' &&
+                                                legendItem.text !== undefined;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    };
+
+                    chartInstance.current = new Chart(ctx, config);
+
+                } catch (error) {
+                    console.error('グラフの更新中にエラーが発生:', error);
+                    showErrorNotification();
+
+                    // エラーメッセージをキャンバスに表示
+                    const ctx = chartRef.current.getContext('2d');
+                    ctx.clearRect(0, 0, chartRef.current.width, chartRef.current.height);
+                    ctx.fillStyle = '#EF4444';
+                    ctx.font = '14px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('グラフの表示中にエラーが発生しました。',
+                        chartRef.current.width / 2, chartRef.current.height / 2);
+                    ctx.fillText('ページを再読み込みしてください。',
+                        chartRef.current.width / 2, chartRef.current.height / 2 + 30);
+                }
+            }, [data, chartType, dataType]);
+
+            // エラー通知を表示する関数
+            const showErrorNotification = () => {
+                const notification = document.createElement('div');
+                notification.className = `
+        fixed top-4 right-4 bg-red-100 border-l-4 border-red-500 
+        text-red-700 p-4 rounded shadow-lg z-50 notification-enter
+    `;
+                notification.innerHTML = `
+        <div class="flex justify-between items-start">
+            <div>
+                <p class="font-bold">エラーが発生しました</p>
+                <p class="text-sm mt-1">
+                    すみません。グラフの表示に問題が発生しました。<br>
+                    ページを再読み込みしてください。
+                </p>
+            </div>
+            <button class="text-red-500 hover:text-red-700" 
+                onclick="this.parentElement.parentElement.remove()">
+                ×
+            </button>
+        </div>
+        <button class="mt-2 text-sm text-red-600 hover:text-red-800 underline"
+            onclick="window.location.reload()">
+            ページを再読み込み
+        </button>
+    `;
+
+                document.body.appendChild(notification);
+
+                // 10秒後に自動的に通知を消す
+                setTimeout(() => {
+                    if (document.body.contains(notification)) {
+                        notification.remove();
+                    }
+                }, 10000);
+            };
+
+            // グラフタイプまたはデータタイプが変更されたときの処理
+            const handleChartTypeChange = (type) => {
+                if (isLocked) return;
+                setChartType(type);
+                localStorage.setItem('preferredChartType', type);
+                lockControls();
+            };
+
+            const handleDataTypeChange = (type) => {
+                if (isLocked) return;
+                setDataType(type);
+                localStorage.setItem('preferredDataType', type);
+                lockControls();
+            };
+
+            React.useEffect(() => {
+                const timer = setTimeout(updateChart, 0);
+                return () => {
+                    clearTimeout(timer);
+                    if (chartInstance.current) {
+                        chartInstance.current.destroy();
+                    }
+                };
+            }, [data, chartType, dataType, updateChart]);
+
+            return (
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+                    <h2 className="text-lg font-semibold mb-4">グラフカスタマイズ</h2>
+                    <ChartSelector
+                        onChartTypeChange={handleChartTypeChange}
+                        onDataTypeChange={handleDataTypeChange}
+                        initialChartType={chartType}
+                        initialDataType={dataType}
+                        disabled={isLocked}
+                    />
+                    <div className="chart-container" style={{ height: '400px' }}>
+                        <canvas ref={chartRef}></canvas>
+                    </div>
+                </div>
+            );
+        };
+
+        const SubscriptionManager = () => {
+            // State管理
+            const [subscriptions, setSubscriptions] = useState(() => {
+                const savedSubscriptions = localStorage.getItem('subscriptions');
+                return savedSubscriptions ? JSON.parse(savedSubscriptions) : DEFAULT_SUBSCRIPTIONS;
+            });
+
+            const [showModal, setShowModal] = useState(false);
+            const [editingSubscription, setEditingSubscription] = useState(null);
+            const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+            const [filters, setFilters] = useState({
+                search: '',
+                billingType: 'all',
+                category: 'all'  // 追加
+            });
+            const [formData, setFormData] = useState({
+                name: '',
+                price: '',
+                billingType: '月額',
+                paymentDate: '',
+                paymentMethod: '',
+                renewalType: '自動更新',
+                cancelDeadline: '',
+                notes: '',
+                category: 'その他',
+                url: '' // URL項目を追加
+            });
+            const [formErrors, setFormErrors] = useState({});
+            const [notifications, setNotifications] = useState([]);
+
+            // LocalStorage関連
+            useEffect(() => {
+                const savedSubscriptions = localStorage.getItem('subscriptions');
+                if (savedSubscriptions) {
+                    setSubscriptions(JSON.parse(savedSubscriptions));
+                }
+            }, []);
+
+            useEffect(() => {
+                localStorage.setItem('subscriptions', JSON.stringify(subscriptions));
+            }, [subscriptions]);
+
+            // 通知設定のstate
+            const [notificationEnabled, setNotificationEnabled] = useState(() => {
+                const saved = localStorage.getItem('notificationEnabled');
+                return saved !== null ? JSON.parse(saved) : true;  // デフォルトはON
+            });
+
+            // 通知設定の保存
+            useEffect(() => {
+                localStorage.setItem('notificationEnabled', JSON.stringify(notificationEnabled));
+            }, [notificationEnabled]);
+
+            // 自動更新チェック
+            useEffect(() => {
+                // 初回マウント時のフラグ
+                let isInitialMount = true;
+
+                const checkAutoRenewal = () => {
+                    if (!notificationEnabled) return;
+
+                    // 初回マウント時はローカルストレージを直接チェック
+                    if (isInitialMount) {
+                        const savedSubscriptions = localStorage.getItem('subscriptions');
+                        if (!savedSubscriptions) {
+                            // ローカルストレージにデータがない場合は通知をスキップ
+                            isInitialMount = false;
+                            return;
+                        }
+                        // ローカルストレージのデータを使用
+                        const storedSubscriptions = JSON.parse(savedSubscriptions);
+                        processSubscriptions(storedSubscriptions);
+                    } else {
+                        // 2回目以降は通常通りstateのデータを使用
+                        processSubscriptions(subscriptions);
+                    }
+
+                    isInitialMount = false;
+                };
+
+                // サブスクリプションの処理を別関数に分離
+                const processSubscriptions = (subs) => {
+                    const today = new Date();
+                    const currentDay = today.getDate();
+
+                    subs.forEach(sub => {
+                        if (sub.renewalType === '自動更新') {
+                            const paymentDay = parseInt(sub.paymentDate);
+                            const cancelDay = parseInt(sub.cancelDeadline);
+
+                            // 月をまたぐ場合の計算を含む
+                            let daysUntilPayment = paymentDay - currentDay;
+                            if (daysUntilPayment < 0) {
+                                const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+                                daysUntilPayment = lastDay - currentDay + paymentDay;
+                            }
+
+                            let daysUntilCancel = cancelDay - currentDay;
+                            if (daysUntilCancel < 0) {
+                                const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+                                daysUntilCancel = lastDay - currentDay + cancelDay;
+                            }
+
+                            // 支払日通知
+                            if (daysUntilPayment >= 0 && daysUntilPayment <= 7) {
+                                addNotification({
+                                    type: 'payment',
+                                    service: sub.name,
+                                    message: `${sub.name}の支払日（${paymentDay}日）まであと${daysUntilPayment}日です。`,
+                                    daysLeft: daysUntilPayment
+                                });
+                            }
+
+                            // 解約期限通知
+                            if (daysUntilCancel >= 0 && daysUntilCancel <= 3) {
+                                addNotification({
+                                    type: 'cancel',
+                                    service: sub.name,
+                                    message: `${sub.name}の解約期限（${cancelDay}日）まであと${daysUntilCancel}日です。`,
+                                    daysLeft: daysUntilCancel
+                                });
+                            }
+                        }
+                    });
+                };
+
+                // 初回チェック実行
+                checkAutoRenewal();
+
+                // 1時間ごとのチェック設定
+                const timer = setInterval(() => {
+                    isInitialMount = false;  // インターバルでの実行時は常にfalse
+                    checkAutoRenewal();
+                }, 60 * 60 * 1000);
+
+                return () => clearInterval(timer);
+            }, [subscriptions, notificationEnabled]);
+
+            // 通知の一括消去
+            const clearAllNotifications = () => {
+                setNotifications([]);
+            };
+
+            // 通知の重複をチェックする関数
+            const isDuplicateNotification = (newNotif, existingNotifs) => {
+                return existingNotifs.some(notif =>
+                    notif.type === newNotif.type &&
+                    notif.service === newNotif.service &&
+                    notif.daysLeft === newNotif.daysLeft
+                );
+            };
+
+            // 通知追加関数
+            const addNotification = (notification) => {
+                setNotifications(prev => {
+                    // 既に同じ通知が存在する場合は追加しない
+                    if (isDuplicateNotification(notification, prev)) {
+                        return prev;
+                    }
+
+                    const id = Date.now() + Math.random();
+                    const newNotification = {
+                        ...notification,
+                        id
+                    };
+
+                    // 10秒後に自動で消す
+                    setTimeout(() => {
+                        removeNotification(id);
+                    }, 10000);
+
+                    return [...prev, newNotification];
+                });
+            };
+
+            // 通知を消す関数
+            const removeNotification = (id) => {
+                setNotifications(prev => prev.filter(notif => notif.id !== id));
+            };
+
+            // バリデーション関数
+            const validateForm = () => {
+                const errors = {};
+
+                // 既存のバリデーション
+                const paymentDay = parseInt(formData.paymentDate);
+                if (isNaN(paymentDay) || paymentDay < 1 || paymentDay > 31) {
+                    errors.paymentDate = '1から31の間の数字を入力してください';
+                }
+
+                const cancelDay = parseInt(formData.cancelDeadline);
+                if (isNaN(cancelDay) || cancelDay < 1 || cancelDay > 31) {
+                    errors.cancelDeadline = '1から31の間の数字を入力してください';
+                }
+
+                // URL形式のバリデーション（入力されている場合のみ）
+                if (formData.url && !isValidUrl(formData.url)) {
+                    errors.url = '有効なURLを入力してください';
+                }
+
+                setFormErrors(errors);
+                return Object.keys(errors).length === 0;
+            };
+
+            // URL検証用のヘルパー関数
+            const isValidUrl = (string) => {
+                try {
+                    new URL(string);
+                    return true;
+                } catch (_) {
+                    return false;
+                }
+            };
+
+            // イベントハンドラ
+            const handleSort = (key) => {
+                let direction = 'asc';
+                if (sortConfig.key === key && sortConfig.direction === 'asc') {
+                    direction = 'desc';
+                }
+                setSortConfig({ key, direction });
+            };
+
+            const handleInputChange = (e) => {
+                const { name, value } = e.target;
+                setFormData(prev => ({
+                    ...prev,
+                    [name]: value
+                }));
+                setFormErrors(prev => ({
+                    ...prev,
+                    [name]: undefined
+                }));
+            };
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+
+                if (!validateForm()) {
+                    return;
+                }
+
+                if (editingSubscription) {
+                    setSubscriptions(subscriptions.map(sub =>
+                        sub.id === editingSubscription.id ? { ...formData, id: sub.id } : sub
+                    ));
+                    addNotification({
+                        type: 'success',
+                        message: 'サブスクリプションを更新しました',
+                    });
+                } else {
+                    setSubscriptions([...subscriptions, {
+                        ...formData,
+                        id: Date.now()
+                    }]);
+                    addNotification({
+                        type: 'success',
+                        message: '新しいサブスクリプションを追加しました',
+                    });
+                }
+                handleCloseModal();
+            };
+
+            const handleEdit = (subscription) => {
+                setEditingSubscription(subscription);
+                setFormData(subscription);
+                setShowModal(true);
+            };
+
+            const handleDelete = (id) => {
+                if (confirm('本当に削除しますか？')) {
+                    setSubscriptions(subscriptions.filter(sub => sub.id !== id));
+                    addNotification({
+                        type: 'info',
+                        message: 'サブスクリプションを削除しました',
+                    });
+                }
+            };
+
+            const handleCloseModal = () => {
+                setShowModal(false);
+                setEditingSubscription(null);
+                setFormData({
+                    name: '',
+                    price: '',
+                    billingType: '月額',
+                    paymentDate: '',
+                    paymentMethod: '',
+                    renewalType: '自動更新',
+                    cancelDeadline: '',
+                    notes: '',
+                    category: 'その他'
+                });
+                setFormErrors({});
+            };
+
+            // 表示用フォーマット関数
+            const formatPaymentDate = (day) => `毎月${day}日`;
+            const formatCancelDeadline = (day) => `毎月${day}日まで`;
+
+            // ソート用インジケータ
+            const getSortIndicator = (key) => {
+                if (sortConfig.key === key) {
+                    return sortConfig.direction === 'asc' ? ' ↑' : ' ↓';
+                }
+                return '';
+            };
+
+            // ソートとフィルタリング
+            const sortedSubscriptions = useMemo(() => {
+                let sortableItems = [...subscriptions];
+                if (sortConfig.key !== null) {
+                    sortableItems.sort((a, b) => {
+                        if (sortConfig.key === 'price' || sortConfig.key === 'paymentDate') {
+                            return sortConfig.direction === 'asc'
+                                ? Number(a[sortConfig.key]) - Number(b[sortConfig.key])
+                                : Number(b[sortConfig.key]) - Number(a[sortConfig.key]);
+                        }
+                        if (a[sortConfig.key] < b[sortConfig.key]) {
+                            return sortConfig.direction === 'asc' ? -1 : 1;
+                        }
+                        if (a[sortConfig.key] > b[sortConfig.key]) {
+                            return sortConfig.direction === 'asc' ? 1 : -1;
+                        }
+                        return 0;
+                    });
+                }
+                return sortableItems;
+            }, [subscriptions, sortConfig]);
+
+            const filteredSubscriptions = useMemo(() => {
+                return sortedSubscriptions.filter(sub => {
+                    const searchTerm = filters.search.toLowerCase();
+                    const matchesSearch =
+                        (sub.name?.toLowerCase() || '').includes(searchTerm) ||
+                        (sub.notes?.toLowerCase() || '').includes(searchTerm);
+                    const matchesBillingType =
+                        filters.billingType === 'all' ||
+                        sub.billingType === filters.billingType;
+                    const matchesCategory =
+                        filters.category === 'all' ||
+                        (sub.category || 'その他') === filters.category;  // 追加
+                    return matchesSearch && matchesBillingType && matchesCategory;
+                });
+            }, [sortedSubscriptions, filters]);
+
+            // テーブルヘッダーコンポーネントを追加
+            const SortableHeader = ({ label, sortKey }) => (
+                <th
+                    onClick={() => handleSort(sortKey)}
+                    className="px-4 py-3 text-left text-sm font-medium text-gray-500 whitespace-nowrap cursor-pointer hover:bg-gray-100"
+                >
+                    {label}{getSortIndicator(sortKey)}
+                </th>
+            );
+
+            // 合計金額の計算
+            const totalMonthly = filteredSubscriptions
+                .filter(sub => sub.billingType === '月額')
+                .reduce((acc, sub) => acc + Number(sub.price), 0);
+
+            const totalYearly = filteredSubscriptions
+                .filter(sub => sub.billingType === '年額')
+                .reduce((acc, sub) => acc + Number(sub.price), 0);
+
+            // グラフデータの計算
+            const chartData = useMemo(() => {
+                const billingTypeData = {
+                    labels: [],
+                    values: []
+                };
+                const billingTypeTotal = subscriptions.reduce((acc, sub) => {
+                    acc[sub.billingType] = (acc[sub.billingType] || 0) + Number(sub.price);
+                    return acc;
+                }, {});
+                billingTypeData.labels = Object.keys(billingTypeTotal);
+                billingTypeData.values = Object.values(billingTypeTotal);
+
+                const paymentMethodData = {
+                    labels: [],
+                    values: []
+                };
+                const paymentMethodCount = subscriptions.reduce((acc, sub) => {
+                    acc[sub.paymentMethod] = (acc[sub.paymentMethod] || 0) + 1;
+                    return acc;
+                }, {});
+                paymentMethodData.labels = Object.keys(paymentMethodCount);
+                paymentMethodData.values = Object.values(paymentMethodCount);
+
+                return {
+                    billingType: billingTypeData,
+                    paymentMethod: paymentMethodData
+                };
+            }, [subscriptions]);
+
+            // 通知トグルスイッチのコンポーネント
+            const NotificationToggle = () => (
+                <div className="flex items-center justify-between bg-white dark:bg-gray-700 rounded-lg px-4 py-2 sm:px-3 sm:py-2 flex-1 sm:flex-none">
+                    <span className="text-sm text-gray-700 dark:text-gray-200">通知</span>
+                    <button
+                        onClick={() => setNotificationEnabled(!notificationEnabled)}
+                        className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors ${notificationEnabled ? 'bg-blue-500' : 'bg-gray-300'
+                            }`}
+                    >
+                        <span
+                            className={`inline-block w-4 h-4 transform transition-transform bg-white rounded-full ${notificationEnabled ? 'translate-x-6' : 'translate-x-1'
+                                }`}
+                        />
+                    </button>
+                </div>
+            );
+
+            // 通知コンポーネント
+            const Notifications = () => {
+                if (notifications.length === 0) return null;
+
+                return (
+                    <div className="fixed bottom-4 right-4 z-50 space-y-2">
+                        {/* 通知の一括消去ボタン */}
+                        <div className="flex justify-end mb-2">
+                            <button
+                                onClick={clearAllNotifications}
+                                className="bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1 rounded-lg text-sm shadow-lg flex items-center space-x-1"
+                            >
+                                <span>全て消去</span>
+                                <span className="text-xs">({notifications.length})</span>
+                            </button>
+                        </div>
+
+                        {/* 通知リスト */}
+                        {notifications.map(notification => (
+                            <div
+                                key={notification.id}
+                                className={`notification-enter p-4 rounded-lg shadow-lg max-w-sm ${notification.type === 'payment'
+                                    ? 'bg-blue-100 border-l-4 border-blue-500'
+                                    : notification.type === 'cancel'
+                                        ? 'bg-yellow-100 border-l-4 border-yellow-500'
+                                        : notification.type === 'success'
+                                            ? 'bg-green-100 border-l-4 border-green-500'
+                                            : 'bg-gray-100 border-l-4 border-gray-500'
+                                    }`}
+                            >
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <p className="font-medium">
+                                            {notification.type === 'payment' ? '支払い通知' :
+                                                notification.type === 'cancel' ? '解約期限通知' :
+                                                    notification.type === 'success' ? '成功' : 'お知らせ'}
+                                        </p>
+                                        <p className="text-sm mt-1">{notification.message}</p>
+                                    </div>
+                                    <button
+                                        onClick={() => removeNotification(notification.id)}
+                                        className="text-gray-500 hover:text-gray-700"
+                                    >
+                                        ×
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                );
+            };
+
+            // ダークモードのstate（システム設定を見るver）
+            // const [darkMode, setDarkMode] = useState(() => {
+            //     // システムの設定を確認
+            //     const systemPreference = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            //     // ローカルストレージの設定を確認
+            //     const savedMode = localStorage.getItem('darkMode');
+            //     return savedMode !== null ? JSON.parse(savedMode) : systemPreference;
+            // });
+
+            // ダークモードのstate（デフォルトはライト）
+            const [darkMode, setDarkMode] = useState(() => {
+                // ローカルストレージの設定を確認
+                const savedMode = localStorage.getItem('darkMode');
+                if (savedMode !== null) {
+                    return JSON.parse(savedMode);
+                }
+                // 保存された設定がない場合は、ライトモードをデフォルトとする
+                return false;  // falseはライトモード
+            });
+
+            // システムのカラースキーム変更を監視
+            useEffect(() => {
+                const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                const handleChange = (e) => {
+                    // ローカルストレージに保存された設定がない場合のみ
+                    // システムの設定に従う（この部分は必要に応じて削除可能）
+                    if (localStorage.getItem('darkMode') === null) {
+                        setDarkMode(e.matches);
+                    }
+                };
+
+                mediaQuery.addListener(handleChange);
+                return () => mediaQuery.removeListener(handleChange);
+            }, []);
+
+            // ダークモードの変更を監視してHTMLのclassを更新
+            useEffect(() => {
+                document.documentElement.classList.toggle('dark', darkMode);
+                localStorage.setItem('darkMode', JSON.stringify(darkMode));
+            }, [darkMode]);
+
+            // ダークモード切り替えボタンコンポーネント
+            const ThemeToggle = () => (
+                <button
+                    onClick={() => setDarkMode(!darkMode)}
+                    className="flex items-center justify-between px-4 py-2 sm:px-3 sm:py-2 rounded-lg bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors theme-switch-animation flex-1 sm:flex-none"
+                    aria-label="テーマ切り替え"
+                >
+                    <span className="text-sm text-gray-700 dark:text-gray-200">テーマ</span>
+                    {darkMode ? (
+                        <span role="img" aria-label="ライトモード" className="text-xl">🌞</span>
+                    ) : (
+                        <span role="img" aria-label="ダークモード" className="text-xl">🌙</span>
+                    )}
+                </button>
+            );
+
+            <DataManagement
+                onImport={(importedData) => setSubscriptions(importedData)}
+                onReset={() => setSubscriptions(DEFAULT_SUBSCRIPTIONS)}
+            />
+
+            return (
+                <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg">
+                        <div className="p-4 sm:p-6">
+                            {/* ヘッダー部分を更新 */}
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                                <div>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                                        現在の支払額:<br className="sm:hidden" />
+                                        月額¥{totalMonthly.toLocaleString()}、
+                                        年額¥{totalYearly.toLocaleString()}
+                                    </p>
+                                </div>
+
+                                {/* コントロール部分 - スマホとPCで異なるレイアウト */}
+                                <div className="w-full sm:w-auto">
+                                    {/* スマホ版のレイアウト */}
+                                    <div className="block sm:hidden">
+                                        <div className="flex justify-between gap-2 mb-4">
+                                            <NotificationToggle />
+                                            <ThemeToggle />
+                                        </div>
+                                        <button
+                                            onClick={() => setShowModal(true)}
+                                            className="w-full bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded transition-colors">
+                                            新規追加
+                                        </button>
+                                    </div>
+
+                                    {/* PC版のレイアウト */}
+                                    <div className="hidden sm:flex sm:items-center sm:gap-4">
+                                        <NotificationToggle />
+                                        <ThemeToggle />
+                                        <button
+                                            onClick={() => setShowModal(true)}
+                                            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded transition-colors">
+                                            新規追加
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+
+                            {/* 通知コンポーネント（通知有効時のみ表示） */}
+                            {notificationEnabled && <Notifications />}
+
+                            {/* グラフセクション */}
+                            <div className="mb-6">
+                                <CustomizableChart data={subscriptions} />
+                            </div>
+
+                            {/* フィルターセクション */}
+                            <div className="mb-4 flex flex-col sm:flex-row gap-2 sm:gap-4">
+                                <input
+                                    type="text"
+                                    placeholder="検索..."
+                                    value={filters.search}
+                                    onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                                    className="px-3 py-2 border rounded-lg w-full sm:w-auto"
+                                />
+                                <select
+                                    value={filters.billingType}
+                                    onChange={(e) => setFilters(prev => ({ ...prev, billingType: e.target.value }))}
+                                    className="px-3 py-2 border rounded-lg w-full sm:w-auto"
+                                >
+                                    <option value="all">すべての課金タイプ</option>
+                                    <option value="月額">月額</option>
+                                    <option value="年額">年額</option>
+                                </select>
+                                <select
+                                    value={filters.category}
+                                    onChange={(e) => setFilters(prev => ({ ...prev, category: e.target.value }))}
+                                    className="px-3 py-2 border rounded-lg w-full sm:w-auto"
+                                >
+                                    <option value="all">すべてのカテゴリー</option>
+                                    {DEFAULT_CATEGORIES.map(category => (
+                                        <option key={category} value={category}>{category}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* テーブル */}
+                            <div className="table-scroll rounded-lg border border-gray-200">
+                                <table className="w-full border-collapse">
+                                    <thead>
+                                        <tr className="bg-gray-50">
+                                            <SortableHeader label="サービス名" sortKey="name" />
+                                            <SortableHeader label="料金" sortKey="price" />
+                                            <SortableHeader label="カテゴリー" sortKey="category" />  {/* 追加 */}
+                                            <SortableHeader label="支払日" sortKey="paymentDate" />
+                                            <SortableHeader label="支払方法" sortKey="paymentMethod" />
+                                            <SortableHeader label="更新タイプ" sortKey="renewalType" />
+                                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-500 whitespace-nowrap">解約期限</th>
+                                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-500 whitespace-nowrap">メモ</th>
+                                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-500 whitespace-nowrap">操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-200">
+                                        {filteredSubscriptions.map((subscription) => (
+                                            <tr key={subscription.id} className="hover:bg-gray-50">
+                                                <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                                                    {subscription.url ? (
+                                                        <a
+                                                            href={subscription.url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-blue-600 hover:text-blue-800 hover:underline"
+                                                        >
+                                                            {subscription.name}
+                                                        </a>
+                                                    ) : (
+                                                        subscription.name
+                                                    )}
+                                                </td>
+                                                <td className="px-4 py-3 text-sm text-gray-500">
+                                                    ¥{Number(subscription.price).toLocaleString()}
+                                                    ({subscription.billingType})
+                                                </td>
+                                                <td className="px-4 py-3 text-sm text-gray-500">
+                                                    {subscription.category || 'その他'}  {/* 追加 */}
+                                                </td>
+                                                <td className="px-4 py-3 text-sm text-gray-500">
+                                                    {formatPaymentDate(subscription.paymentDate)}
+                                                </td>
+                                                <td className="px-4 py-3 text-sm text-gray-500">
+                                                    {subscription.paymentMethod}
+                                                </td>
+                                                <td className="px-4 py-3 text-sm text-gray-500">
+                                                    {subscription.renewalType}
+                                                </td>
+                                                <td className="px-4 py-3 text-sm text-gray-500">
+                                                    {formatCancelDeadline(subscription.cancelDeadline)}
+                                                </td>
+                                                <td className="px-4 py-3 text-sm text-gray-500">
+                                                    {subscription.notes}
+                                                </td>
+                                                <td className="px-4 py-3 text-sm">
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={() => handleEdit(subscription)}
+                                                            className="px-2 py-1 text-gray-500 hover:bg-gray-100 rounded">
+                                                            ✏️
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDelete(subscription.id)}
+                                                            className="px-2 py-1 text-red-500 hover:bg-gray-100 rounded">
+                                                            🗑️
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {/* モーダル */}
+                            {showModal && (
+                                <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center px-4">
+                                    <div className="bg-white rounded-lg w-full max-w-md modal-scroll">
+                                        <div className="p-6">
+                                            <h2 className="text-xl font-bold mb-4">
+                                                {editingSubscription ? 'サブスクリプションの編集' : '新規サブスクリプション追加'}
+                                            </h2>
+                                            <form onSubmit={handleSubmit} className="space-y-4">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700">
+                                                        サービス名
+                                                    </label>
+                                                    <input
+                                                        required
+                                                        name="name"
+                                                        value={formData.name}
+                                                        onChange={handleInputChange}
+                                                        className="mt-1 block w-full px-3 py-2 border rounded-lg"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700">
+                                                        料金
+                                                    </label>
+                                                    <input
+                                                        required
+                                                        type="number"
+                                                        name="price"
+                                                        min="0"
+                                                        value={formData.price}
+                                                        onChange={handleInputChange}
+                                                        className="mt-1 block w-full px-3 py-2 border rounded-lg"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700">
+                                                        課金タイプ
+                                                    </label>
+                                                    <select
+                                                        required
+                                                        name="billingType"
+                                                        value={formData.billingType}
+                                                        onChange={handleInputChange}
+                                                        className="mt-1 block w-full px-3 py-2 border rounded-lg"
+                                                    >
+                                                        <option value="月額">月額</option>
+                                                        <option value="年額">年額</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700">
+                                                        支払日（1-31）
+                                                    </label>
+                                                    <input
+                                                        required
+                                                        type="number"
+                                                        name="paymentDate"
+                                                        min="1"
+                                                        max="31"
+                                                        value={formData.paymentDate}
+                                                        onChange={handleInputChange}
+                                                        className={`mt-1 block w-full px-3 py-2 border rounded-lg ${formErrors.paymentDate ? 'border-red-500' : ''
+                                                            }`}
+                                                    />
+                                                    {formErrors.paymentDate && (
+                                                        <p className="text-red-500 text-sm mt-1">
+                                                            {formErrors.paymentDate}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700">
+                                                        支払方法
+                                                    </label>
+                                                    <input
+                                                        required
+                                                        name="paymentMethod"
+                                                        value={formData.paymentMethod}
+                                                        onChange={handleInputChange}
+                                                        className="mt-1 block w-full px-3 py-2 border rounded-lg"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700">
+                                                        更新タイプ
+                                                    </label>
+                                                    <select
+                                                        required
+                                                        name="renewalType"
+                                                        value={formData.renewalType}
+                                                        onChange={handleInputChange}
+                                                        className="mt-1 block w-full px-3 py-2 border rounded-lg"
+                                                    >
+                                                        <option value="自動更新">自動更新</option>
+                                                        <option value="手動更新">手動更新</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700">
+                                                        解約期限日（1-31）
+                                                    </label>
+                                                    <input
+                                                        required
+                                                        type="number"
+                                                        name="cancelDeadline"
+                                                        min="1"
+                                                        max="31"
+                                                        value={formData.cancelDeadline}
+                                                        onChange={handleInputChange}
+                                                        className={`mt-1 block w-full px-3 py-2 border rounded-lg ${formErrors.cancelDeadline ? 'border-red-500' : ''
+                                                            }`}
+                                                    />
+                                                    {formErrors.cancelDeadline && (
+                                                        <p className="text-red-500 text-sm mt-1">
+                                                            {formErrors.cancelDeadline}
+                                                        </p>
+                                                    )}
+                                                    <p className="text-sm text-gray-500 mt-1">
+                                                        例：15を入力すると、毎月15日までが解約期限
+                                                    </p>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700">
+                                                        カテゴリー
+                                                    </label>
+                                                    <CategorySelect
+                                                        value={formData.category}
+                                                        onChange={(value) => handleInputChange({ target: { name: 'category', value } })}
+                                                        className="mt-1 block w-full px-3 py-2 border rounded-lg"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700">
+                                                        サービスURL（任意）
+                                                    </label>
+                                                    <input
+                                                        type="url"
+                                                        name="url"
+                                                        value={formData.url}
+                                                        onChange={handleInputChange}
+                                                        placeholder="https://example.com"
+                                                        className="mt-1 block w-full px-3 py-2 border rounded-lg"
+                                                    />
+                                                    <p className="text-sm text-gray-500 mt-1">
+                                                        サービスの公式サイトやログインページのURLを入力してください
+                                                    </p>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700">
+                                                        メモ
+                                                    </label>
+                                                    <input
+                                                        name="notes"
+                                                        value={formData.notes}
+                                                        onChange={handleInputChange}
+                                                        className="mt-1 block w-full px-3 py-2 border rounded-lg"
+                                                    />
+                                                </div>
+                                                <div className="flex justify-end gap-2 mt-6">
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleCloseModal}
+                                                        className="px-4 py-2 border rounded-lg hover:bg-gray-100"
+                                                    >
+                                                        キャンセル
+                                                    </button>
+                                                    <button
+                                                        type="submit"
+                                                        className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                                                    >
+                                                        {editingSubscription ? '更新' : '追加'}
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    {/* データ管理セクションを追加 */}
+                    <DataManagement
+                        subscriptions={subscriptions}
+                        onImport={(importedData) => setSubscriptions(importedData)}
+                        onReset={() => setSubscriptions(DEFAULT_SUBSCRIPTIONS)}
+                    />
+
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<SubscriptionManager />);
+
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>カスタマイズ可能サイコロアプリ</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .container {
+            text-align: center;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .dice-container {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+        .dice {
+            width: 60px;
+            height: 60px;
+            border: 2px solid black;
+            border-radius: 10px;
+            margin: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: transform 0.5s;
+            position: relative;
+        }
+        .dice-number {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .dot-container {
+            width: 100%;
+            height: 100%;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            position: absolute;
+        }
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: black;
+            margin: auto;
+        }
+        button {
+            font-size: 18px;
+            padding: 10px 20px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        select {
+            font-size: 18px;
+            margin-left: 10px;
+        }
+        .control-panel {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>カスタマイズ可能サイコロアプリ</h1>
+        <div class="control-panel">
+            <label for="diceCount">サイコロの数：</label>
+            <select id="diceCount">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+            </select>
+            <label for="diceColor">サイコロの色：</label>
+            <select id="diceColor">
+                <option value="white">白</option>
+                <option value="red">赤</option>
+                <option value="blue">青</option>
+                <option value="green">緑</option>
+                <option value="yellow">黄</option>
+            </select>
+            <label for="displayType">表示タイプ：</label>
+            <select id="displayType">
+                <option value="number">数字</option>
+                <option value="dot">点</option>
+            </select>
+        </div>
+        <div class="dice-container" id="diceContainer"></div>
+        <button onclick="rollDice()">サイコロを振る</button>
+    </div>
+
+    <script>
+        function createDice() {
+            const container = document.getElementById('diceContainer');
+            container.innerHTML = '';
+            const count = parseInt(document.getElementById('diceCount').value);
+            const color = document.getElementById('diceColor').value;
+            const displayType = document.getElementById('displayType').value;
+            for (let i = 0; i < count; i++) {
+                const dice = document.createElement('div');
+                dice.className = 'dice';
+                dice.style.backgroundColor = color;
+                if (displayType === 'number') {
+                    const numberElement = document.createElement('div');
+                    numberElement.className = 'dice-number';
+                    numberElement.textContent = '1';
+                    dice.appendChild(numberElement);
+                } else {
+                    createDots(dice, 1);
+                }
+                container.appendChild(dice);
+            }
+        }
+
+        function createDots(dice, number) {
+            dice.innerHTML = '';
+            const dotContainer = document.createElement('div');
+            dotContainer.className = 'dot-container';
+            const dotPositions = [
+                [4], // 1
+                [0, 8], // 2
+                [0, 4, 8], // 3
+                [0, 2, 6, 8], // 4
+                [0, 2, 4, 6, 8], // 5
+                [0, 2, 3, 5, 6, 8] // 6
+            ];
+            for (let i = 0; i < 9; i++) {
+                const cell = document.createElement('div');
+                if (dotPositions[number - 1].includes(i)) {
+                    const dot = document.createElement('div');
+                    dot.className = 'dot';
+                    if (number === 1) {
+                        dot.style.backgroundColor = 'red';
+                    }
+                    cell.appendChild(dot);
+                }
+                dotContainer.appendChild(cell);
+            }
+            dice.appendChild(dotContainer);
+        }
+
+        function rollDice() {
+            const dices = document.querySelectorAll('.dice');
+            const displayType = document.getElementById('displayType').value;
+            dices.forEach(dice => {
+                let rolls = 0;
+                const rollInterval = setInterval(() => {
+                    dice.style.transform = `rotate(${Math.random() * 360}deg)`;
+                    const number = Math.floor(Math.random() * 6) + 1;
+                    if (displayType === 'number') {
+                        dice.querySelector('.dice-number').textContent = number;
+                    } else {
+                        createDots(dice, number);
+                    }
+                    rolls++;
+                    if (rolls >= 10) {
+                        clearInterval(rollInterval);
+                        dice.style.transform = 'rotate(0deg)';
+                    }
+                }, 50);
+            });
+        }
+
+        document.getElementById('diceCount').addEventListener('change', createDice);
+        document.getElementById('diceColor').addEventListener('change', createDice);
+        document.getElementById('displayType').addEventListener('change', createDice);
+        createDice();
+    </script>
+</body>
+</html>

@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>百兆の詩 - レーモン・クノー</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Georgia', serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #eee;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 900px;
+            width: 100%;
+            animation: fadeIn 1s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #f39c12, #e74c3c);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(243, 156, 18, 0.3);
+        }
+
+        .subtitle {
+            text-align: center;
+            font-size: 1.2rem;
+            color: #aaa;
+            margin-bottom: 30px;
+            font-style: italic;
+        }
+
+        .poem-container {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .verse {
+            margin: 8px 0;
+            padding: 12px 20px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid transparent;
+        }
+
+        .verse:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateX(10px);
+            border-color: rgba(243, 156, 18, 0.3);
+            box-shadow: 0 5px 15px rgba(243, 156, 18, 0.2);
+        }
+
+        .verse::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transition: left 0.5s;
+        }
+
+        .verse:hover::before {
+            left: 100%;
+        }
+
+        .verse-text {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            position: relative;
+            z-index: 1;
+        }
+
+        .verse-number {
+            display: inline-block;
+            width: 30px;
+            color: #666;
+            font-size: 0.9rem;
+            margin-right: 10px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
+        }
+
+        button {
+            background: linear-gradient(45deg, #e74c3c, #f39c12);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        button::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        button:active::after {
+            width: 300px;
+            height: 300px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(231, 76, 60, 0.4);
+        }
+
+        .info {
+            text-align: center;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+
+        .combination-number {
+            font-size: 1.2rem;
+            color: #f39c12;
+            margin-bottom: 10px;
+        }
+
+        .stats {
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 600px) {
+            h1 { font-size: 2rem; }
+            .poem-container { padding: 20px; }
+            .verse-text { font-size: 1rem; }
+        }
+
+        .verse.changing {
+            animation: flip 0.6s ease-in-out;
+        }
+
+        @keyframes flip {
+            0% { transform: rotateX(0); }
+            50% { transform: rotateX(90deg); opacity: 0.5; }
+            100% { transform: rotateX(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>百兆の詩</h1>
+        <p class="subtitle">Cent mille milliards de poèmes - レーモン・クノー</p>
+        
+        <div class="info">
+            <div class="combination-number">組み合わせ番号: <span id="combination">1</span> / 100,000,000,000,000</div>
+            <div class="stats">各行をクリックして変更 • すべて読むには約2億年必要</div>
+        </div>
+
+        <div class="poem-container" id="poemContainer">
+            <!-- 詩の行がここに動的に生成されます -->
+        </div>
+
+        <div class="controls">
+            <button onclick="randomizeAll()">🎲 ランダム生成</button>
+            <button onclick="resetAll()">🔄 最初の詩に戻る</button>
+            <button onclick="copyPoem()">📋 詩をコピー</button>
+        </div>
+    </div>
+
+    <script>
+        // クノーの詩を模した10×14の詩行配列（簡略化された例）
+        const poems = [
+            [
+                "朝の光が窓を通して静かに差し込み",
+                "青い空には雲がゆっくりと流れて",
+                "鳥たちの歌声が優しく響き渡り",
+                "風は木々の葉を軽やかに揺らして",
+                "花びらが舞い落ちる庭の小径で",
+                "時計の針は規則正しく時を刻み",
+                "遠くから聞こえる鐘の音が",
+                "記憶の中の風景を呼び覚まし",
+                "本のページをめくる指先に",
+                "インクの香りがかすかに漂い",
+                "言葉たちは紙の上で踊りながら",
+                "新しい世界への扉を開いて",
+                "想像力は無限の可能性を描き",
+                "詩は永遠に生き続けるだろう"
+            ],
+            [
+                "夕暮れの空が赤く染まるとき",
+                "灰色の雲が重く垂れ込めて",
+                "カラスの鳴き声が不気味に響き",
+                "嵐は激しく枝を打ち鳴らして",
+                "枯れ葉が渦を巻く薄暗い路地で",
+                "壊れた時計は永遠に止まったまま",
+                "近くで響く雷鳴の轟音が",
+                "忘れたい過去を思い出させ",
+                "震える手でページを掴むとき",
+                "涙の跡がにじんで見えて",
+                "文字たちは悲しみに沈みながら",
+                "閉ざされた心の奥へと消えて",
+                "絶望は深い闇を広げながら",
+                "詩は静かに終わりを告げる"
+            ],
+            [
+                "満月の光が海面を照らすとき",
+                "銀色の波が優雅に寄せては返し",
+                "夜鷹の声が神秘的に響いて",
+                "潮風は髪を優しくなでながら",
+                "砂浜に残る足跡の列で",
+                "月の満ち欠けが時を教えて",
+                "波の音が絶え間なく聞こえ",
+                "永遠の営みを感じさせて",
+                "濡れた砂に文字を書くとき",
+                "塩の味が唇に残って",
+                "思いは波間に揺れながら",
+                "地平線の彼方へと向かって",
+                "希望は新しい朝を待ちながら",
+                "詩は海と共に息づいている"
+            ],
+            [
+                "春の陽射しが大地を温めるとき",
+                "緑の芽が土から顔を出して",
+                "ひばりの歌が高らかに響き",
+                "そよ風は花の香りを運んで",
+                "蝶が舞う色とりどりの花園で",
+                "季節の巡りが命を育み",
+                "小川のせせらぎが聞こえて",
+                "生命の喜びを歌っているよう",
+                "若葉に触れる手のひらに",
+                "生きる力が伝わってきて",
+                "言葉は希望に満ちあふれ",
+                "未来への道を照らしながら",
+                "愛は すべてを包み込んで",
+                "詩は新しい命を宿している"
+            ],
+            [
+                "秋の夕日が山際に沈むとき",
+                "茜色の空がゆっくりと暮れて",
+                "虫の音が寂しげに響き渡り",
+                "冷たい風が頬を撫でていく",
+                "紅葉が散る静寂な境内で",
+                "年月の流れを感じながら",
+                "遠い昔の鐘の音が",
+                "郷愁の念を呼び起こして",
+                "古い写真を見つめるとき",
+                "セピア色の思い出が蘇り",
+                "言葉は時を超えて語りかけ",
+                "過去と現在を結びながら",
+                "哀愁は美しい調べとなって",
+                "詩は時の流れに身を任せる"
+            ],
+            [
+                "真冬の朝に雪が降るとき",
+                "白い結晶が音もなく舞い降りて",
+                "静寂が世界を包み込んで",
+                "凍える風が窓を打ちつけ",
+                "雪に覆われた静かな街角で",
+                "時間が止まったかのように",
+                "かすかに聞こえる足音が",
+                "孤独な心に寄り添って",
+                "白いページに向かうとき",
+                "息が白く立ち上って",
+                "言葉は結晶のように輝き",
+                "純粋な思いを映しながら",
+                "静寂は深い瞑想を誘って",
+                "詩は雪のように降り積もる"
+            ],
+            [
+                "夏の夜に星が輝くとき",
+                "天の川が夜空を横切って",
+                "コオロギの合唱が響き渡り",
+                "夜風は汗を優しく冷まして",
+                "蛍が飛び交う川辺の草むらで",
+                "一瞬の光が永遠を語り",
+                "流れ星が音もなく落ちて",
+                "願い事を天に届けて",
+                "夜空を見上げる瞳に",
+                "無数の星が映り込んで",
+                "言葉は宇宙と共鳴しながら",
+                "無限の彼方へと広がって",
+                "夢は星座となって輝き",
+                "詩は夜空に永遠に刻まれる"
+            ],
+            [
+                "嵐の夜に稲妻が走るとき",
+                "黒い雲が空を覆い尽くして",
+                "雷鳴が大地を震わせて",
+                "豪雨が激しく地面を打ち",
+                "水しぶきが跳ねる暗い道で",
+                "自然の力が猛威を振るい",
+                "轟音が耳をつんざいて",
+                "恐怖と興奮が入り混じり",
+                "ペンを握る手が震えても",
+                "心の嵐は収まらずに",
+                "言葉は激流のように流れ",
+                "感情の渦に巻き込まれて",
+                "情熱は稲妻のように閃き",
+                "詩は嵐と共に生まれ出る"
+            ],
+            [
+                "霧の朝に街が目覚めるとき",
+                "薄いヴェールが建物を包んで",
+                "遠くの音がくぐもって聞こえ",
+                "湿った空気が肌にまとわり",
+                "霧に煙る石畳の路地で",
+                "幻想的な風景が広がり",
+                "足音だけが響き渡って",
+                "現実と夢の境界が曖昧に",
+                "ぼんやりと文字を追うとき",
+                "意識が霧の中を漂い",
+                "言葉は形を変えながら",
+                "新しい意味を見つけ出して",
+                "幻想は美しい詩となって",
+                "詩は霧のように立ち込める"
+            ],
+            [
+                "黄昏時に鐘が鳴るとき",
+                "橙色の光が世界を染めて",
+                "帰り行く鳥たちの影が",
+                "夕焼け空を横切っていく",
+                "影が長く伸びる坂道で",
+                "一日の終わりを感じながら",
+                "教会の鐘が響き渡り",
+                "祈りの時を告げている",
+                "日記帳を閉じるとき",
+                "今日の出来事が心に残り",
+                "言葉は明日へと続きながら",
+                "新しい物語を紡いでいく",
+                "希望は夕焼けと共に燃えて",
+                "詩は永遠の黄昏に佇む"
+            ]
+        ];
+
+        let currentIndices = new Array(14).fill(0);
+
+        function displayPoem() {
+            const container = document.getElementById('poemContainer');
+            container.innerHTML = '';
+            
+            for (let i = 0; i < 14; i++) {
+                const verse = document.createElement('div');
+                verse.className = 'verse';
+                verse.onclick = () => changeLine(i);
+                
+                const verseText = document.createElement('div');
+                verseText.className = 'verse-text';
+                verseText.innerHTML = `<span class="verse-number">${i + 1}</span>${poems[currentIndices[i]][i]}`;
+                
+                verse.appendChild(verseText);
+                container.appendChild(verse);
+            }
+            
+            updateCombinationNumber();
+        }
+
+        function changeLine(lineIndex) {
+            const verses = document.querySelectorAll('.verse');
+            verses[lineIndex].classList.add('changing');
+            
+            setTimeout(() => {
+                currentIndices[lineIndex] = (currentIndices[lineIndex] + 1) % 10;
+                displayPoem();
+            }, 300);
+        }
+
+        function randomizeAll() {
+            currentIndices = currentIndices.map(() => Math.floor(Math.random() * 10));
+            displayPoem();
+        }
+
+        function resetAll() {
+            currentIndices.fill(0);
+            displayPoem();
+        }
+
+        function updateCombinationNumber() {
+            let combination = 1;
+            for (let i = 0; i < 14; i++) {
+                combination += currentIndices[i] * Math.pow(10, i);
+            }
+            document.getElementById('combination').textContent = combination.toLocaleString('ja-JP');
+        }
+
+        function copyPoem() {
+            let poemText = '百兆の詩 - 現在の組み合わせ\n\n';
+            for (let i = 0; i < 14; i++) {
+                poemText += poems[currentIndices[i]][i] + '\n';
+            }
+            
+            navigator.clipboard.writeText(poemText).then(() => {
+                alert('詩をクリップボードにコピーしました！');
+            });
+        }
+
+        // 初期表示
+        displayPoem();
+    </script>
+</body>
+</html>
