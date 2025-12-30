@@ -1,12 +1,176 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>tanu-ai.blog</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>tanu-ai.blog</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
+            color: #334155;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 近未来的な背景装飾 */
+        body::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(99, 102, 241, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(14, 165, 233, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(168, 85, 247, 0.03) 0%, transparent 40%);
+            pointer-events: none;
+        }
+
+        .container {
+            text-align: center;
+            max-width: 700px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .logo {
+            font-size: 2.8rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #6366f1 0%, #0ea5e9 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .tagline {
+            font-size: 1rem;
+            color: #64748b;
+            margin-bottom: 1.5rem;
+        }
+
+        .notice {
+            display: inline-block;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: 20px;
+            padding: 8px 20px;
+            font-size: 0.85rem;
+            color: #6366f1;
+            margin-bottom: 2.5rem;
+        }
+
+        .links {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-bottom: 2.5rem;
+        }
+
+        .link-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            background: #fff;
+            color: #334155;
+            padding: 18px 32px;
+            border-radius: 16px;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.04);
+            border: 1px solid rgba(0, 0, 0, 0.06);
+        }
+
+        .link-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15), 0 8px 24px rgba(0, 0, 0, 0.08);
+            border-color: rgba(99, 102, 241, 0.3);
+        }
+
+        .link-button .icon {
+            font-size: 1.4rem;
+        }
+
+        .link-button .arrow {
+            margin-left: auto;
+            opacity: 0.4;
+            transition: opacity 0.2s, transform 0.2s;
+        }
+
+        .link-button:hover .arrow {
+            opacity: 0.8;
+            transform: translateX(4px);
+        }
+
+        .contact-note {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            line-height: 1.7;
+        }
+
+        .footer {
+            position: absolute;
+            bottom: 20px;
+            font-size: 0.8rem;
+            color: #cbd5e1;
+        }
+
+        @media (max-width: 480px) {
+            .logo {
+                font-size: 2.2rem;
+            }
+            .link-button {
+                padding: 16px 24px;
+            }
+        }
+    </style>
 </head>
 <body>
-  <h1>tanu-ai.blog</h1>
-  <p>This domain is verified and owned by tanuu5.</p>
+    <div class="container">
+        <h1 class="logo">🦝 tanu-ai.blog</h1>
+        <p class="tagline">AIと暮らす日常を綴るブログ</p>
+        
+        <p class="notice">🔧 サーバーお引越しにつき、リンク整理中です</p>
+        
+        <div class="links">
+            <a href="https://note.com/tank_ai/" class="link-button">
+                <span class="icon">📝</span>
+                <span>ブログ（note）</span>
+                <span class="arrow">→</span>
+            </a>
+            <a href="https://tanu-ai.blog/tool/" class="link-button">
+                <span class="icon">🛠️</span>
+                <span>自作ツール</span>
+                <span class="arrow">→</span>
+            </a>
+        </div>
+        
+        <p class="contact-note">
+            ご連絡・お問い合わせは<br>
+            noteの記事へのコメントでお願いします
+        </p>
+    </div>
+    
+    <p class="footer">© 2025 tanu-ai.blog</p>
 </body>
 </html>
