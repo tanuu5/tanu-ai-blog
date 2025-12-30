@@ -1835,7 +1835,11 @@
                     const hypo = eq.earthquake?.hypocenter;
                     if (!hypo?.latitude || !hypo?.longitude) return;
                     
-                    const [x, y] = projection([hypo.longitude, hypo.latitude]);
+                    const coords = projection([hypo.longitude, hypo.latitude]);
+                    // 投影結果がNaNの場合はスキップ
+                    if (!coords || isNaN(coords[0]) || isNaN(coords[1])) return;
+                    
+                    const [x, y] = coords;
                     const scale = eq.earthquake?.maxScale || 10;
                     const mag = hypo.magnitude || 1;
                     
@@ -2310,7 +2314,11 @@
         function showEpicenter(lat, lon) {
             if (!projection || !mapSvg) return;
             
-            const [x, y] = projection([lon, lat]);
+            const coords = projection([lon, lat]);
+            // 投影結果がNaNの場合はスキップ
+            if (!coords || isNaN(coords[0]) || isNaN(coords[1])) return;
+            
+            const [x, y] = coords;
             const layer = mapSvg.select('#epicenter-layer');
             
             // 既存の震源マーカーをクリア
