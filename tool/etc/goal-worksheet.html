@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>目標変換ワークシート - 「達成」から「なりたい姿」へ</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+      background: linear-gradient(to bottom, #fffbeb, #fff7ed);
+      min-height: 100vh;
+      padding: 24px 16px;
+      color: #1f2937;
+    }
+
+    .container {
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      font-size: 0.875rem;
+      color: #6b7280;
+    }
+
+    .quote {
+      font-size: 0.75rem;
+      color: #9ca3af;
+      margin-top: 4px;
+      font-style: italic;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    .card-title {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .step-number {
+      background: linear-gradient(to right, #f59e0b, #f97316);
+      color: white;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: bold;
+    }
+
+    .instruction {
+      font-size: 0.875rem;
+      color: #6b7280;
+      margin-bottom: 12px;
+      line-height: 1.6;
+    }
+
+    .goal-input {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: border-color 0.2s;
+      resize: vertical;
+      min-height: 60px;
+    }
+
+    .goal-input:focus {
+      outline: none;
+      border-color: #f59e0b;
+    }
+
+    .hint-box {
+      background: #fef3c7;
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 16px;
+    }
+
+    .hint-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #92400e;
+      margin-bottom: 8px;
+    }
+
+    .hint-list {
+      font-size: 0.75rem;
+      color: #78350f;
+      list-style: none;
+    }
+
+    .hint-list li {
+      margin-bottom: 4px;
+      padding-left: 16px;
+      position: relative;
+    }
+
+    .hint-list li::before {
+      content: "→";
+      position: absolute;
+      left: 0;
+    }
+
+    .arrow-container {
+      text-align: center;
+      padding: 8px 0;
+      color: #d97706;
+      font-size: 1.5rem;
+    }
+
+    .result-card {
+      border-left: 4px solid #f59e0b;
+    }
+
+    .reflection-section {
+      margin-top: 24px;
+      padding-top: 24px;
+      border-top: 1px solid #e5e7eb;
+    }
+
+    .reflection-title {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 12px;
+    }
+
+    .reflection-question {
+      font-size: 0.875rem;
+      color: #6b7280;
+      margin-bottom: 8px;
+    }
+
+    .reflection-input {
+      width: 100%;
+      padding: 12px;
+      border: 2px dashed #e5e7eb;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      background: #fafafa;
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .reflection-input:focus {
+      outline: none;
+      border-color: #fbbf24;
+      background: white;
+    }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(to right, #f59e0b, #f97316);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.9;
+    }
+
+    .btn-secondary {
+      background: white;
+      color: #6b7280;
+      border: 2px solid #e5e7eb;
+    }
+
+    .btn-secondary:hover {
+      border-color: #d1d5db;
+    }
+
+    .saved-goals {
+      margin-top: 32px;
+    }
+
+    .saved-goals-title {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 12px;
+    }
+
+    .saved-goal-item {
+      background: white;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .saved-goal-traditional {
+      font-size: 0.75rem;
+      color: #9ca3af;
+      margin-bottom: 4px;
+    }
+
+    .saved-goal-identity {
+      font-size: 0.875rem;
+      color: #1f2937;
+    }
+
+    .delete-btn {
+      float: right;
+      background: none;
+      border: none;
+      color: #d1d5db;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+
+    .delete-btn:hover {
+      color: #ef4444;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 40px;
+      padding-top: 24px;
+      border-top: 1px solid #e5e7eb;
+    }
+
+    .footer-quote {
+      font-size: 0.875rem;
+      color: #6b7280;
+      font-style: italic;
+    }
+
+    .footer-author {
+      font-size: 0.75rem;
+      color: #9ca3af;
+      margin-top: 4px;
+    }
+
+    .print-only {
+      display: none;
+    }
+
+    @media print {
+      body {
+        background: white;
+        padding: 20px;
+      }
+
+      .card {
+        box-shadow: none;
+        border: 1px solid #e5e7eb;
+        break-inside: avoid;
+      }
+
+      .btn, .actions {
+        display: none;
+      }
+
+      .print-only {
+        display: block;
+      }
+
+      .no-print {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🧭 目標変換ワークシート</h1>
+      <p class="subtitle">「達成する目標」を「なりたい姿」に変換する</p>
+      <p class="quote">宮沢賢治 × Atomic Habits</p>
+    </header>
+
+    <!-- Step 1: 従来の目標 -->
+    <div class="card">
+      <div class="card-title">
+        <span class="step-number">1</span>
+        従来の目標を書く
+      </div>
+      <p class="instruction">
+        2026年に達成したいと思っていた目標を書いてください。<br>
+        「毎日〇〇する」「△△を達成する」のような形式でOKです。
+      </p>
+      <textarea 
+        id="traditional-goal" 
+        class="goal-input" 
+        placeholder="例：毎日30分運動する、月に5冊本を読む、貯金を100万円増やす..."
+      ></textarea>
+    </div>
+
+    <div class="arrow-container">↓</div>
+
+    <!-- Step 2: 価値観を探る -->
+    <div class="card">
+      <div class="card-title">
+        <span class="step-number">2</span>
+        背後にある価値観を探る
+      </div>
+      <p class="instruction">
+        その目標を達成したい「本当の理由」は何ですか？<br>
+        なぜそれが大事なのか、深掘りしてみましょう。
+      </p>
+      <textarea 
+        id="why-goal" 
+        class="goal-input" 
+        placeholder="例：健康でいたい、知識を増やしたい、将来の不安を減らしたい..."
+      ></textarea>
+
+      <div class="hint-box">
+        <div class="hint-title">💡 深掘りのヒント</div>
+        <ul class="hint-list">
+          <li>それを達成すると、どんな気持ちになりますか？</li>
+          <li>誰のためにそれをしたいですか？</li>
+          <li>10年後の自分はどう思いますか？</li>
+          <li>もしできなかったら、何を失いますか？</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="arrow-container">↓</div>
+
+    <!-- Step 3: なりたい姿に変換 -->
+    <div class="card result-card">
+      <div class="card-title">
+        <span class="step-number">3</span>
+        「なりたい姿」に変換する
+      </div>
+      <p class="instruction">
+        Step 1と2を踏まえて、「〇〇な人間でありたい」という形に言い換えてみましょう。<br>
+        行動ではなく、<strong>どんな人間か</strong>を定義します。
+      </p>
+      <textarea 
+        id="identity-goal" 
+        class="goal-input" 
+        placeholder="例：体を動かすことを楽しめる人間でありたい、知的好奇心を大切にする人間でありたい..."
+      ></textarea>
+
+      <div class="hint-box">
+        <div class="hint-title">✨ 変換の例</div>
+        <ul class="hint-list">
+          <li>「毎日運動する」→「体を動かすことを楽しめる人間でありたい」</li>
+          <li>「本を読む」→「知的好奇心を大切にする人間でありたい」</li>
+          <li>「貯金する」→「将来の自分を大切にできる人間でありたい」</li>
+          <li>「英語を勉強する」→「世界と繋がることを恐れない人間でありたい」</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 振り返りセクション -->
+    <div class="card">
+      <div class="reflection-section" style="margin-top: 0; padding-top: 0; border-top: none;">
+        <div class="reflection-title">📝 最後に確認</div>
+        <p class="reflection-question">
+          この「なりたい姿」を読んで、しっくりきますか？<br>
+          1日サボっても「失敗」ではなく「まだ途上」と思えますか？
+        </p>
+        <textarea 
+          id="reflection" 
+          class="reflection-input" 
+          placeholder="自由にメモしてください..."
+        ></textarea>
+      </div>
+
+      <div class="actions no-print">
+        <button class="btn btn-secondary" onclick="saveGoal()">💾 保存する</button>
+        <button class="btn btn-secondary" onclick="clearForm()">🗑️ クリア</button>
+        <button class="btn btn-primary" onclick="window.print()">🖨️ 印刷する</button>
+      </div>
+    </div>
+
+    <!-- 保存された目標 -->
+    <div id="saved-goals-container" class="saved-goals no-print" style="display: none;">
+      <div class="saved-goals-title">📋 保存した目標</div>
+      <div id="saved-goals-list"></div>
+    </div>
+
+    <footer>
+      <p class="footer-quote">「そういうものに私はなりたい」</p>
+      <p class="footer-author">— 宮沢賢治「雨ニモマケズ」</p>
+    </footer>
+  </div>
+
+  <script>
+    // ローカルストレージから目標を読み込む
+    function loadGoals() {
+      const goals = JSON.parse(localStorage.getItem('identityGoals') || '[]');
+      renderGoals(goals);
+    }
+
+    // 目標を表示する
+    function renderGoals(goals) {
+      const container = document.getElementById('saved-goals-container');
+      const list = document.getElementById('saved-goals-list');
+      
+      if (goals.length === 0) {
+        container.style.display = 'none';
+        return;
+      }
+
+      container.style.display = 'block';
+      list.innerHTML = goals.map((goal, index) => `
+        <div class="saved-goal-item">
+          <button class="delete-btn" onclick="deleteGoal(${index})">×</button>
+          <div class="saved-goal-traditional">「${goal.traditional}」から変換：</div>
+          <div class="saved-goal-identity">${goal.identity}</div>
+        </div>
+      `).join('');
+    }
+
+    // 目標を保存する
+    function saveGoal() {
+      const traditional = document.getElementById('traditional-goal').value.trim();
+      const identity = document.getElementById('identity-goal').value.trim();
+
+      if (!traditional || !identity) {
+        alert('Step 1と3を入力してから保存してください');
+        return;
+      }
+
+      const goals = JSON.parse(localStorage.getItem('identityGoals') || '[]');
+      goals.unshift({ traditional, identity, date: new Date().toISOString() });
+      localStorage.setItem('identityGoals', JSON.stringify(goals));
+      
+      renderGoals(goals);
+      alert('保存しました！');
+    }
+
+    // 目標を削除する
+    function deleteGoal(index) {
+      if (!confirm('この目標を削除しますか？')) return;
+      
+      const goals = JSON.parse(localStorage.getItem('identityGoals') || '[]');
+      goals.splice(index, 1);
+      localStorage.setItem('identityGoals', JSON.stringify(goals));
+      
+      renderGoals(goals);
+    }
+
+    // フォームをクリアする
+    function clearForm() {
+      if (!confirm('入力内容をクリアしますか？')) return;
+      
+      document.getElementById('traditional-goal').value = '';
+      document.getElementById('why-goal').value = '';
+      document.getElementById('identity-goal').value = '';
+      document.getElementById('reflection').value = '';
+    }
+
+    // 初期化
+    loadGoals();
+  </script>
+</body>
+</html>
