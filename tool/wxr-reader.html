@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>書庫 — WXR Blog Archive Reader</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+:root {
+  --bg: #F5F0E6;
+  --surface: #FFFDF8;
+  --text: #1E1810;
+  --text-2: #5C4F3E;
+  --text-3: #988B7A;
+  --accent: #6B8F71;
+  --accent-hover: #7DA882;
+  --accent-bg: #EBF2EC;
+  --border: #E2D9CB;
+  --border-light: #EDE7DC;
+  --shadow: 0 1px 4px rgba(30,24,16,.06);
+  --shadow-lg: 0 4px 20px rgba(30,24,16,.1);
+  --serif: 'Noto Serif JP','Hiragino Mincho ProN','Yu Mincho',serif;
+  --sans: 'Noto Sans JP','Hiragino Kaku Gothic ProN','Yu Gothic','Meiryo',sans-serif;
+  --radius: 8px;
+  --max-w: 960px;
+  --transition: .2s ease;
+  /* heatmap */
+  --hm0: #EDE7DC; --hm1: #C6DEC9; --hm2: #94C49A; --hm3: #6B8F71; --hm4: #4A6B4F;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px;-webkit-text-size-adjust:100%}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);line-height:1.8;min-height:100vh}
+a{color:var(--accent);text-decoration:none}
+a:hover{color:var(--accent-hover);text-decoration:underline}
+button{font-family:var(--sans);cursor:pointer;border:none;background:none;font-size:inherit}
+::selection{background:var(--accent-bg);color:var(--text)}
+.container{max-width:var(--max-w);margin:0 auto;padding:0 24px}
+
+/* ===== Landing ===== */
+.landing{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:90vh;text-align:center;animation:fadeIn .6s ease}
+.landing-icon{font-size:4rem;margin-bottom:16px;opacity:.7}
+.landing h1{font-family:var(--serif);font-size:2.8rem;font-weight:700;letter-spacing:.08em;margin-bottom:8px}
+.landing .subtitle{font-size:1rem;color:var(--text-3);margin-bottom:40px;letter-spacing:.04em}
+.landing .desc{max-width:520px;color:var(--text-2);font-size:.92rem;line-height:1.9;margin-bottom:36px}
+.drop-zone{width:100%;max-width:480px;border:2px dashed var(--border);border-radius:12px;padding:48px 32px;background:var(--surface);transition:var(--transition);cursor:pointer;position:relative}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--accent);background:var(--accent-bg)}
+.drop-zone input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.drop-zone .icon{font-size:2rem;margin-bottom:12px}
+.drop-zone p{color:var(--text-2);font-size:.9rem}
+.drop-zone .hint{color:var(--text-3);font-size:.78rem;margin-top:8px}
+.format-note{max-width:480px;margin-top:24px;padding:16px 20px;background:var(--surface);border:1px solid var(--border-light);border-radius:var(--radius);font-size:.82rem;color:var(--text-3);line-height:1.7;text-align:left}
+
+/* ===== Parsing ===== */
+.parsing{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;text-align:center;animation:fadeIn .4s ease}
+.parsing h2{font-family:var(--serif);font-size:1.6rem;margin-bottom:8px}
+.parsing .file-label{font-size:.88rem;color:var(--text-2);margin-bottom:24px;word-break:break-all;max-width:480px}
+.progress-wrap{width:100%;max-width:480px;margin-bottom:16px}
+.progress-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;background:var(--accent);border-radius:3px;transition:width .3s ease;width:0%}
+.progress-text{display:flex;justify-content:space-between;margin-top:10px;font-size:.82rem;color:var(--text-3)}
+.progress-sub{width:100%;max-width:480px;margin-bottom:24px}
+.progress-sub .progress-bar{height:3px}
+.progress-sub .progress-fill{background:#B8C9B8}
+.parse-stats{display:flex;gap:32px;margin-top:20px;font-size:.88rem;color:var(--text-2)}
+.parse-stats .num{font-size:1.4rem;font-weight:700;color:var(--accent);display:block;font-family:var(--serif)}
+.cancel-btn{margin-top:32px;color:var(--text-3);font-size:.85rem;text-decoration:underline;cursor:pointer}
+
+/* ===== Header ===== */
+.app-header{padding:20px 0;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:100}
+.app-header .inner{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.app-header .blog-title{font-family:var(--serif);font-size:1.2rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:300px}
+.app-header .stats-label{font-size:.82rem;color:var(--text-3);white-space:nowrap}
+.search-box{flex:1;min-width:200px;position:relative}
+.search-box input{width:100%;padding:8px 12px 8px 36px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);font-size:.88rem;font-family:var(--sans);outline:none;transition:var(--transition)}
+.search-box input:focus{border-color:var(--accent);background:var(--surface)}
+.search-box::before{content:'🔍';position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:.85rem;pointer-events:none}
+.controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ctrl-btn{padding:6px 14px;border:1px solid var(--border);border-radius:var(--radius);font-size:.82rem;color:var(--text-2);background:var(--surface);transition:var(--transition);white-space:nowrap}
+.ctrl-btn:hover{border-color:var(--accent);color:var(--accent)}
+.ctrl-btn.active{background:var(--accent-bg);border-color:var(--accent);color:var(--accent)}
+
+/* ===== Summary ===== */
+.summary{background:var(--surface);border:1px solid var(--border-light);border-radius:var(--radius);padding:20px 24px;margin-bottom:20px}
+.summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px}
+.summary-item .label{font-size:.75rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px}
+.summary-item .value{font-family:var(--serif);font-size:1.2rem;font-weight:700;color:var(--text)}
+.summary-item .value.accent{color:var(--accent)}
+
+/* ===== Stats Panel ===== */
+.stats-panel{animation:fadeIn .3s ease;margin-bottom:24px}
+.stats-section{background:var(--surface);border:1px solid var(--border-light);border-radius:var(--radius);padding:24px;margin-bottom:16px}
+.stats-section h3{font-family:var(--serif);font-size:1.05rem;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+/* Heatmap */
+.heatmap-wrap{overflow-x:auto;padding-bottom:8px;-webkit-overflow-scrolling:touch}
+.heatmap-wrap::-webkit-scrollbar{height:4px}
+.heatmap-wrap::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.heatmap-badges{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+.hm-badge{padding:8px 16px;background:var(--bg);border-radius:var(--radius);text-align:center}
+.hm-badge .num{font-family:var(--serif);font-size:1.3rem;font-weight:700;color:var(--accent);display:block}
+.hm-badge .lbl{font-size:.72rem;color:var(--text-3)}
+.heatmap-legend{display:flex;align-items:center;gap:4px;margin-top:12px;font-size:.72rem;color:var(--text-3)}
+.heatmap-legend .swatch{width:11px;height:11px;border-radius:2px}
+.hm-month-labels{display:flex;font-size:.68rem;color:var(--text-3);margin-bottom:2px}
+/* Charts */
+.chart-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.chart-wrap svg{display:block}
+.chart-wrap::-webkit-scrollbar{height:4px}
+.chart-wrap::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+/* Tag ranking */
+.tag-rank{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.tag-rank-col h4{font-size:.85rem;color:var(--text-2);margin-bottom:12px;font-weight:500}
+.rank-item{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.rank-bar-bg{flex:1;height:20px;background:var(--bg);border-radius:3px;overflow:hidden;position:relative}
+.rank-bar{height:100%;border-radius:3px;transition:width .4s ease}
+.rank-bar.cat{background:var(--accent)}
+.rank-bar.tag{background:#9B8EC4}
+.rank-label{font-size:.78rem;color:var(--text);position:absolute;left:6px;top:50%;transform:translateY(-50%);white-space:nowrap}
+.rank-count{font-size:.78rem;color:var(--text-3);min-width:30px;text-align:right;font-variant-numeric:tabular-nums}
+.tooltip{position:fixed;background:var(--text);color:var(--surface);padding:6px 10px;border-radius:4px;font-size:.75rem;pointer-events:none;z-index:300;white-space:nowrap;opacity:0;transition:opacity .15s}
+.tooltip.visible{opacity:1}
+
+/* ===== Article List ===== */
+.article-list{padding:24px 0 60px;animation:fadeIn .4s ease}
+.article-card{display:flex;align-items:flex-start;gap:12px;padding:20px 24px;background:var(--surface);border:1px solid var(--border-light);border-radius:var(--radius);margin-bottom:12px;transition:var(--transition)}
+.article-card:hover{border-color:var(--accent);box-shadow:var(--shadow)}
+.card-main{flex:1;cursor:pointer;min-width:0}
+.card-main:hover .card-title{color:var(--accent)}
+.article-card .card-head{display:flex;align-items:baseline;gap:12px;margin-bottom:6px;flex-wrap:wrap}
+.article-card .card-title{font-family:var(--serif);font-size:1.05rem;font-weight:700;color:var(--text);line-height:1.5;flex:1;transition:var(--transition)}
+.article-card .card-date{font-size:.78rem;color:var(--text-3);white-space:nowrap;font-variant-numeric:tabular-nums}
+.article-card .card-excerpt{font-size:.85rem;color:var(--text-2);line-height:1.7;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.article-card .card-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.tag{display:inline-block;padding:2px 10px;background:var(--accent-bg);color:var(--accent);border-radius:100px;font-size:.72rem;font-weight:500}
+.tag.type-tag{background:#EDE7F6;color:#6B5CA5}
+.card-actions{display:flex;flex-direction:column;gap:6px;flex-shrink:0;padding-top:2px}
+.card-md-btn{width:34px;height:34px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:var(--radius);font-size:.85rem;color:var(--text-3);background:var(--surface);transition:var(--transition)}
+.card-md-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
+.card-md-btn.loading{pointer-events:none;opacity:.5}
+.empty-state{text-align:center;padding:60px 20px;color:var(--text-3)}
+.empty-state .icon{font-size:2.5rem;margin-bottom:12px;opacity:.5}
+
+/* ===== Pagination ===== */
+.pagination{display:flex;justify-content:center;align-items:center;gap:8px;padding:24px 0;flex-wrap:wrap}
+.page-btn{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:var(--radius);font-size:.85rem;color:var(--text-2);background:var(--surface);transition:var(--transition)}
+.page-btn:hover{border-color:var(--accent);color:var(--accent)}
+.page-btn.active{background:var(--accent);color:white;border-color:var(--accent)}
+.page-btn:disabled{opacity:.3;cursor:default}
+.page-info{font-size:.82rem;color:var(--text-3);margin:0 8px}
+
+/* ===== Detail ===== */
+.detail{padding:32px 0 80px;animation:fadeIn .3s ease}
+.detail-back{display:inline-flex;align-items:center;gap:6px;font-size:.88rem;color:var(--text-3);margin-bottom:24px;transition:var(--transition)}
+.detail-back:hover{color:var(--accent);text-decoration:none}
+.detail-title{font-family:var(--serif);font-size:1.8rem;font-weight:700;line-height:1.5;margin-bottom:12px}
+.detail-info{display:flex;gap:16px;align-items:center;flex-wrap:wrap;font-size:.85rem;color:var(--text-3)}
+.detail-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+.detail-content{background:var(--surface);border:1px solid var(--border-light);border-radius:var(--radius);padding:32px;line-height:2;font-size:.95rem;margin-top:24px}
+.detail-content img{max-width:100%;height:auto;border-radius:4px;margin:12px 0}
+.detail-content h1,.detail-content h2,.detail-content h3{font-family:var(--serif);margin:1.5em 0 .5em;line-height:1.4}
+.detail-content h1{font-size:1.5rem}.detail-content h2{font-size:1.3rem}.detail-content h3{font-size:1.15rem}
+.detail-content p{margin:.8em 0}
+.detail-content a{color:var(--accent);text-decoration:underline}
+.detail-content blockquote{border-left:3px solid var(--accent);padding-left:16px;margin:1em 0;color:var(--text-2);font-style:italic}
+.detail-content pre{background:var(--bg);padding:16px;border-radius:var(--radius);overflow-x:auto;font-size:.85rem;line-height:1.6;margin:1em 0}
+.detail-content code{background:var(--bg);padding:2px 6px;border-radius:3px;font-size:.88em}
+.detail-content pre code{background:none;padding:0}
+.detail-content ul,.detail-content ol{padding-left:1.5em;margin:.8em 0}
+.detail-content li{margin:.3em 0}
+.detail-content table{border-collapse:collapse;width:100%;margin:1em 0}
+.detail-content th,.detail-content td{border:1px solid var(--border);padding:8px 12px;text-align:left;font-size:.88rem}
+.detail-content th{background:var(--bg);font-weight:500}
+.detail-actions{display:flex;gap:10px;margin-top:24px;flex-wrap:wrap}
+.action-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border:1px solid var(--border);border-radius:var(--radius);font-size:.85rem;color:var(--text-2);background:var(--surface);transition:var(--transition)}
+.action-btn:hover{border-color:var(--accent);color:var(--accent)}
+.detail-nav{display:flex;justify-content:space-between;margin-top:32px;padding-top:20px;border-top:1px solid var(--border-light)}
+.detail-nav a{font-size:.85rem;color:var(--text-3);transition:var(--transition);max-width:45%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.detail-nav a:hover{color:var(--accent)}
+.loading-content{text-align:center;padding:60px;color:var(--text-3)}
+.loading-spinner{display:inline-block;width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:12px}
+
+/* ===== Modal ===== */
+.modal-overlay{position:fixed;inset:0;background:rgba(30,24,16,.5);display:flex;align-items:center;justify-content:center;z-index:200;animation:fadeIn .2s ease}
+.modal{background:var(--surface);border-radius:12px;padding:32px;max-width:420px;width:90%;text-align:center;box-shadow:var(--shadow-lg)}
+.modal h3{font-family:var(--serif);font-size:1.2rem;margin-bottom:16px}
+.modal .modal-status{font-size:.88rem;color:var(--text-2);margin-bottom:8px}
+.modal .modal-detail{font-size:.78rem;color:var(--text-3);margin-top:8px;max-height:40px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.modal-btn{padding:8px 24px;border-radius:var(--radius);font-size:.88rem;transition:var(--transition)}
+.modal-btn.secondary{border:1px solid var(--border);color:var(--text-2)}
+.modal-btn.secondary:hover{border-color:var(--accent);color:var(--accent)}
+.modal-btns{display:flex;gap:10px;justify-content:center;margin-top:24px}
+
+/* ===== Chart Fullscreen ===== */
+.expand-btn{margin-left:auto;padding:2px 10px;border:1px solid var(--border);border-radius:var(--radius);font-size:.75rem;color:var(--text-3);background:var(--surface);transition:var(--transition);cursor:pointer;font-family:var(--sans);letter-spacing:.04em}
+.expand-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
+.chart-fs{position:fixed;inset:0;background:rgba(30,24,16,.82);z-index:250;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;animation:fadeIn .2s ease;overflow:auto;-webkit-overflow-scrolling:touch}
+.chart-fs-card{background:var(--surface);border-radius:12px;padding:28px 32px;width:95vw;max-width:1400px;max-height:88vh;overflow:auto;box-shadow:var(--shadow-lg);position:relative}
+.chart-fs-card::-webkit-scrollbar{height:6px;width:6px}
+.chart-fs-card::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.chart-fs-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.chart-fs-title{font-family:var(--serif);font-size:1.15rem;font-weight:700}
+.chart-fs-close{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:50%;font-size:1rem;color:var(--text-3);background:var(--surface);cursor:pointer;transition:var(--transition);flex-shrink:0}
+.chart-fs-close:hover{border-color:var(--accent);color:var(--accent)}
+.chart-fs-body svg{width:100%!important;height:auto!important}
+.chart-fs-hint{color:rgba(255,255,255,.45);font-size:.78rem;margin-top:12px;text-align:center}
+
+/* ===== Toast ===== */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--text);color:var(--surface);padding:12px 20px;border-radius:var(--radius);font-size:.88rem;opacity:0;transform:translateY(12px);transition:.3s ease;z-index:999;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+@media(max-width:640px){
+  .landing h1{font-size:2rem}
+  .detail-title{font-size:1.4rem}
+  .detail-content{padding:20px}
+  .app-header .inner{gap:10px}
+  .controls{width:100%;overflow-x:auto;flex-wrap:nowrap}
+  .tag-rank{grid-template-columns:1fr}
+  .hm-badge .num{font-size:1.1rem}
+}
+@media print{
+  .app-header,.detail-back,.detail-actions,.detail-nav,.pagination,.controls,.card-actions,.stats-panel{display:none!important}
+  .detail-content{border:none;padding:0}body{background:white}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="modalRoot"></div>
+<div class="toast" id="toast"></div>
+<div class="tooltip" id="tip"></div>
+
+<script>
+// ============================================================
+// WXR Parser
+// ============================================================
+class WXRParser {
+  constructor(file, fi) { this.file=file; this.fileIndex=fi; this.articles=[]; this.channelInfo=null; this.chunkMap=[]; this.totalChars=0; this._cancelled=false; }
+  cancel() { this._cancelled=true; }
+
+  async index(onProgress) {
+    const C=2*1024*1024, dec=new TextDecoder('utf-8');
+    let bo=0, buf='', bb=0, ch=false;
+    while(bo<this.file.size&&!this._cancelled){
+      const end=Math.min(bo+C,this.file.size);
+      const ab=await this.file.slice(bo,end).arrayBuffer();
+      const txt=dec.decode(new Uint8Array(ab),{stream:end<this.file.size});
+      this.chunkMap.push({byteStart:bo,charStart:bb+buf.length});
+      buf+=txt; bo=end;
+      if(!ch&&buf.includes('<item>')){this._exCh(buf.substring(0,buf.indexOf('<item>')));ch=true;}
+      let le=0,sp=0;
+      while(true){const s=buf.indexOf('<item>',sp);if(s===-1)break;const e=this._fie(buf,s+6);if(e===-1)break;
+        const x=buf.substring(s,e+7),a=this._meta(x,bb+s,bb+e+7);if(a){a.index=this.articles.length;a.parserIdx=this.fileIndex;this.articles.push(a);}le=e+7;sp=le;}
+      if(le>0){bb+=le;buf=buf.substring(le);}
+      else if(buf.length>100000){const li=buf.lastIndexOf('<item');if(li>0){bb+=li;buf=buf.substring(li);}else{const t=buf.length-200;bb+=t;buf=buf.substring(t);}}
+      await new Promise(r=>setTimeout(r,0));
+      onProgress(bo/this.file.size,this.articles.length);
+    }
+    this.totalChars=bb+buf.length; return this.articles;
+  }
+
+  _fie(t,f){let p=f;while(true){const e=t.indexOf('</item>',p);if(e===-1)return -1;const s=t.substring(f,e);if((s.match(/<!\[CDATA\[/g)||[]).length<=(s.match(/\]\]>/g)||[]).length)return e;p=e+7;}}
+  _exCh(p){const t=this._tg(p,'title');if(t)this.channelInfo={title:this._cd(t),link:this._cd(this._tg(p,'link'))};}
+
+  _meta(x,cS,cE){
+    const title=this._cd(this._tg(x,'title')),link=this._cd(this._tg(x,'link')),pub=this._tg(x,'pubDate'),
+      pd=this._ns(x,'wp','post_date')||pub,pt=this._ns(x,'wp','post_type')||'post',st=this._ns(x,'wp','status')||'publish';
+    let c='';const cm=x.match(/<content:encoded>\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*<\/content:encoded>/);
+    if(cm)c=cm[1];else{const pm=x.match(/<content:encoded>([\s\S]*?)<\/content:encoded>/);if(pm)c=pm[1];}
+    const pl=c.replace(/<[^>]*>/g,'').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>');
+    const cats=[],tags=[];
+    let m;const r1=/<category\s+domain="(category|post_tag)"[^>]*><!\[CDATA\[(.*?)\]\]><\/category>/g;
+    while((m=r1.exec(x))!==null)m[1]==='category'?cats.push(m[2]):tags.push(m[2]);
+    const r2=/<category\s+domain="(category|post_tag)"[^>]*>([^<]+)<\/category>/g;
+    while((m=r2.exec(x))!==null)m[1]==='category'?cats.push(m[2].trim()):tags.push(m[2].trim());
+    return{title,link,pubDate:pub,postDate:pd,postType:pt,status:st,excerpt:pl.substring(0,400).trim(),wordCount:pl.length,categories:cats,tags,charStart:cS,charEnd:cE};
+  }
+
+  async loadContent(a){
+    const P=[100000,500000,2000000,10000000],eS=this._c2b(a.charStart),eE=this._c2b(a.charEnd);
+    for(const p of P){const s=Math.max(0,eS-p),e=Math.min(this.file.size,eE+p);const t=await this.file.slice(s,e).text();
+      for(const ix of this._fi(t)){const tt=this._cd(this._tg(ix,'title')),d=this._ns(ix,'wp','post_date');
+        if(tt===a.title&&(!d||!a.postDate||d===a.postDate))return this._fc(ix);}
+      for(const ix of this._fi(t))if(this._cd(this._tg(ix,'title'))===a.title)return this._fc(ix);}
+    return null;
+  }
+
+  _fc(x){let c='';const cm=x.match(/<content:encoded>\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*<\/content:encoded>/);if(cm)c=cm[1];else{const pm=x.match(/<content:encoded>([\s\S]*?)<\/content:encoded>/);if(pm)c=pm[1];}return{content:c};}
+  _fi(t){const o=[];let p=0;while(true){const s=t.indexOf('<item>',p);if(s===-1)break;const e=this._fie(t,s+6);if(e===-1)break;o.push(t.substring(s,e+7));p=e+7;}return o;}
+  _c2b(cp){if(!this.chunkMap.length)return 0;let lo=0,hi=this.chunkMap.length-1;while(lo<hi){const mid=Math.ceil((lo+hi)/2);if(this.chunkMap[mid].charStart<=cp)lo=mid;else hi=mid-1;}const c=this.chunkMap[lo],n=this.chunkMap[lo+1];if(!n){const r=this.totalChars>c.charStart?(this.file.size-c.byteStart)/(this.totalChars-c.charStart):3;return Math.floor(c.byteStart+(cp-c.charStart)*r);}const cr=n.charStart-c.charStart,br=n.byteStart-c.byteStart;return Math.floor(c.byteStart+(cp-c.charStart)*(cr>0?br/cr:1));}
+  _tg(x,n){const m=x.match(new RegExp(`<${n}(?:\\s[^>]*)?>([\\s\\S]*?)</${n}>`));return m?m[1].trim():'';}
+  _ns(x,ns,n){const m=x.match(new RegExp(`<${ns}:${n}>([\\s\\S]*?)</${ns}:${n}>`));return m?this._cd(m[1].trim()):'';}
+  _cd(t){if(!t)return '';const m=t.match(/<!\[CDATA\[([\s\S]*?)\]\]>/);return m?m[1]:t;}
+}
+
+// ============================================================
+// Stats Engine
+// ============================================================
+const Stats = {
+  compute(articles) {
+    const posts = articles.filter(a => a.postType === 'post');
+    // daily map
+    const daily = {};
+    for (const a of posts) {
+      const d = dateKey(a.postDate || a.pubDate);
+      if (!d) continue;
+      daily[d] = (daily[d] || 0) + 1;
+    }
+    // monthly
+    const monthly = {};
+    for (const a of posts) {
+      const d = new Date(a.postDate || a.pubDate);
+      if (isNaN(d)) continue;
+      const k = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+      if (!monthly[k]) monthly[k] = { count: 0, chars: 0 };
+      monthly[k].count++;
+      monthly[k].chars += a.wordCount;
+    }
+    // categories & tags
+    const catMap = {}, tagMap = {};
+    for (const a of posts) {
+      for (const c of a.categories) catMap[c] = (catMap[c]||0) + 1;
+      for (const t of a.tags) tagMap[t] = (tagMap[t]||0) + 1;
+    }
+    const cats = Object.entries(catMap).sort((a,b) => b[1]-a[1]);
+    const tags = Object.entries(tagMap).sort((a,b) => b[1]-a[1]);
+    // streaks
+    const sortedDays = Object.keys(daily).sort();
+    let current = 0, longest = 0, streak = 0;
+    if (sortedDays.length) {
+      // Check current streak from today backwards
+      const today = dateKey(new Date().toISOString());
+      let checkDate = today;
+      while (daily[checkDate]) { current++; checkDate = prevDay(checkDate); }
+      // If no post today, check from yesterday
+      if (current === 0) { checkDate = prevDay(today); while(daily[checkDate]){current++;checkDate=prevDay(checkDate);} }
+      // Longest streak
+      streak = 1; longest = 1;
+      for (let i = 1; i < sortedDays.length; i++) {
+        if (nextDay(sortedDays[i-1]) === sortedDays[i]) { streak++; if (streak > longest) longest = streak; }
+        else streak = 1;
+      }
+    }
+    const totalDays = sortedDays.length;
+    return { daily, monthly, cats, tags, current, longest, totalDays, sortedDays };
+  },
+
+  renderHeatmap(daily, sortedDays) {
+    if (!sortedDays.length) return '<p style="color:var(--text-3)">投稿データがありません</p>';
+    const first = new Date(sortedDays[0] + 'T00:00:00');
+    const last = new Date(sortedDays[sortedDays.length-1] + 'T00:00:00');
+    // Start from the Sunday of the first week
+    const start = new Date(first);
+    start.setDate(start.getDate() - start.getDay());
+    // End at the Saturday after the last date
+    const end = new Date(last);
+    end.setDate(end.getDate() + (6 - end.getDay()));
+
+    const cell = 11, gap = 2, size = cell + gap;
+    const dayLabels = ['', '月', '', '水', '', '金', ''];
+    const leftPad = 24;
+
+    // Count weeks
+    const weeks = [];
+    let cur = new Date(start);
+    let weekDays = [];
+    while (cur <= end) {
+      weekDays.push(new Date(cur));
+      if (cur.getDay() === 6) { weeks.push(weekDays); weekDays = []; }
+      cur.setDate(cur.getDate() + 1);
+    }
+    if (weekDays.length) weeks.push(weekDays);
+
+    const w = leftPad + weeks.length * size + 4;
+    const h = 7 * size + 24; // +24 for month labels
+
+    let svg = `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg" style="font-family:var(--sans)">`;
+    // Day labels
+    for (let d = 0; d < 7; d++) {
+      if (dayLabels[d]) svg += `<text x="${leftPad - 6}" y="${24 + d * size + cell - 1}" text-anchor="end" fill="var(--text-3)" font-size="9">${dayLabels[d]}</text>`;
+    }
+    // Month labels
+    let lastMonth = -1;
+    for (let wi = 0; wi < weeks.length; wi++) {
+      const firstDay = weeks[wi][0];
+      if (firstDay && firstDay.getMonth() !== lastMonth && firstDay.getDate() <= 7) {
+        lastMonth = firstDay.getMonth();
+        const mNames = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+        let label = mNames[firstDay.getMonth()];
+        if (firstDay.getMonth() === 0 || wi === 0) label = firstDay.getFullYear() + '/' + label;
+        svg += `<text x="${leftPad + wi * size}" y="12" fill="var(--text-3)" font-size="9">${label}</text>`;
+      }
+    }
+    // Cells
+    for (let wi = 0; wi < weeks.length; wi++) {
+      for (const day of weeks[wi]) {
+        const dow = day.getDay();
+        const k = dateKey(day.toISOString());
+        const count = daily[k] || 0;
+        const color = count === 0 ? 'var(--hm0)' : count === 1 ? 'var(--hm1)' : count === 2 ? 'var(--hm2)' : count <= 3 ? 'var(--hm3)' : 'var(--hm4)';
+        const x = leftPad + wi * size;
+        const y = 20 + dow * size;
+        svg += `<rect x="${x}" y="${y}" width="${cell}" height="${cell}" rx="2" fill="${color}" data-tip="${k}：${count}件" class="hm-cell"/>`;
+      }
+    }
+    svg += '</svg>';
+    return svg;
+  },
+
+  renderMonthlyChart(monthly, type) {
+    const keys = Object.keys(monthly).sort();
+    if (!keys.length) return '';
+    const vals = keys.map(k => type === 'count' ? monthly[k].count : monthly[k].chars);
+    const max = Math.max(...vals, 1);
+    const barW = Math.max(6, Math.min(20, Math.floor(880 / keys.length) - 3));
+    const gap = Math.max(1, Math.min(3, Math.floor(barW / 4)));
+    const chartH = 140, padTop = 20, padBot = 50, padLeft = 48;
+    const totalW = padLeft + keys.length * (barW + gap) + 20;
+
+    let svg = `<svg width="${totalW}" height="${chartH + padTop + padBot}" viewBox="0 0 ${totalW} ${chartH + padTop + padBot}" xmlns="http://www.w3.org/2000/svg" style="font-family:var(--sans)">`;
+
+    // Y axis guides
+    const steps = 4;
+    for (let i = 0; i <= steps; i++) {
+      const y = padTop + chartH - (chartH * i / steps);
+      const val = Math.round(max * i / steps);
+      const label = type === 'chars' && val >= 10000 ? (val / 10000).toFixed(1) + '万' : val.toLocaleString();
+      svg += `<line x1="${padLeft}" y1="${y}" x2="${totalW}" y2="${y}" stroke="var(--border-light)" stroke-width="1"/>`;
+      svg += `<text x="${padLeft - 6}" y="${y + 3}" text-anchor="end" fill="var(--text-3)" font-size="9">${label}</text>`;
+    }
+
+    // Bars
+    const barColor = type === 'count' ? 'var(--accent)' : '#B89F72';
+    for (let i = 0; i < keys.length; i++) {
+      const v = vals[i];
+      const bh = Math.max(1, (v / max) * chartH);
+      const x = padLeft + i * (barW + gap);
+      const y = padTop + chartH - bh;
+      svg += `<rect x="${x}" y="${y}" width="${barW}" height="${bh}" rx="2" fill="${barColor}" opacity="0.85" data-tip="${keys[i]}：${type === 'count' ? v + '記事' : v.toLocaleString() + '文字'}" class="hm-cell"/>`;
+      // X labels (show every N months)
+      const interval = keys.length > 24 ? 3 : keys.length > 12 ? 2 : 1;
+      if (i % interval === 0) {
+        const parts = keys[i].split('-');
+        const label = parts[1] === '01' || i === 0 ? parts[0].slice(2) + '/' + parseInt(parts[1]) : parseInt(parts[1]);
+        svg += `<text x="${x + barW/2}" y="${padTop + chartH + 16}" text-anchor="middle" fill="var(--text-3)" font-size="8" transform="rotate(-45, ${x + barW/2}, ${padTop + chartH + 16})">${label}</text>`;
+      }
+    }
+    svg += '</svg>';
+    return svg;
+  },
+
+  renderTagRanking(cats, tags) {
+    const maxItems = 15;
+    const renderCol = (items, cls, label) => {
+      if (!items.length) return `<div class="tag-rank-col"><h4>${label}</h4><p style="color:var(--text-3);font-size:.85rem">なし</p></div>`;
+      const top = items.slice(0, maxItems);
+      const maxVal = top[0][1];
+      let h = `<div class="tag-rank-col"><h4>${label}（${items.length}種類）</h4>`;
+      for (const [name, count] of top) {
+        const pct = (count / maxVal * 100).toFixed(1);
+        h += `<div class="rank-item">
+          <div class="rank-bar-bg"><div class="rank-bar ${cls}" style="width:${pct}%"></div><span class="rank-label">${esc(name)}</span></div>
+          <span class="rank-count">${count}</span>
+        </div>`;
+      }
+      h += '</div>';
+      return h;
+    };
+    return `<div class="tag-rank">${renderCol(cats, 'cat', 'カテゴリ')}${renderCol(tags, 'tag', 'タグ')}</div>`;
+  }
+};
+
+// ============================================================
+// App
+// ============================================================
+const PER_PAGE = 20;
+
+const App = {
+  view: 'landing', parsers: [], files: [], articles: [], filtered: [],
+  query: '', sort: 'desc', typeFilter: 'post', page: 1,
+  selected: null, selectedContent: null,
+  showStats: true, statsCache: null,
+  parseProgress: 0, parseCount: 0, parseFileIdx: 0, parseFileTotal: 0, startTime: 0,
+  batchCancel: false,
+
+  init() {
+    this.render();
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        const fs = document.getElementById('chartFs'); if (fs) { fs.remove(); return; }
+        if (document.getElementById('modalRoot').innerHTML) { this.closeModal(); return; }
+        if (this.view === 'detail') { this.view = 'list'; this.render(); }
+      }
+    });
+    // Tooltip
+    document.addEventListener('mouseover', e => {
+      const c = e.target.closest('.hm-cell');
+      if (c && c.dataset.tip) { const tip = document.getElementById('tip'); tip.textContent = c.dataset.tip; tip.classList.add('visible'); const r = c.getBoundingClientRect(); tip.style.left = (r.left + r.width/2 - tip.offsetWidth/2) + 'px'; tip.style.top = (r.top - 30) + 'px'; }
+    });
+    document.addEventListener('mouseout', e => { if (e.target.closest('.hm-cell')) document.getElementById('tip').classList.remove('visible'); });
+  },
+
+  async handleFiles(fl) {
+    const xf = Array.from(fl).filter(f => f.name.toLowerCase().endsWith('.xml')).sort((a,b) => a.name.localeCompare(b.name,'ja'));
+    if (!xf.length) { toast('XMLファイルが見つかりません'); return; }
+    this.files = xf; this.parsers = []; this.articles = [];
+    this.parseFileIdx = 0; this.parseFileTotal = xf.length;
+    this.parseProgress = 0; this.parseCount = 0; this.startTime = Date.now();
+    this.view = 'parsing'; this.statsCache = null; this.render();
+
+    let cancelled = false;
+    for (let i = 0; i < xf.length; i++) {
+      if (cancelled) break;
+      this.parseFileIdx = i;
+      const parser = new WXRParser(xf[i], i);
+      this.parsers.push(parser);
+      try {
+        const arts = await parser.index((fp, cnt) => {
+          const fw = 1/xf.length; this.parseProgress = i*fw + fp*fw; this.parseCount = this.articles.length + cnt; this._uParse();
+        });
+        for (const a of arts) { a.index = this.articles.length; this.articles.push(a); }
+      } catch (err) { if (parser._cancelled){cancelled=true;break;} toast(xf[i].name+' でエラー'); }
+    }
+    if (cancelled) { this.view='landing'; this.render(); return; }
+    this.statsCache = Stats.compute(this.articles);
+    this.applyFilters(); this.view = 'list'; this.render();
+  },
+
+  cancelParse() { for(const p of this.parsers) p.cancel(); this.view='landing'; this.render(); },
+
+  _uParse() {
+    const $=id=>document.getElementById(id);
+    const fill=$('pFill'),pct=$('pPct'),cnt=$('pCnt'),tm=$('pTime'),fl=$('pFileLabel'),sf=$('pSubFill');
+    if(fill)fill.style.width=(this.parseProgress*100).toFixed(1)+'%';
+    if(pct)pct.textContent=(this.parseProgress*100).toFixed(1)+'%';
+    if(cnt)cnt.textContent=this.parseCount.toLocaleString();
+    if(tm)tm.textContent=fmtElapsed(Date.now()-this.startTime);
+    if(fl)fl.textContent=`ファイル ${this.parseFileIdx+1} / ${this.parseFileTotal}：${this.files[this.parseFileIdx]?.name||''}`;
+    if(sf){const fw=1/this.parseFileTotal;sf.style.width=(Math.max(0,(this.parseProgress-this.parseFileIdx*fw)/fw)*100).toFixed(1)+'%';}
+  },
+
+  applyFilters() {
+    let l=[...this.articles];
+    if(this.typeFilter!=='all') l=l.filter(a=>a.postType===this.typeFilter);
+    if(this.query){const q=this.query.toLowerCase();l=l.filter(a=>a.title.toLowerCase().includes(q)||a.excerpt.toLowerCase().includes(q)||a.categories.some(c=>c.toLowerCase().includes(q))||a.tags.some(t=>t.toLowerCase().includes(q)));}
+    l.sort((a,b)=>{const da=new Date(a.postDate||a.pubDate||0),db=new Date(b.postDate||b.pubDate||0);return this.sort==='desc'?db-da:da-db;});
+    this.filtered=l; this.page=1;
+  },
+
+  async selectArticle(idx) {
+    const a=this.articles[idx]; if(!a) return;
+    this.selected=a; this.selectedContent=null; this.view='detail'; this.render();
+    const r=await this.parsers[a.parserIdx].loadContent(a);
+    this.selectedContent=r?r.content:'<p style="color:var(--text-3)">本文を読み込めませんでした。</p>';
+    this.render();
+  },
+
+  async quickExportMd(idx, btn) {
+    const a=this.articles[idx]; if(!a) return;
+    if(btn){btn.classList.add('loading');btn.textContent='';}
+    try{const r=await this.parsers[a.parserIdx].loadContent(a);const h=r?r.content:a.excerpt;
+      dlText(htmlToMd(h,a.title,a.postDate||a.pubDate),datePfx(a)+sanitize(a.title||'article')+'.md','text/markdown;charset=utf-8');
+      toast('💾 '+((a.title||'').substring(0,30))+'…');
+    }catch(e){toast('失敗');}
+    if(btn){btn.classList.remove('loading');btn.textContent='📝';}
+  },
+
+  async batchExportMd() {
+    const t=this.filtered.filter(a=>a.postType==='post'||a.postType==='page');
+    if(!t.length){toast('対象なし');return;}
+    this.batchCancel=false; this._showBM(0,t.length,'準備中…');
+    const zip=new JSZip(); let done=0,fail=0;
+    for(const a of t){if(this.batchCancel)break;this._updBM(done,t.length,a.title);
+      try{const r=await this.parsers[a.parserIdx].loadContent(a);const h=r?r.content:a.excerpt;
+        zip.file(datePfx(a)+sanitize(a.title||'article')+'.md',htmlToMd(h,a.title,a.postDate||a.pubDate));
+      }catch(e){fail++;}done++;await new Promise(r=>setTimeout(r,0));}
+    if(this.batchCancel){this.closeModal();toast('キャンセル');return;}
+    this._updBM(done,t.length,'ZIP生成中…');
+    try{const b=await zip.generateAsync({type:'blob'});const a=document.createElement('a');a.href=URL.createObjectURL(b);
+      a.download='blog_markdown_'+fmtDate(new Date()).replace(/-/g,'')+'.zip';a.click();URL.revokeObjectURL(a.href);
+      this.closeModal();toast(`${done-fail}件をZIPで保存`+(fail?` (${fail}件失敗)`:''));
+    }catch(e){this.closeModal();toast('ZIP生成失敗');}
+  },
+
+  _showBM(d,t,det){document.getElementById('modalRoot').innerHTML=`<div class="modal-overlay"><div class="modal"><h3>📝 Markdownエクスポート</h3><div class="modal-status" id="bStat">${d}/${t}</div><div style="margin:16px 0"><div class="progress-bar"><div class="progress-fill" id="bFill" style="width:0%"></div></div></div><div class="modal-detail" id="bDet">${esc(det)}</div><div class="modal-btns"><button class="modal-btn secondary" id="bCancel">キャンセル</button></div></div></div>`;document.getElementById('bCancel').onclick=()=>{this.batchCancel=true;};},
+  _updBM(d,t,det){const s=document.getElementById('bStat'),f=document.getElementById('bFill'),dd=document.getElementById('bDet');if(s)s.textContent=`${d}/${t}`;if(f)f.style.width=(t?(d/t*100):0)+'%';if(dd)dd.textContent=det||'';},
+  closeModal(){document.getElementById('modalRoot').innerHTML='';},
+
+  exportCsv(){
+    const hd=['タイトル','公開日','種別','ステータス','文字数','カテゴリ','タグ','リンク','ソースファイル'];
+    const rows=this.filtered.map(a=>[csvE(a.title),csvE(fmtDate(new Date(a.postDate||a.pubDate))),csvE(a.postType),csvE(a.status),a.wordCount,csvE(a.categories.join('; ')),csvE(a.tags.join('; ')),csvE(a.link),csvE(this.files[a.parserIdx]?.name||'')]);
+    dlText('\uFEFF'+[hd.join(','),...rows.map(r=>r.join(','))].join('\n'),'blog_articles.csv','text/csv;charset=utf-8');
+    toast('CSVを保存しました');
+  },
+
+  getStats(){
+    const posts=this.articles.filter(a=>a.postType==='post');
+    const dates=posts.map(a=>new Date(a.postDate||a.pubDate)).filter(d=>!isNaN(d)).sort((a,b)=>a-b);
+    return{posts:posts.length,pages:this.articles.filter(a=>a.postType==='page').length,
+      dateRange:dates.length>1?`${fmtDate(dates[0])} 〜 ${fmtDate(dates[dates.length-1])}`:(dates.length===1?fmtDate(dates[0]):'—'),
+      totalChars:posts.reduce((s,a)=>s+a.wordCount,0),fileCount:this.files.length};
+  },
+
+  // ===================== Renderers =====================
+  render(){
+    const el=document.getElementById('app');
+    switch(this.view){
+      case 'landing':el.innerHTML=this._rLanding();this._bLanding();break;
+      case 'parsing':el.innerHTML=this._rParsing();break;
+      case 'list':el.innerHTML=this._rList();this._bList();break;
+      case 'detail':el.innerHTML=this._rDetail();this._bDetail();break;
+    }
+  },
+
+  _rLanding(){
+    return `<div class="container"><div class="landing">
+      <div class="landing-icon">📚</div><h1>書庫</h1>
+      <p class="subtitle">WXR Blog Archive Reader</p>
+      <p class="desc">noteやWordPressのWXRバックアップ（.xml）を、ブラウザ上で閲覧・検索・統計分析・Markdown変換できるツールです。分割XMLもまとめて読み込めます。</p>
+      <div class="drop-zone" id="dropZone"><input type="file" id="fileInput" accept=".xml" multiple>
+        <div class="icon">📄</div><p>XMLファイルをドラッグ＆ドロップ</p>
+        <p class="hint">複数ファイル対応 — 分割XMLもまとめて選択OK</p></div>
+      <div class="format-note"><strong>対応形式：</strong>WXR（WordPress eXtended RSS）形式。noteのエクスポートで出力されるXMLファイルに対応。処理はすべてブラウザ内で完結し、サーバーには送信されません。</div>
+    </div></div>`;
+  },
+
+  _rParsing(){
+    const mb=(this.files.reduce((s,f)=>s+f.size,0)/(1024*1024)).toFixed(1);
+    return `<div class="container"><div class="parsing"><h2>解析中…</h2>
+      <div class="file-label" id="pFileLabel">ファイル ${this.parseFileIdx+1}/${this.parseFileTotal}</div>
+      <div class="progress-wrap"><div class="progress-bar"><div class="progress-fill" id="pFill"></div></div>
+        <div class="progress-text"><span id="pPct">0%</span><span>${this.parseFileTotal}ファイル / ${mb} MB</span></div></div>
+      ${this.parseFileTotal>1?'<div class="progress-sub"><div class="progress-bar"><div class="progress-fill" id="pSubFill"></div></div></div>':''}
+      <div class="parse-stats"><div><span class="num" id="pCnt">0</span>記事を検出</div><div><span class="num" id="pTime">0:00</span>経過時間</div></div>
+      <div class="cancel-btn" onclick="App.cancelParse()">キャンセル</div></div></div>`;
+  },
+
+  _rList(){
+    const st=this.getStats(), ch=this.parsers[0]?.channelInfo;
+    const s=(this.page-1)*PER_PAGE, items=this.filtered.slice(s,s+PER_PAGE), tp=Math.ceil(this.filtered.length/PER_PAGE);
+    const sc=this.statsCache;
+
+    let h=`<div class="app-header"><div class="container"><div class="inner">
+      <div class="blog-title">${esc(ch?ch.title:'ブログアーカイブ')}</div>
+      <div class="stats-label">${st.posts}記事${st.fileCount>1?' / '+st.fileCount+'ファイル':''}</div>
+      <div class="search-box"><input type="text" id="searchInput" placeholder="記事を検索…" value="${esc(this.query)}"></div>
+      <div class="controls">
+        <button class="ctrl-btn${this.sort==='desc'?' active':''}" data-sort="desc">新しい順</button>
+        <button class="ctrl-btn${this.sort==='asc'?' active':''}" data-sort="asc">古い順</button>
+        <button class="ctrl-btn${this.typeFilter==='post'?' active':''}" data-type="post">記事</button>
+        ${st.pages>0?`<button class="ctrl-btn${this.typeFilter==='page'?' active':''}" data-type="page">固定ページ</button>`:''}
+        <button class="ctrl-btn${this.typeFilter==='all'?' active':''}" data-type="all">すべて</button>
+        <button class="ctrl-btn${this.showStats?' active':''}" id="toggleStats">📊 統計</button>
+        <button class="ctrl-btn" id="batchMd">📝 MD一括</button>
+        <button class="ctrl-btn" id="exportCsv">📋 CSV</button>
+      </div>
+    </div></div></div>`;
+
+    h+=`<div class="container"><div class="article-list">`;
+
+    // Summary
+    h+=`<div class="summary"><div class="summary-grid">
+      <div class="summary-item"><div class="label">記事数</div><div class="value accent">${st.posts.toLocaleString()}</div></div>
+      <div class="summary-item"><div class="label">期間</div><div class="value">${st.dateRange}</div></div>
+      <div class="summary-item"><div class="label">総文字数</div><div class="value">${st.totalChars.toLocaleString()}</div></div>
+      <div class="summary-item"><div class="label">ファイル</div><div class="value">${st.fileCount}個 / ${(this.files.reduce((a,f)=>a+f.size,0)/(1024*1024)).toFixed(1)} MB</div></div>
+    </div></div>`;
+
+    // Stats Panel
+    if(this.showStats && sc){
+      h+=`<div class="stats-panel">`;
+      // Heatmap
+      h+=`<div class="stats-section"><h3>🟩 投稿カレンダー<button class="expand-btn">拡大</button></h3>
+        <div class="heatmap-badges">
+          <div class="hm-badge"><span class="num">${sc.current}</span><span class="lbl">現在の連続日数</span></div>
+          <div class="hm-badge"><span class="num">${sc.longest}</span><span class="lbl">最長連続日数</span></div>
+          <div class="hm-badge"><span class="num">${sc.totalDays}</span><span class="lbl">投稿した日数</span></div>
+        </div>
+        <div class="heatmap-wrap">${Stats.renderHeatmap(sc.daily, sc.sortedDays)}</div>
+        <div class="heatmap-legend"><span>少ない</span>
+          <span class="swatch" style="background:var(--hm0)"></span>
+          <span class="swatch" style="background:var(--hm1)"></span>
+          <span class="swatch" style="background:var(--hm2)"></span>
+          <span class="swatch" style="background:var(--hm3)"></span>
+          <span class="swatch" style="background:var(--hm4)"></span>
+          <span>多い</span></div>
+      </div>`;
+      // Monthly charts
+      h+=`<div class="stats-section"><h3>📊 月間投稿数<button class="expand-btn">拡大</button></h3>
+        <div class="chart-wrap">${Stats.renderMonthlyChart(sc.monthly, 'count')}</div></div>`;
+      h+=`<div class="stats-section"><h3>📝 月間文字数<button class="expand-btn">拡大</button></h3>
+        <div class="chart-wrap">${Stats.renderMonthlyChart(sc.monthly, 'chars')}</div></div>`;
+      // Tags
+      h+=`<div class="stats-section"><h3>🏷️ カテゴリ・タグ<button class="expand-btn">拡大</button></h3>${Stats.renderTagRanking(sc.cats, sc.tags)}</div>`;
+      h+=`</div>`;
+    }
+
+    // Article cards
+    if(!items.length){
+      h+=`<div class="empty-state"><div class="icon">📭</div><p>${this.query?'該当する記事がありません':'表示できる記事がありません'}</p></div>`;
+    } else {
+      for(const art of items){
+        const d=fmtDate(new Date(art.postDate||art.pubDate));
+        h+=`<div class="article-card"><div class="card-main" data-idx="${art.index}">
+          <div class="card-head"><div class="card-title">${esc(art.title||'(無題)')}</div><div class="card-date">${d}</div></div>
+          <div class="card-excerpt">${esc(art.excerpt)}</div>
+          ${(art.categories.length||art.tags.length)?`<div class="card-tags">${art.categories.map(c=>`<span class="tag">${esc(c)}</span>`).join('')}${art.tags.map(t=>`<span class="tag type-tag">${esc(t)}</span>`).join('')}</div>`:''}
+        </div><div class="card-actions"><button class="card-md-btn" data-md="${art.index}" title="Markdownで保存">📝</button></div></div>`;
+      }
+      if(tp>1){
+        h+=`<div class="pagination"><button class="page-btn" data-page="${this.page-1}" ${this.page<=1?'disabled':''}>‹</button>`;
+        for(const p of pageRange(this.page,tp)) p==='...'?h+=`<span class="page-info">…</span>`:h+=`<button class="page-btn${p===this.page?' active':''}" data-page="${p}">${p}</button>`;
+        h+=`<button class="page-btn" data-page="${this.page+1}" ${this.page>=tp?'disabled':''}>›</button>`;
+        h+=`<span class="page-info">${this.filtered.length.toLocaleString()}件中 ${s+1}-${Math.min(s+PER_PAGE,this.filtered.length)}</span></div>`;
+      }
+    }
+    h+=`</div></div>`;
+    return h;
+  },
+
+  _rDetail(){
+    const a=this.selected; if(!a)return '';
+    const d=fmtDate(new Date(a.postDate||a.pubDate)), rm=Math.max(1,Math.round(a.wordCount/600));
+    const pos=this.filtered.findIndex(x=>x.index===a.index);
+    const prev=pos>0?this.filtered[pos-1]:null, next=pos<this.filtered.length-1?this.filtered[pos+1]:null;
+
+    let h=`<div class="container"><div class="detail">
+      <a href="#" class="detail-back" id="backBtn">← 一覧に戻る</a>
+      <div class="detail-meta"><h1 class="detail-title">${esc(a.title||'(無題)')}</h1>
+        <div class="detail-info"><span>📅 ${d}</span><span>📝 約${a.wordCount.toLocaleString()}文字</span><span>⏱ 約${rm}分</span>
+          ${a.status!=='publish'?`<span style="color:var(--accent)">● ${esc(a.status)}</span>`:''}
+          ${this.files.length>1?`<span>📁 ${esc(this.files[a.parserIdx]?.name||'')}</span>`:''}</div>
+        ${(a.categories.length||a.tags.length)?`<div class="detail-tags">${a.categories.map(c=>`<span class="tag">${esc(c)}</span>`).join('')}${a.tags.map(t=>`<span class="tag type-tag">${esc(t)}</span>`).join('')}</div>`:''}</div>`;
+
+    if(this.selectedContent===null) h+=`<div class="loading-content"><div class="loading-spinner"></div><p>本文を読み込んでいます…</p></div>`;
+    else{
+      h+=`<div class="detail-content">${this.selectedContent}</div>`;
+      h+=`<div class="detail-actions"><button class="action-btn" id="copyMd">📋 MDコピー</button><button class="action-btn" id="copyHtml">🔖 HTMLコピー</button><button class="action-btn" id="dlMd">💾 MD保存</button></div>`;
+    }
+    h+=`<div class="detail-nav">${prev?`<a href="#" data-idx="${prev.index}">← ${esc((prev.title||'前').substring(0,40))}</a>`:'<span></span>'}${next?`<a href="#" data-idx="${next.index}">${esc((next.title||'次').substring(0,40))} →</a>`:'<span></span>'}</div></div></div>`;
+    return h;
+  },
+
+  // ===================== Bindings =====================
+  _bLanding(){
+    const dz=document.getElementById('dropZone'),fi=document.getElementById('fileInput');if(!dz||!fi)return;
+    fi.addEventListener('change',e=>{if(e.target.files.length)this.handleFiles(e.target.files);});
+    dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag-over');});
+    dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
+    dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag-over');if(e.dataTransfer.files.length)this.handleFiles(e.dataTransfer.files);});
+  },
+
+  _bList(){
+    const si=document.getElementById('searchInput');
+    if(si){let t;si.addEventListener('input',e=>{clearTimeout(t);t=setTimeout(()=>{this.query=e.target.value;this.applyFilters();this.render();document.getElementById('searchInput')?.focus();},300);});}
+    document.querySelectorAll('[data-sort]').forEach(b=>b.onclick=()=>{this.sort=b.dataset.sort;this.applyFilters();this.render();});
+    document.querySelectorAll('[data-type]').forEach(b=>b.onclick=()=>{this.typeFilter=b.dataset.type;this.applyFilters();this.render();});
+    document.querySelectorAll('.card-main').forEach(c=>c.onclick=()=>this.selectArticle(+c.dataset.idx));
+    document.querySelectorAll('[data-md]').forEach(b=>b.onclick=e=>{e.stopPropagation();this.quickExportMd(+b.dataset.md,b);});
+    document.querySelectorAll('[data-page]').forEach(b=>b.onclick=()=>{const p=+b.dataset.page;if(p>=1&&p<=Math.ceil(this.filtered.length/PER_PAGE)){this.page=p;this.render();window.scrollTo(0,0);}});
+    document.getElementById('exportCsv')?.addEventListener('click',()=>this.exportCsv());
+    document.getElementById('batchMd')?.addEventListener('click',()=>this.batchExportMd());
+    document.getElementById('toggleStats')?.addEventListener('click',()=>{this.showStats=!this.showStats;this.render();});
+    document.querySelectorAll('.expand-btn').forEach(btn=>btn.addEventListener('click',e=>{e.stopPropagation();this.showExpand(btn.closest('.stats-section'));}));
+  },
+
+  showExpand(section) {
+    if (!section) return;
+    const titleEl = section.querySelector('h3');
+    const title = titleEl ? titleEl.textContent.replace('拡大','').trim() : '';
+    const clone = section.cloneNode(true);
+    // Remove h3 and expand buttons from clone
+    const cloneH3 = clone.querySelector('h3'); if (cloneH3) cloneH3.remove();
+    clone.querySelectorAll('.expand-btn').forEach(b => b.remove());
+    // Remove section styling from clone
+    clone.style.border = 'none'; clone.style.padding = '0'; clone.style.margin = '0'; clone.style.background = 'none';
+
+    const overlay = document.createElement('div');
+    overlay.className = 'chart-fs';
+    overlay.id = 'chartFs';
+    overlay.innerHTML = `<div class="chart-fs-card">
+      <div class="chart-fs-head"><div class="chart-fs-title">${esc(title)}</div><button class="chart-fs-close" id="chartFsX">✕</button></div>
+      <div class="chart-fs-body" id="chartFsBody"></div>
+    </div><div class="chart-fs-hint">Esc またはクリックで閉じる</div>`;
+
+    overlay.querySelector('#chartFsBody').appendChild(clone);
+    // Close handlers
+    const close = () => overlay.remove();
+    overlay.addEventListener('click', e => { if (e.target === overlay || e.target.closest('.chart-fs-hint')) close(); });
+    overlay.querySelector('#chartFsX').addEventListener('click', close);
+    document.body.appendChild(overlay);
+  },
+
+  _bDetail(){
+    document.getElementById('backBtn')?.addEventListener('click',e=>{e.preventDefault();this.view='list';this.render();});
+    document.querySelectorAll('.detail-nav a').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();this.selectArticle(+a.dataset.idx);window.scrollTo(0,0);}));
+    const a=this.selected;
+    document.getElementById('copyMd')?.addEventListener('click',()=>{navigator.clipboard.writeText(htmlToMd(this.selectedContent,a.title,a.postDate||a.pubDate)).then(()=>toast('コピーしました'));});
+    document.getElementById('copyHtml')?.addEventListener('click',()=>{navigator.clipboard.writeText(this.selectedContent||'').then(()=>toast('HTMLコピー'));});
+    document.getElementById('dlMd')?.addEventListener('click',()=>{dlText(htmlToMd(this.selectedContent,a.title,a.postDate||a.pubDate),datePfx(a)+sanitize(a.title||'article')+'.md','text/markdown;charset=utf-8');toast('保存しました');});
+  },
+};
+
+// ============================================================
+// Utilities
+// ============================================================
+function esc(s){if(!s)return '';const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+function csvE(s){if(!s)return '""';return '"'+String(s).replace(/"/g,'""')+'"';}
+function fmtDate(d){if(!d||isNaN(d))return '—';return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+function fmtElapsed(ms){const s=Math.floor(ms/1000);return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;}
+function sanitize(s){return s.replace(/[\\/:*?"<>|\n\r\t]/g,'_').substring(0,80);}
+function datePfx(a){const d=new Date(a.postDate||a.pubDate);return isNaN(d)?'':fmtDate(d).replace(/-/g,'')+'_';}
+function dlText(text,name,type){const b=new Blob([text],{type});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click();URL.revokeObjectURL(a.href);}
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>el.classList.remove('show'),2800);}
+function pageRange(c,t){if(t<=7)return Array.from({length:t},(_,i)=>i+1);const p=[1];if(c>3)p.push('...');for(let i=Math.max(2,c-1);i<=Math.min(t-1,c+1);i++)p.push(i);if(c<t-2)p.push('...');p.push(t);return p;}
+
+function dateKey(s) {
+  if (!s) return null;
+  const d = new Date(s);
+  if (isNaN(d)) return null;
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function prevDay(k) {
+  const d = new Date(k + 'T00:00:00');
+  d.setDate(d.getDate() - 1);
+  return dateKey(d.toISOString());
+}
+function nextDay(k) {
+  const d = new Date(k + 'T00:00:00');
+  d.setDate(d.getDate() + 1);
+  return dateKey(d.toISOString());
+}
+
+function htmlToMd(html, title, date) {
+  if (!html) return '';
+  let md=''; if(title) md+=`# ${title}\n\n`; if(date) md+=`> ${fmtDate(new Date(date))}\n\n---\n\n`;
+  let b=html;
+  b=b.replace(/<h([1-5])[^>]*>([\s\S]*?)<\/h\1>/gi,(_,l,c)=>'\n'+'#'.repeat(+l)+' '+c.trim()+'\n\n');
+  b=b.replace(/<strong[^>]*>([\s\S]*?)<\/strong>/gi,'**$1**');
+  b=b.replace(/<b[^>]*>([\s\S]*?)<\/b>/gi,'**$1**');
+  b=b.replace(/<em[^>]*>([\s\S]*?)<\/em>/gi,'*$1*');
+  b=b.replace(/<i[^>]*>([\s\S]*?)<\/i>/gi,'*$1*');
+  b=b.replace(/<del[^>]*>([\s\S]*?)<\/del>/gi,'~~$1~~');
+  b=b.replace(/<a[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi,'[$2]($1)');
+  b=b.replace(/<img[^>]*src="([^"]*)"[^>]*alt="([^"]*)"[^>]*\/?>/gi,'![$2]($1)');
+  b=b.replace(/<img[^>]*src="([^"]*)"[^>]*\/?>/gi,'![]($1)');
+  b=b.replace(/<figure[^>]*>([\s\S]*?)<\/figure>/gi,'\n$1\n');
+  b=b.replace(/<figcaption[^>]*>([\s\S]*?)<\/figcaption>/gi,'*$1*\n');
+  b=b.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi,'- $1\n');
+  b=b.replace(/<\/?[uo]l[^>]*>/gi,'\n');
+  b=b.replace(/<blockquote[^>]*>([\s\S]*?)<\/blockquote>/gi,(_,c)=>c.trim().split('\n').map(l=>'> '+l.trim()).join('\n')+'\n\n');
+  b=b.replace(/<pre[^>]*><code[^>]*>([\s\S]*?)<\/code><\/pre>/gi,'\n```\n$1\n```\n\n');
+  b=b.replace(/<code[^>]*>([\s\S]*?)<\/code>/gi,'`$1`');
+  b=b.replace(/<br\s*\/?>/gi,'\n');
+  b=b.replace(/<p[^>]*>([\s\S]*?)<\/p>/gi,'$1\n\n');
+  b=b.replace(/<hr[^>]*\/?>/gi,'\n---\n\n');
+  b=b.replace(/<div[^>]*>([\s\S]*?)<\/div>/gi,'$1\n');
+  b=b.replace(/<iframe[^>]*src="([^"]*)"[^>]*>[\s\S]*?<\/iframe>/gi,'\n[埋め込み]($1)\n');
+  b=b.replace(/<[^>]*>/g,'');
+  b=b.replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;|&#x27;/g,"'");
+  b=b.replace(/\n{3,}/g,'\n\n').trim();
+  return md+b+'\n';
+}
+
+App.init();
+</script>
+</body>
+</html>
