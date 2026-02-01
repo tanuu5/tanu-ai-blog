@@ -224,6 +224,13 @@ button{font-family:var(--sans);cursor:pointer;border:none;background:none;font-s
   .app-header,.detail-back,.detail-actions,.detail-nav,.pagination,.controls,.card-actions,.stats-panel{display:none!important}
   .detail-content{border:none;padding:0}body{background:white}
 }
+/* ===== Footer ===== */
+.app-footer{border-top:1px solid var(--border);padding:32px 24px;text-align:center;font-size:.78rem;color:var(--text-3);line-height:1.9;margin-top:40px}
+.app-footer .footer-inner{max-width:var(--max-w);margin:0 auto}
+.app-footer .copy{margin-bottom:4px}
+.app-footer .credits{font-size:.72rem;opacity:.7}
+.app-footer a{color:var(--text-3);text-decoration:underline}
+.app-footer a:hover{color:var(--accent)}
 </style>
 </head>
 <body>
@@ -623,7 +630,7 @@ const App = {
         <div class="icon">📄</div><p>XMLファイルをドラッグ＆ドロップ</p>
         <p class="hint">複数ファイル対応 — 分割XMLもまとめて選択OK</p></div>
       <div class="format-note"><strong>対応形式：</strong>WXR（WordPress eXtended RSS）形式。noteのエクスポートで出力されるXMLファイルに対応。処理はすべてブラウザ内で完結し、サーバーには送信されません。</div>
-    </div></div>`;
+    </div></div>` + footerHtml();
   },
 
   _rParsing(){
@@ -716,7 +723,7 @@ const App = {
         h+=`<span class="page-info">${this.filtered.length.toLocaleString()}件中 ${s+1}-${Math.min(s+PER_PAGE,this.filtered.length)}</span></div>`;
       }
     }
-    h+=`</div></div>`;
+    h+=`</div></div>` + footerHtml();
     return h;
   },
 
@@ -739,7 +746,7 @@ const App = {
       h+=`<div class="detail-content">${this.selectedContent}</div>`;
       h+=`<div class="detail-actions"><button class="action-btn" id="copyMd">📋 MDコピー</button><button class="action-btn" id="copyHtml">🔖 HTMLコピー</button><button class="action-btn" id="dlMd">💾 MD保存</button></div>`;
     }
-    h+=`<div class="detail-nav">${prev?`<a href="#" data-idx="${prev.index}">← ${esc((prev.title||'前').substring(0,40))}</a>`:'<span></span>'}${next?`<a href="#" data-idx="${next.index}">${esc((next.title||'次').substring(0,40))} →</a>`:'<span></span>'}</div></div></div>`;
+    h+=`<div class="detail-nav">${prev?`<a href="#" data-idx="${prev.index}">← ${esc((prev.title||'前').substring(0,40))}</a>`:'<span></span>'}${next?`<a href="#" data-idx="${next.index}">${esc((next.title||'次').substring(0,40))} →</a>`:'<span></span>'}</div></div></div>` + footerHtml();
     return h;
   },
 
@@ -862,6 +869,14 @@ function htmlToMd(html, title, date) {
   b=b.replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;|&#x27;/g,"'");
   b=b.replace(/\n{3,}/g,'\n\n').trim();
   return md+b+'\n';
+}
+
+function footerHtml() {
+  const y = new Date().getFullYear();
+  return `<footer class="app-footer"><div class="footer-inner">
+    <div class="copy">© ${y} たぬ — Built with Claude Opus 4.5 (Anthropic)</div>
+    <div class="credits">Uses <a href="https://stuk.github.io/jszip/" target="_blank" rel="noopener">JSZip</a> (MIT License) · Fonts: <a href="https://fonts.google.com/noto" target="_blank" rel="noopener">Noto Serif JP / Noto Sans JP</a> (OFL)</div>
+  </div></footer>`;
 }
 
 App.init();
