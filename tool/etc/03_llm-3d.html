@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transformer — 3D Layer Visualizer</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=IBM+Plex+Mono:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #020509;
+    color: #c8d8f0;
+    font-family: 'IBM Plex Mono', monospace;
+    overflow: hidden;
+    user-select: none;
+  }
+  #canvas-container {
+    position: fixed;
+    inset: 0;
+  }
+  #canvas-container canvas {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  /* ── HUD OVERLAY ── */
+  #hud {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  /* Title */
+  #title-block {
+    position: absolute;
+    top: 32px; left: 40px;
+  }
+  #title-block h1 {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.4rem;
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: 0.08em;
+    line-height: 1.1;
+  }
+  #title-block h1 span { color: #00d4ff; }
+  #title-block p {
+    font-size: 0.65rem;
+    color: #3a5070;
+    margin-top: 0.4rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  /* Layer legend */
+  #legend {
+    position: absolute;
+    top: 32px; right: 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .legend-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.65rem;
+    color: #3a5070;
+    letter-spacing: 0.1em;
+  }
+  .legend-color {
+    width: 24px; height: 2px;
+    border-radius: 2px;
+  }
+
+  /* Controls */
+  #controls {
+    position: absolute;
+    bottom: 32px; left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 0.8rem;
+    pointer-events: all;
+    align-items: center;
+  }
+  .ctrl-btn {
+    background: rgba(0,20,40,0.8);
+    border: 1px solid #1a3050;
+    color: #00d4ff;
+    font-family: 'Orbitron', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    padding: 0.5rem 1.1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+  .ctrl-btn:hover {
+    background: rgba(0,212,255,0.12);
+    border-color: #00d4ff;
+    box-shadow: 0 0 12px rgba(0,212,255,0.3);
+  }
+  .ctrl-btn.active {
+    background: rgba(0,212,255,0.18);
+    border-color: #00d4ff;
+    color: #fff;
+  }
+  .ctrl-sep {
+    width: 1px; height: 24px;
+    background: #1a3050;
+  }
+  .ctrl-label {
+    font-size: 0.6rem;
+    color: #2a4060;
+    letter-spacing: 0.1em;
+  }
+
+  /* Info panel */
+  #info-panel {
+    position: absolute;
+    bottom: 90px; right: 40px;
+    width: 240px;
+    background: rgba(2,8,18,0.85);
+    border: 1px solid #1a2744;
+    border-radius: 8px;
+    padding: 1.2rem;
+    font-size: 0.7rem;
+    color: #4a6080;
+    line-height: 1.7;
+    backdrop-filter: blur(8px);
+  }
+  #info-panel strong { color: #00d4ff; display: block; margin-bottom: 0.4rem; font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; }
+  #info-panel em { color: #ffb700; font-style: normal; }
+
+  /* Token display */
+  #token-strip {
+    position: absolute;
+    bottom: 90px; left: 40px;
+    display: flex;
+    gap: 0.4rem;
+    flex-direction: column;
+  }
+  .token-strip-label {
+    font-size: 0.6rem;
+    color: #2a4060;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 0.3rem;
+  }
+  .token-strip-row {
+    display: flex;
+    gap: 0.4rem;
+  }
+  .tok {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.75rem;
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    border: 1px solid;
+    transition: all 0.3s;
+  }
+
+  /* Drag hint */
+  #drag-hint {
+    position: absolute;
+    bottom: 32px; right: 40px;
+    font-size: 0.6rem;
+    color: #2a4060;
+    letter-spacing: 0.1em;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    text-align: right;
+  }
+
+  /* Generation output */
+  #gen-output {
+    position: absolute;
+    top: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    pointer-events: none;
+  }
+  #gen-output .gen-label {
+    font-size: 0.6rem;
+    color: #2a4060;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+  #gen-output .gen-text {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 1rem;
+    color: #fff;
+    letter-spacing: 0.05em;
+  }
+  #gen-output .gen-token {
+    display: inline-block;
+    color: #ffb700;
+    animation: tokenPop 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards;
+  }
+  @keyframes tokenPop {
+    from { opacity: 0; transform: translateY(-8px) scale(0.8); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+</style>
+</head>
+<body>
+
+<div id="canvas-container"></div>
+
+<div id="hud">
+  <div id="title-block">
+    <h1>TRANSFORMER<br><span>3D LAYER</span> VIEW</h1>
+    <p>6 Blocks · 4 Heads · 512 Dim</p>
+  </div>
+
+  <div id="legend">
+    <div class="legend-row"><div class="legend-color" style="background:#00d4ff"></div>ATTENTION LAYER</div>
+    <div class="legend-row"><div class="legend-color" style="background:#39ff8a"></div>FEED-FORWARD</div>
+    <div class="legend-row"><div class="legend-color" style="background:#ffb700"></div>RESIDUAL STREAM</div>
+    <div class="legend-row"><div class="legend-color" style="background:#ff3c8e"></div>OUTPUT LOGITS</div>
+  </div>
+
+  <div id="gen-output">
+    <div class="gen-label">GENERATING</div>
+    <div class="gen-text" id="gen-text">東京は</div>
+  </div>
+
+  <div id="token-strip">
+    <div class="token-strip-label">INPUT TOKENS</div>
+    <div class="token-strip-row" id="token-strip-row"></div>
+  </div>
+
+  <div id="info-panel">
+    <strong>Layer Processing</strong>
+    各 Transformer ブロックは <em>Self-Attention</em> と <em>Feed-Forward</em> の 2 サブレイヤーで構成される。残差接続がすべての層を貫き、勾配の消失を防ぐ。
+    <br><br>
+    粒子の流れは <em>Residual Stream</em> ——情報が層を越えて保持・更新され続ける様子を表している。
+  </div>
+
+  <div id="controls">
+    <span class="ctrl-label">VIEW</span>
+    <button class="ctrl-btn" onclick="setView('orbit')">AUTO ORBIT</button>
+    <button class="ctrl-btn" onclick="setView('front')">FRONT</button>
+    <button class="ctrl-btn" onclick="setView('top')">TOP</button>
+    <div class="ctrl-sep"></div>
+    <span class="ctrl-label">MODE</span>
+    <button class="ctrl-btn active" id="btn-flow" onclick="toggleFlow()">FLOW ON</button>
+    <button class="ctrl-btn" id="btn-gen" onclick="triggerGeneration()">GENERATE</button>
+  </div>
+
+  <div id="drag-hint">
+    <span>DRAG to rotate</span>
+    <span>SCROLL to zoom</span>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ═══════════════════════════════════════════════════
+//  SCENE SETUP
+// ═══════════════════════════════════════════════════
+const container = document.getElementById('canvas-container');
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setClearColor(0x020509, 1);
+renderer.shadowMap.enabled = true;
+container.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x020509, 0.018);
+
+const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 200);
+camera.position.set(14, 8, 18);
+camera.lookAt(0, 5, 0);
+
+function resize() {
+  const W = container.clientWidth, H = container.clientHeight;
+  renderer.setSize(W, H);
+  camera.aspect = W / H;
+  camera.updateProjectionMatrix();
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ═══════════════════════════════════════════════════
+//  CONSTANTS
+// ═══════════════════════════════════════════════════
+const NUM_LAYERS  = 6;
+const NUM_TOKENS  = 6;
+const NUM_HEADS   = 4;
+const LAYER_GAP   = 3.2;
+const TOKEN_GAP   = 2.2;
+const LAYER_Y0    = 0;
+
+const TOKENS_JP  = ['東', '京', 'は', '日', '本', 'の'];
+const TOKEN_COLORS = [0x00d4ff, 0x39ff8a, 0xffb700, 0xff3c8e, 0xa78bfa, 0xffd6a5];
+
+const HEAD_COLORS = [0x00d4ff, 0x39ff8a, 0xff7a40, 0xd84fff];
+
+// palette per layer: bottom→top  cyan→green→amber→pink
+function layerColor(li) {
+  const t = li / (NUM_LAYERS - 1);
+  const r = Math.round(THREE.MathUtils.lerp(0x00, 0xff, t));
+  const g = Math.round(THREE.MathUtils.lerp(0xd4, 0x3c, t));
+  const b = Math.round(THREE.MathUtils.lerp(0xff, 0x8e, t));
+  return (r << 16) | (g << 8) | b;
+}
+
+// ═══════════════════════════════════════════════════
+//  LIGHTS
+// ═══════════════════════════════════════════════════
+scene.add(new THREE.AmbientLight(0x0a1828, 1));
+const dirLight = new THREE.DirectionalLight(0x203050, 2);
+dirLight.position.set(10, 20, 10);
+scene.add(dirLight);
+const pointCyan = new THREE.PointLight(0x00d4ff, 2, 40);
+pointCyan.position.set(-5, 12, 5);
+scene.add(pointCyan);
+const pointAmber = new THREE.PointLight(0xffb700, 1.5, 40);
+pointAmber.position.set(5, 6, -5);
+scene.add(pointAmber);
+
+// ═══════════════════════════════════════════════════
+//  GROUND GRID
+// ═══════════════════════════════════════════════════
+const gridHelper = new THREE.GridHelper(60, 40, 0x0a1828, 0x0a1828);
+gridHelper.position.y = -2;
+scene.add(gridHelper);
+
+// ═══════════════════════════════════════════════════
+//  LAYER SLABS
+// ═══════════════════════════════════════════════════
+const layerGroups = [];    // one Group per transformer block
+const nodeObjs    = [];    // [layer][token] → mesh
+const headObjs    = [];    // [layer][head][token] → mesh (attention heads)
+const ffnObjs     = [];    // [layer][token] → mesh
+const layerSlabs  = [];
+
+// token x positions
+const tokenXs = Array.from({ length: NUM_TOKENS }, (_, i) => (i - (NUM_TOKENS-1)/2) * TOKEN_GAP);
+
+for (let li = 0; li < NUM_LAYERS; li++) {
+  const y = LAYER_Y0 + li * LAYER_GAP;
+  const col = layerColor(li);
+  const group = new THREE.Group();
+  group.position.y = y;
+  scene.add(group);
+  layerGroups.push(group);
+  nodeObjs.push([]);
+  headObjs.push([]);
+  ffnObjs.push([]);
+
+  // ── SLAB ──
+  const slabGeo = new THREE.PlaneGeometry((NUM_TOKENS + 1) * TOKEN_GAP, 3.8);
+  const slabMat = new THREE.MeshStandardMaterial({
+    color: 0x040c1a,
+    transparent: true,
+    opacity: 0.55,
+    side: THREE.DoubleSide,
+    roughness: 0.9,
+    metalness: 0.1,
+  });
+  const slab = new THREE.Mesh(slabGeo, slabMat);
+  slab.rotation.x = -Math.PI / 2;
+  slab.position.y = -0.1;
+  group.add(slab);
+  layerSlabs.push(slab);
+
+  // ── SLAB BORDER (line loop) ──
+  const bW = (NUM_TOKENS + 1) * TOKEN_GAP / 2, bH = 1.9;
+  const borderPts = [
+    new THREE.Vector3(-bW, -0.05, -bH),
+    new THREE.Vector3( bW, -0.05, -bH),
+    new THREE.Vector3( bW, -0.05,  bH),
+    new THREE.Vector3(-bW, -0.05,  bH),
+    new THREE.Vector3(-bW, -0.05, -bH),
+  ];
+  const borderGeo = new THREE.BufferGeometry().setFromPoints(borderPts);
+  const borderMat = new THREE.LineBasicMaterial({ color: col, transparent: true, opacity: 0.35 });
+  group.add(new THREE.Line(borderGeo, borderMat));
+
+  // ── LAYER LABEL (sprite) — skip, use 3D text approach via plane ──
+  // (we skip text geometry for brevity; layer number shown in legend)
+
+  // ── ATTENTION NODES ──
+  const attGeo  = new THREE.SphereGeometry(0.18, 12, 12);
+  for (let ti = 0; ti < NUM_TOKENS; ti++) {
+    const mat = new THREE.MeshStandardMaterial({
+      color: col,
+      emissive: col,
+      emissiveIntensity: 0.6,
+      roughness: 0.3,
+      metalness: 0.3,
+    });
+    const mesh = new THREE.Mesh(attGeo, mat);
+    mesh.position.set(tokenXs[ti], 0, -0.8);
+    group.add(mesh);
+    nodeObjs[li].push(mesh);
+  }
+
+  // ── MULTI-HEAD ATTENTION SUB-NODES ──
+  const headGeo = new THREE.SphereGeometry(0.09, 8, 8);
+  for (let hi = 0; hi < NUM_HEADS; hi++) {
+    headObjs[li].push([]);
+    const hx = (hi - (NUM_HEADS-1)/2) * 0.35;
+    for (let ti = 0; ti < NUM_TOKENS; ti++) {
+      const hmat = new THREE.MeshStandardMaterial({
+        color: HEAD_COLORS[hi],
+        emissive: HEAD_COLORS[hi],
+        emissiveIntensity: 0.8,
+        roughness: 0.2,
+      });
+      const hm = new THREE.Mesh(headGeo, hmat);
+      hm.position.set(tokenXs[ti] + hx, 0.22, -0.8);
+      group.add(hm);
+      headObjs[li][hi].push(hm);
+    }
+  }
+
+  // ── FFN NODES (feedforward) ──
+  const ffnGeo = new THREE.BoxGeometry(0.22, 0.22, 0.22);
+  for (let ti = 0; ti < NUM_TOKENS; ti++) {
+    const fmat = new THREE.MeshStandardMaterial({
+      color: 0x39ff8a,
+      emissive: 0x39ff8a,
+      emissiveIntensity: 0.5,
+      roughness: 0.4,
+    });
+    const fm = new THREE.Mesh(ffnGeo, fmat);
+    fm.position.set(tokenXs[ti], 0, 0.8);
+    group.add(fm);
+    ffnObjs[li].push(fm);
+  }
+
+  // ── ATTENTION ARCS within layer ──
+  // Draw curved lines between tokens for attention
+  const arcMat = new THREE.LineBasicMaterial({ color: col, transparent: true, opacity: 0.18 });
+  for (let ti = 0; ti < NUM_TOKENS; ti++) {
+    for (let tj = ti + 1; tj < NUM_TOKENS; tj++) {
+      const strength = Math.random();
+      if (strength < 0.4) continue;
+      const pts = [];
+      const x0 = tokenXs[ti], x1 = tokenXs[tj];
+      const arc = (Math.abs(x1 - x0) / TOKEN_GAP) * 0.4;
+      for (let k = 0; k <= 20; k++) {
+        const f = k / 20;
+        const x = x0 + (x1 - x0) * f;
+        const y = Math.sin(f * Math.PI) * arc;
+        pts.push(new THREE.Vector3(x, y, -0.8));
+      }
+      const arcGeo = new THREE.BufferGeometry().setFromPoints(pts);
+      group.add(new THREE.Line(arcGeo, arcMat));
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  INPUT TOKEN NODES (base layer)
+// ═══════════════════════════════════════════════════
+const inputGroup = new THREE.Group();
+inputGroup.position.y = LAYER_Y0 - 2.2;
+scene.add(inputGroup);
+
+const inputNodes = [];
+for (let ti = 0; ti < NUM_TOKENS; ti++) {
+  const geo = new THREE.SphereGeometry(0.25, 16, 16);
+  const mat = new THREE.MeshStandardMaterial({
+    color: TOKEN_COLORS[ti],
+    emissive: TOKEN_COLORS[ti],
+    emissiveIntensity: 0.9,
+    roughness: 0.2,
+    metalness: 0.5,
+  });
+  const m = new THREE.Mesh(geo, mat);
+  m.position.set(tokenXs[ti], 0, 0);
+  inputGroup.add(m);
+  inputNodes.push(m);
+
+  // glow ring
+  const ringGeo = new THREE.TorusGeometry(0.4, 0.025, 8, 32);
+  const ringMat = new THREE.MeshStandardMaterial({
+    color: TOKEN_COLORS[ti],
+    emissive: TOKEN_COLORS[ti],
+    emissiveIntensity: 1.0,
+    transparent: true,
+    opacity: 0.5,
+  });
+  const ring = new THREE.Mesh(ringGeo, ringMat);
+  ring.rotation.x = Math.PI / 2;
+  m.add(ring);
+}
+
+// ═══════════════════════════════════════════════════
+//  VERTICAL RESIDUAL CONNECTIONS (columns)
+// ═══════════════════════════════════════════════════
+for (let ti = 0; ti < NUM_TOKENS; ti++) {
+  const pts = [
+    new THREE.Vector3(tokenXs[ti], LAYER_Y0 - 2.2, 0),
+    new THREE.Vector3(tokenXs[ti], LAYER_Y0 + NUM_LAYERS * LAYER_GAP, 0),
+  ];
+  const geo = new THREE.BufferGeometry().setFromPoints(pts);
+  const mat = new THREE.LineBasicMaterial({
+    color: TOKEN_COLORS[ti],
+    transparent: true,
+    opacity: 0.08,
+  });
+  scene.add(new THREE.Line(geo, mat));
+}
+
+// ═══════════════════════════════════════════════════
+//  OUTPUT LAYER (logits)
+// ═══════════════════════════════════════════════════
+const outputGroup = new THREE.Group();
+const outY = LAYER_Y0 + NUM_LAYERS * LAYER_GAP + 1.0;
+outputGroup.position.y = outY;
+scene.add(outputGroup);
+
+const logitWords = ['日本の', '世界で', '大きな', '活気の', 'すごい', '素晴ら'];
+const logitProbs = [0.38, 0.22, 0.18, 0.12, 0.06, 0.04];
+const logitObjs = [];
+
+for (let i = 0; i < 6; i++) {
+  const h = logitProbs[i] * 4.0;
+  const geo = new THREE.BoxGeometry(0.5, h, 0.5);
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0xff3c8e,
+    emissive: 0xff3c8e,
+    emissiveIntensity: 0.4 + logitProbs[i],
+    transparent: true,
+    opacity: 0.75,
+    roughness: 0.3,
+  });
+  const bar = new THREE.Mesh(geo, mat);
+  bar.position.set(tokenXs[i], h / 2, 0);
+  outputGroup.add(bar);
+  logitObjs.push(bar);
+}
+
+// output label plane
+const outBorderPts = [
+  new THREE.Vector3(-8, 0, -1.2),
+  new THREE.Vector3( 8, 0, -1.2),
+  new THREE.Vector3( 8, 0,  1.2),
+  new THREE.Vector3(-8, 0,  1.2),
+  new THREE.Vector3(-8, 0, -1.2),
+];
+const outBorderGeo = new THREE.BufferGeometry().setFromPoints(outBorderPts);
+outputGroup.add(new THREE.Line(outBorderGeo, new THREE.LineBasicMaterial({ color: 0xff3c8e, transparent: true, opacity: 0.3 })));
+
+// ═══════════════════════════════════════════════════
+//  PARTICLES (residual stream flow)
+// ═══════════════════════════════════════════════════
+const PARTICLE_COUNT = 240;
+const particleGeo = new THREE.BufferGeometry();
+const pPositions = new Float32Array(PARTICLE_COUNT * 3);
+const pColors    = new Float32Array(PARTICLE_COUNT * 3);
+const pData = []; // per-particle state
+
+for (let i = 0; i < PARTICLE_COUNT; i++) {
+  const ti = i % NUM_TOKENS;
+  const progress = Math.random();
+  const col = new THREE.Color(TOKEN_COLORS[ti]);
+  pPositions[i*3]   = tokenXs[ti] + (Math.random() - 0.5) * 0.3;
+  pPositions[i*3+1] = (LAYER_Y0 - 2.2) + progress * (NUM_LAYERS * LAYER_GAP + 4);
+  pPositions[i*3+2] = (Math.random() - 0.5) * 0.4;
+  pColors[i*3]   = col.r;
+  pColors[i*3+1] = col.g;
+  pColors[i*3+2] = col.b;
+  pData.push({ ti, progress, speed: 0.003 + Math.random() * 0.004 });
+}
+
+particleGeo.setAttribute('position', new THREE.BufferAttribute(pPositions, 3));
+particleGeo.setAttribute('color',    new THREE.BufferAttribute(pColors, 3));
+const particleMat = new THREE.PointsMaterial({
+  size: 0.12,
+  vertexColors: true,
+  transparent: true,
+  opacity: 0.75,
+  depthWrite: false,
+  blending: THREE.AdditiveBlending,
+  sizeAttenuation: true,
+});
+const particles = new THREE.Points(particleGeo, particleMat);
+scene.add(particles);
+
+// ═══════════════════════════════════════════════════
+//  ATTENTION FLASH PARTICLES (horizontal, within layer)
+// ═══════════════════════════════════════════════════
+const FLASH_COUNT = 120;
+const flashGeo = new THREE.BufferGeometry();
+const fPos  = new Float32Array(FLASH_COUNT * 3);
+const fCols = new Float32Array(FLASH_COUNT * 3);
+const fData = [];
+
+for (let i = 0; i < FLASH_COUNT; i++) {
+  const li = Math.floor(Math.random() * NUM_LAYERS);
+  const ti = Math.floor(Math.random() * NUM_TOKENS);
+  const tj = Math.floor(Math.random() * NUM_TOKENS);
+  const col = new THREE.Color(layerColor(li));
+  const t = Math.random();
+  fPos[i*3]   = tokenXs[ti] + (tokenXs[tj] - tokenXs[ti]) * t;
+  fPos[i*3+1] = LAYER_Y0 + li * LAYER_GAP + Math.sin(t * Math.PI) * 0.3;
+  fPos[i*3+2] = -0.8;
+  fCols[i*3]   = col.r;
+  fCols[i*3+1] = col.g;
+  fCols[i*3+2] = col.b;
+  fData.push({ li, ti, tj, t, speed: 0.006 + Math.random() * 0.008 });
+}
+
+flashGeo.setAttribute('position', new THREE.BufferAttribute(fPos, 3));
+flashGeo.setAttribute('color',    new THREE.BufferAttribute(fCols, 3));
+const flashMat = new THREE.PointsMaterial({
+  size: 0.08,
+  vertexColors: true,
+  transparent: true,
+  opacity: 0.8,
+  depthWrite: false,
+  blending: THREE.AdditiveBlending,
+  sizeAttenuation: true,
+});
+const flashParticles = new THREE.Points(flashGeo, flashMat);
+scene.add(flashParticles);
+
+// ═══════════════════════════════════════════════════
+//  MOUSE ORBIT
+// ═══════════════════════════════════════════════════
+let isDragging = false;
+let dragStart  = { x: 0, y: 0 };
+let spherical  = { theta: 0.6, phi: 0.55, r: 25 };
+let targetSpherical = { ...spherical };
+let autoOrbit  = true;
+const CENTER = new THREE.Vector3(0, 8, 0);
+
+container.addEventListener('mousedown', e => {
+  isDragging = true;
+  autoOrbit  = false;
+  dragStart  = { x: e.clientX, y: e.clientY };
+});
+window.addEventListener('mouseup', () => { isDragging = false; });
+window.addEventListener('mousemove', e => {
+  if (!isDragging) return;
+  const dx = (e.clientX - dragStart.x) * 0.005;
+  const dy = (e.clientY - dragStart.y) * 0.005;
+  dragStart = { x: e.clientX, y: e.clientY };
+  targetSpherical.theta -= dx;
+  targetSpherical.phi   = Math.max(0.1, Math.min(1.4, targetSpherical.phi + dy));
+});
+container.addEventListener('wheel', e => {
+  targetSpherical.r = Math.max(10, Math.min(45, targetSpherical.r + e.deltaY * 0.04));
+}, { passive: true });
+
+// Touch support
+let lastTouch = null;
+container.addEventListener('touchstart', e => {
+  isDragging = true;
+  autoOrbit  = false;
+  lastTouch  = e.touches[0];
+});
+window.addEventListener('touchend', () => { isDragging = false; lastTouch = null; });
+window.addEventListener('touchmove', e => {
+  if (!isDragging || !lastTouch) return;
+  const dx = (e.touches[0].clientX - lastTouch.clientX) * 0.005;
+  const dy = (e.touches[0].clientY - lastTouch.clientY) * 0.005;
+  lastTouch = e.touches[0];
+  targetSpherical.theta -= dx;
+  targetSpherical.phi   = Math.max(0.1, Math.min(1.4, targetSpherical.phi + dy));
+});
+
+function setView(mode) {
+  if (mode === 'orbit') {
+    autoOrbit = true;
+  } else if (mode === 'front') {
+    autoOrbit = false;
+    targetSpherical.theta = 0;
+    targetSpherical.phi   = 0.45;
+    targetSpherical.r     = 26;
+  } else if (mode === 'top') {
+    autoOrbit = false;
+    targetSpherical.theta = 0;
+    targetSpherical.phi   = 0.08;
+    targetSpherical.r     = 28;
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  TOKEN STRIP UI
+// ═══════════════════════════════════════════════════
+const stripRow = document.getElementById('token-strip-row');
+TOKENS_JP.forEach((t, i) => {
+  const div = document.createElement('div');
+  div.className = 'tok';
+  div.textContent = t;
+  const col = new THREE.Color(TOKEN_COLORS[i]);
+  const hex = '#' + col.getHexString();
+  div.style.borderColor = hex + '80';
+  div.style.color = hex;
+  div.style.background = hex + '18';
+  stripRow.appendChild(div);
+});
+
+// ═══════════════════════════════════════════════════
+//  FLOW TOGGLE
+// ═══════════════════════════════════════════════════
+let flowOn = true;
+function toggleFlow() {
+  flowOn = !flowOn;
+  const btn = document.getElementById('btn-flow');
+  btn.textContent = flowOn ? 'FLOW ON' : 'FLOW OFF';
+  btn.classList.toggle('active', flowOn);
+  particles.visible = flowOn;
+  flashParticles.visible = flowOn;
+}
+
+// ═══════════════════════════════════════════════════
+//  GENERATION ANIMATION
+// ═══════════════════════════════════════════════════
+const genSeq  = ['日本の', '首都', 'で', 'ある'];
+let genIdx = 0;
+let genRunning = false;
+const genTextEl = document.getElementById('gen-text');
+
+function triggerGeneration() {
+  if (genRunning) return;
+  genRunning = true;
+  const btn = document.getElementById('btn-gen');
+  btn.disabled = true;
+
+  function addToken() {
+    if (genIdx >= genSeq.length) {
+      genIdx = 0;
+      genTextEl.textContent = '東京は';
+      setTimeout(() => {
+        genRunning = false;
+        btn.disabled = false;
+      }, 1200);
+      return;
+    }
+    // Flash all layers
+    layerSlabs.forEach((slab, li) => {
+      setTimeout(() => {
+        slab.material.opacity = 0.85;
+        setTimeout(() => { slab.material.opacity = 0.55; }, 200);
+      }, li * 80);
+    });
+
+    const span = document.createElement('span');
+    span.className = 'gen-token';
+    span.textContent = genSeq[genIdx];
+    genTextEl.appendChild(span);
+    genIdx++;
+    setTimeout(addToken, 900);
+  }
+  setTimeout(addToken, 400);
+}
+
+// ═══════════════════════════════════════════════════
+//  ANIMATION LOOP
+// ═══════════════════════════════════════════════════
+const clock = new THREE.Clock();
+const TOTAL_HEIGHT = NUM_LAYERS * LAYER_GAP + 4;
+const BASE_Y = LAYER_Y0 - 2.2;
+
+function animate() {
+  requestAnimationFrame(animate);
+  const t = clock.getElapsedTime();
+
+  // ── Camera orbit ──
+  if (autoOrbit) {
+    targetSpherical.theta = t * 0.15;
+    targetSpherical.phi   = 0.45 + Math.sin(t * 0.08) * 0.12;
+    targetSpherical.r     = 25 + Math.sin(t * 0.1) * 2;
+  }
+  spherical.theta += (targetSpherical.theta - spherical.theta) * 0.06;
+  spherical.phi   += (targetSpherical.phi   - spherical.phi)   * 0.06;
+  spherical.r     += (targetSpherical.r     - spherical.r)     * 0.06;
+
+  camera.position.set(
+    CENTER.x + spherical.r * Math.sin(spherical.phi) * Math.sin(spherical.theta),
+    CENTER.y + spherical.r * Math.cos(spherical.phi),
+    CENTER.z + spherical.r * Math.sin(spherical.phi) * Math.cos(spherical.theta)
+  );
+  camera.lookAt(CENTER);
+
+  // ── Residual stream particles ──
+  if (flowOn) {
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
+      pData[i].progress += pData[i].speed;
+      if (pData[i].progress > 1) {
+        pData[i].progress = 0;
+        // randomize which layer jitter
+        pPositions[i*3]   = tokenXs[pData[i].ti] + (Math.random() - 0.5) * 0.25;
+        pPositions[i*3+2] = (Math.random() - 0.5) * 0.25;
+      }
+      const p = pData[i].progress;
+      pPositions[i*3+1] = BASE_Y + p * TOTAL_HEIGHT;
+      // slight horizontal wobble near layer boundaries
+      const layerFrac = (p * TOTAL_HEIGHT) % LAYER_GAP;
+      const wobble = Math.sin(layerFrac * 4) * 0.15;
+      pPositions[i*3+2] = wobble;
+    }
+    particleGeo.attributes.position.needsUpdate = true;
+
+    // ── Attention flash particles ──
+    for (let i = 0; i < FLASH_COUNT; i++) {
+      fData[i].t += fData[i].speed;
+      if (fData[i].t > 1) {
+        fData[i].t  = 0;
+        fData[i].ti = Math.floor(Math.random() * NUM_TOKENS);
+        fData[i].tj = Math.floor(Math.random() * NUM_TOKENS);
+      }
+      const ft = fData[i].t;
+      const { li, ti, tj } = fData[i];
+      fPos[i*3]   = tokenXs[ti] + (tokenXs[tj] - tokenXs[ti]) * ft;
+      fPos[i*3+1] = LAYER_Y0 + li * LAYER_GAP + Math.sin(ft * Math.PI) * 0.4;
+      fPos[i*3+2] = -0.8;
+    }
+    flashGeo.attributes.position.needsUpdate = true;
+  }
+
+  // ── Node pulse animation ──
+  for (let li = 0; li < NUM_LAYERS; li++) {
+    const phase = li * 0.7 + t;
+    const pulse = 0.5 + 0.5 * Math.sin(phase * 1.3);
+
+    nodeObjs[li].forEach((n, ti) => {
+      const tp = pulse * 0.4 + 0.5 * Math.sin(t * 2.1 + ti * 0.8);
+      n.material.emissiveIntensity = 0.3 + tp * 0.6;
+      const s = 1 + tp * 0.15;
+      n.scale.setScalar(s);
+    });
+
+    for (let hi = 0; hi < NUM_HEADS; hi++) {
+      headObjs[li][hi].forEach((h, ti) => {
+        const hp = Math.sin(t * 3 + li + hi * 1.5 + ti * 0.6);
+        h.material.emissiveIntensity = 0.4 + 0.5 * (hp * 0.5 + 0.5);
+        h.position.y = 0.22 + Math.sin(t * 2 + hi + ti) * 0.04;
+      });
+    }
+
+    ffnObjs[li].forEach((f, ti) => {
+      const fp = Math.sin(t * 1.8 + li * 0.9 + ti * 0.5 + 2);
+      f.material.emissiveIntensity = 0.3 + 0.4 * (fp * 0.5 + 0.5);
+      f.rotation.y = t * 0.8 + ti;
+    });
+  }
+
+  // ── Input node glow ──
+  inputNodes.forEach((n, ti) => {
+    const s = 1 + 0.15 * Math.sin(t * 2.5 + ti * 1.1);
+    n.scale.setScalar(s);
+    n.children[0].rotation.z = t * 0.8 + ti * 0.5;
+    n.material.emissiveIntensity = 0.6 + 0.35 * Math.sin(t * 3 + ti);
+  });
+
+  // ── Logit bars pulse ──
+  logitObjs.forEach((bar, i) => {
+    const lp = 0.4 + logitProbs[i] * 0.8 + 0.2 * Math.sin(t * 2 + i * 0.7);
+    bar.material.emissiveIntensity = lp;
+    const heightMul = 1 + 0.05 * Math.sin(t * 2.5 + i);
+    bar.scale.y = heightMul;
+  });
+
+  // ── Lights drift ──
+  pointCyan.position.x  = -5 + Math.sin(t * 0.3) * 3;
+  pointCyan.position.z  =  5 + Math.cos(t * 0.3) * 3;
+  pointAmber.position.x =  5 + Math.sin(t * 0.2 + 1) * 3;
+
+  renderer.render(scene, camera);
+}
+
+animate();
+
+// Start with a nice view
+setView('orbit');
+</script>
+</body>
+</html>

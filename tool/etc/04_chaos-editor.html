@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CHAOS EDITOR // UNLEASHED</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --neon-red: #ff003c;
+    --neon-cyan: #00fff7;
+    --neon-yellow: #ffe600;
+    --neon-purple: #bf00ff;
+    --neon-green: #00ff88;
+    --bg: #080010;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    font-family: 'Share Tech Mono', monospace;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    cursor: crosshair;
+  }
+
+  /* ── MATRIX RAIN CANVAS ─────────────────────── */
+  #matrixCanvas {
+    position: fixed; inset: 0;
+    opacity: 0.13;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── PARTICLE CANVAS ────────────────────────── */
+  #particleCanvas {
+    position: fixed; inset: 0;
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  /* ── SCANLINES ──────────────────────────────── */
+  #scanlines {
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 3px,
+      rgba(0,0,0,0.18) 3px,
+      rgba(0,0,0,0.18) 4px
+    );
+    pointer-events: none;
+    z-index: 200;
+    animation: scanMove 8s linear infinite;
+  }
+  @keyframes scanMove {
+    from { background-position: 0 0; }
+    to   { background-position: 0 400px; }
+  }
+
+  /* ── GLITCH OVERLAY ─────────────────────────── */
+  #glitchOverlay {
+    position: fixed; inset: 0;
+    pointer-events: none;
+    z-index: 150;
+    mix-blend-mode: screen;
+  }
+
+  /* ── VIGNETTE ────────────────────────────────── */
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.85) 100%);
+    pointer-events: none;
+    z-index: 5;
+  }
+
+  /* ── HEADER ──────────────────────────────────── */
+  header {
+    position: fixed; top: 0; left: 0; right: 0;
+    height: 52px;
+    display: flex; align-items: center; gap: 20px;
+    padding: 0 24px;
+    background: rgba(8,0,16,0.9);
+    border-bottom: 1px solid rgba(0,255,247,0.2);
+    z-index: 300;
+    backdrop-filter: blur(8px);
+  }
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 4px;
+    background: linear-gradient(90deg, var(--neon-red), var(--neon-cyan), var(--neon-purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: logoFlicker 3s infinite;
+    flex-shrink: 0;
+  }
+  @keyframes logoFlicker {
+    0%,95%,100% { opacity: 1; }
+    96% { opacity: 0.3; }
+    97% { opacity: 1; }
+    98% { opacity: 0.5; }
+  }
+  .stat {
+    font-size: 10px;
+    color: rgba(0,255,247,0.5);
+    letter-spacing: 1px;
+  }
+  .stat span {
+    color: var(--neon-yellow);
+    font-size: 12px;
+  }
+  .chaos-meter-wrap {
+    margin-left: auto;
+    display: flex; align-items: center; gap: 8px;
+    font-size: 10px;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 2px;
+  }
+  .chaos-bar {
+    width: 120px; height: 8px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,0,60,0.3);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .chaos-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--neon-yellow), var(--neon-red));
+    transition: width 0.1s;
+    box-shadow: 0 0 8px var(--neon-red);
+  }
+
+  /* ── EDITOR WRAPPER ─────────────────────────── */
+  #editorWrap {
+    position: fixed;
+    top: 52px; bottom: 0; left: 0; right: 0;
+    display: flex;
+    z-index: 10;
+  }
+
+  /* ── LINE NUMBERS ───────────────────────────── */
+  #lineNums {
+    width: 48px;
+    background: rgba(0,0,0,0.4);
+    border-right: 1px solid rgba(0,255,247,0.08);
+    overflow: hidden;
+    padding-top: 16px;
+    display: flex; flex-direction: column;
+    color: rgba(0,255,247,0.25);
+    font-size: 13px;
+    line-height: 24px;
+    text-align: right;
+    padding-right: 8px;
+    user-select: none;
+    flex-shrink: 0;
+  }
+
+  /* ── TEXTAREA ────────────────────────────────── */
+  #editor {
+    flex: 1;
+    background: transparent;
+    color: #e8ffec;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 15px;
+    line-height: 24px;
+    padding: 16px 24px;
+    border: none;
+    outline: none;
+    resize: none;
+    caret-color: var(--neon-cyan);
+    position: relative;
+    z-index: 10;
+    overflow-y: auto;
+    text-shadow: 0 0 8px rgba(0,255,136,0.4);
+    transition: filter 0.05s;
+  }
+  #editor::selection {
+    background: rgba(0,255,247,0.25);
+  }
+  #editor:focus {
+    box-shadow: inset 0 0 60px rgba(0,255,247,0.03);
+  }
+
+  /* ── LIGHTNING SVG ──────────────────────────── */
+  #lightningCanvas {
+    position: fixed; inset: 0;
+    pointer-events: none;
+    z-index: 90;
+  }
+
+  /* ── SHOCKWAVE ──────────────────────────────── */
+  .shockwave {
+    position: fixed;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 120;
+    animation: shockwaveAnim 0.6s ease-out forwards;
+    border: 2px solid var(--neon-cyan);
+  }
+  @keyframes shockwaveAnim {
+    from { width: 0; height: 0; opacity: 1; transform: translate(-50%,-50%) scale(1); }
+    to   { width: 400px; height: 400px; opacity: 0; transform: translate(-50%,-50%) scale(1); }
+  }
+
+  /* ── COMBO DISPLAY ──────────────────────────── */
+  #combo {
+    position: fixed;
+    right: 30px;
+    top: 80px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 64px;
+    color: var(--neon-yellow);
+    text-shadow: 0 0 20px var(--neon-yellow), 0 0 60px var(--neon-red);
+    pointer-events: none;
+    z-index: 400;
+    opacity: 0;
+    transition: opacity 0.3s;
+    line-height: 1;
+    letter-spacing: 4px;
+  }
+  #comboLabel {
+    display: block;
+    font-size: 14px;
+    letter-spacing: 8px;
+    color: var(--neon-red);
+    text-shadow: none;
+    text-align: right;
+  }
+
+  /* ── SCREEN FLASH ────────────────────────────── */
+  #flash {
+    position: fixed; inset: 0;
+    pointer-events: none;
+    z-index: 500;
+    opacity: 0;
+  }
+
+  /* ── FIRE EMITTER ────────────────────────────── */
+  #fireCanvas {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: 200px;
+    pointer-events: none;
+    z-index: 80;
+  }
+
+  /* ── RIPPLE ──────────────────────────────────── */
+  .ripple {
+    position: fixed;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 110;
+    transform: translate(-50%,-50%);
+    animation: rippleAnim 0.8s ease-out forwards;
+  }
+  @keyframes rippleAnim {
+    from { width: 10px; height: 10px; opacity: 0.9; }
+    to   { width: 300px; height: 300px; opacity: 0; }
+  }
+
+  /* ── TOAST ────────────────────────────────────── */
+  #toast {
+    position: fixed;
+    left: 50%; bottom: 30px;
+    transform: translateX(-50%);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 6px;
+    color: var(--neon-cyan);
+    text-shadow: 0 0 20px var(--neon-cyan);
+    pointer-events: none;
+    z-index: 600;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  /* ── WARP DISTORT ─────────────────────────────── */
+  @keyframes warpPulse {
+    0%   { filter: blur(0) brightness(1) hue-rotate(0deg); }
+    25%  { filter: blur(1px) brightness(1.4) hue-rotate(15deg); }
+    50%  { filter: blur(0) brightness(1) hue-rotate(0deg); }
+    75%  { filter: blur(0.5px) brightness(1.2) hue-rotate(-10deg); }
+    100% { filter: blur(0) brightness(1) hue-rotate(0deg); }
+  }
+  .warping {
+    animation: warpPulse 0.3s ease-out !important;
+  }
+
+  /* ── RAGE SHAKE ──────────────────────────────── */
+  @keyframes rageShake1 {
+    0%,100% { transform: translateX(0); }
+    25%  { transform: translateX(-4px) rotate(-0.4deg); }
+    75%  { transform: translateX(4px) rotate(0.4deg); }
+  }
+  @keyframes rageShake2 {
+    0%,100% { transform: translateX(0) rotate(0); }
+    20%  { transform: translateX(-8px) rotate(-1.2deg); }
+    40%  { transform: translateX(10px) rotate(1.5deg); }
+    60%  { transform: translateX(-7px) rotate(-0.8deg); }
+    80%  { transform: translateX(9px) rotate(1.2deg); }
+  }
+  @keyframes bodyRage {
+    0%,100% { transform: translateX(0); }
+    50%  { transform: translateX(-5px); }
+  }
+
+  /* ── WANDER CONTAINER ────────────────────────── */
+  #wanderContainer {
+    position: fixed; inset: 52px 0 0 0;
+    pointer-events: none;
+    z-index: 50;
+    display: none;
+  }
+  .wchar {
+    position: absolute;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 15px;
+    color: #e8ffec;
+    text-shadow: 0 0 8px rgba(0,255,136,0.6);
+    pointer-events: none;
+    will-change: left, top;
+    line-height: 1;
+  }
+
+  /* ── WHISTLE BUTTON ──────────────────────────── */
+  #whistleBtn {
+    display: none;
+    margin-left: 8px;
+    background: transparent;
+    border: 1px solid rgba(0,255,136,0.5);
+    color: var(--neon-green);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 13px;
+    letter-spacing: 3px;
+    padding: 4px 14px;
+    cursor: pointer;
+    animation: whistlePulse 0.9s infinite;
+    flex-shrink: 0;
+  }
+  #whistleBtn:hover {
+    background: rgba(0,255,136,0.15);
+  }
+  @keyframes whistlePulse {
+    0%,100% { box-shadow: 0 0 5px rgba(0,255,136,0.3); }
+    50%      { box-shadow: 0 0 22px rgba(0,255,136,0.9), 0 0 50px rgba(0,255,136,0.4); }
+  }
+
+  /* ── RAGE FACE ────────────────────────────────── */
+  #rageFace {
+    position: fixed;
+    font-size: 90px;
+    pointer-events: none;
+    z-index: 700;
+    opacity: 0;
+    transition: opacity 0.15s;
+    filter: drop-shadow(0 0 24px #ff003c);
+    line-height: 1;
+  }
+
+  /* ── IDLE WARNING BAR ────────────────────────── */
+  #idleBar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--neon-green), var(--neon-yellow), var(--neon-red));
+    transform-origin: left;
+    transform: scaleX(0);
+    transition: transform 1s linear, background 3s;
+    z-index: 400;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="matrixCanvas"></canvas>
+<canvas id="particleCanvas"></canvas>
+<canvas id="lightningCanvas"></canvas>
+<canvas id="fireCanvas"></canvas>
+<div id="scanlines"></div>
+<div id="glitchOverlay"></div>
+<div id="flash"></div>
+
+<header>
+  <div class="logo">CHAOS EDITOR</div>
+  <div class="stat">CHARS <span id="charCount">0</span></div>
+  <div class="stat">WORDS <span id="wordCount">0</span></div>
+  <div class="stat">LINES <span id="lineCount">1</span></div>
+  <div class="stat">WPM <span id="wpm">0</span></div>
+  <div class="chaos-meter-wrap">
+    CHAOS
+    <div class="chaos-bar"><div class="chaos-fill" id="chaosFill"></div></div>
+  </div>
+  <button id="whistleBtn" onclick="blowWhistle()">🎵 笛</button>
+</header>
+
+<div id="idleBar"></div>
+
+<div id="editorWrap">
+  <div id="lineNums"><span>1</span></div>
+  <textarea id="editor" spellcheck="false" placeholder="ここに入力してください..."></textarea>
+</div>
+
+<div id="combo">
+  <span id="comboLabel">COMBO</span>
+  <span id="comboNum">0</span>x
+</div>
+
+<div id="toast"></div>
+
+<div id="wanderContainer"></div>
+<div id="rageFace"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// MATRIX RAIN
+// ═══════════════════════════════════════════════════════
+(function(){
+  const c = document.getElementById('matrixCanvas');
+  const ctx = c.getContext('2d');
+  let W, H, cols, drops;
+  const chars = 'アイウエオカキクケコサシスセソタチツテトナニヌネノABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&';
+  function init(){
+    W = c.width = window.innerWidth;
+    H = c.height = window.innerHeight;
+    cols = Math.floor(W/16);
+    drops = Array(cols).fill(1);
+  }
+  function draw(){
+    ctx.fillStyle = 'rgba(8,0,16,0.05)';
+    ctx.fillRect(0,0,W,H);
+    ctx.fillStyle = '#00ff88';
+    ctx.font = '14px monospace';
+    for(let i=0;i<cols;i++){
+      const ch = chars[Math.floor(Math.random()*chars.length)];
+      ctx.fillText(ch, i*16, drops[i]*16);
+      if(drops[i]*16>H && Math.random()>0.975) drops[i]=0;
+      drops[i]++;
+    }
+  }
+  init();
+  setInterval(draw, 45);
+  window.addEventListener('resize', init);
+})();
+
+// ═══════════════════════════════════════════════════════
+// FIRE CANVAS
+// ═══════════════════════════════════════════════════════
+(function(){
+  const canvas = document.getElementById('fireCanvas');
+  const ctx = canvas.getContext('2d');
+  let W, H;
+  const particles = [];
+  function init(){
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = 200;
+  }
+  function spawnFire(){
+    const count = 3;
+    for(let i=0;i<count;i++){
+      particles.push({
+        x: Math.random()*W,
+        y: H,
+        vx: (Math.random()-0.5)*2,
+        vy: -(Math.random()*3+2),
+        life: 1,
+        size: Math.random()*12+4
+      });
+    }
+  }
+  function drawFire(){
+    ctx.clearRect(0,0,W,H);
+    for(let i=particles.length-1;i>=0;i--){
+      const p = particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy -= 0.05;
+      p.life -= 0.02;
+      p.size *= 0.98;
+      if(p.life <= 0){ particles.splice(i,1); continue; }
+      const g = ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.size);
+      g.addColorStop(0, `rgba(255,230,100,${p.life})`);
+      g.addColorStop(0.4, `rgba(255,80,0,${p.life*0.8})`);
+      g.addColorStop(1, `rgba(150,0,0,0)`);
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,p.size,0,Math.PI*2);
+      ctx.fill();
+    }
+    spawnFire();
+    requestAnimationFrame(drawFire);
+  }
+  init();
+  drawFire();
+  window.addEventListener('resize', init);
+})();
+
+// ═══════════════════════════════════════════════════════
+// PARTICLE ENGINE
+// ═══════════════════════════════════════════════════════
+const pCanvas = document.getElementById('particleCanvas');
+const pCtx = pCanvas.getContext('2d');
+pCanvas.width = window.innerWidth;
+pCanvas.height = window.innerHeight;
+window.addEventListener('resize', ()=>{
+  pCanvas.width = window.innerWidth;
+  pCanvas.height = window.innerHeight;
+});
+
+const particles = [];
+const COLORS = ['#ff003c','#00fff7','#ffe600','#bf00ff','#00ff88','#ff6600','#ffffff'];
+
+function spawnParticles(x, y, count, type){
+  for(let i=0;i<count;i++){
+    const angle = Math.random()*Math.PI*2;
+    const speed = type==='explode' ? Math.random()*18+4 : Math.random()*8+2;
+    const color = COLORS[Math.floor(Math.random()*COLORS.length)];
+    particles.push({
+      x, y,
+      vx: Math.cos(angle)*speed,
+      vy: Math.sin(angle)*speed - (type==='explode'?8:2),
+      life: 1,
+      maxLife: type==='explode'?0.8:0.6,
+      size: type==='explode'?Math.random()*6+2:Math.random()*3+1,
+      color,
+      type,
+      rotation: Math.random()*Math.PI*2,
+      rotSpeed: (Math.random()-0.5)*0.3,
+      gravity: type==='explode'?0.35:0.15
+    });
+  }
+}
+
+function updateParticles(){
+  pCtx.clearRect(0,0,pCanvas.width,pCanvas.height);
+  for(let i=particles.length-1;i>=0;i--){
+    const p = particles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += p.gravity;
+    p.vx *= 0.97;
+    p.rotation += p.rotSpeed;
+    p.life -= p.maxLife/40;
+    if(p.life<=0){particles.splice(i,1);continue;}
+    pCtx.save();
+    pCtx.globalAlpha = Math.max(0, p.life);
+    pCtx.translate(p.x, p.y);
+    pCtx.rotate(p.rotation);
+    if(p.type==='star'){
+      drawStar(pCtx, 0, 0, p.size*2, p.size*0.8, 5, p.color);
+    } else if(p.type==='spark'){
+      pCtx.strokeStyle = p.color;
+      pCtx.lineWidth = p.size*0.5;
+      pCtx.shadowColor = p.color;
+      pCtx.shadowBlur = 8;
+      pCtx.beginPath();
+      pCtx.moveTo(0,0);
+      pCtx.lineTo(-p.vx*3,-p.vy*3);
+      pCtx.stroke();
+    } else {
+      pCtx.fillStyle = p.color;
+      pCtx.shadowColor = p.color;
+      pCtx.shadowBlur = 10;
+      pCtx.beginPath();
+      pCtx.arc(0,0,p.size,0,Math.PI*2);
+      pCtx.fill();
+    }
+    pCtx.restore();
+  }
+  requestAnimationFrame(updateParticles);
+}
+
+function drawStar(ctx, cx, cy, outerR, innerR, points, color){
+  ctx.fillStyle = color;
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 12;
+  ctx.beginPath();
+  for(let i=0;i<points*2;i++){
+    const r = i%2===0?outerR:innerR;
+    const a = (i*Math.PI/points)-(Math.PI/2);
+    i===0?ctx.moveTo(cx+Math.cos(a)*r,cy+Math.sin(a)*r):ctx.lineTo(cx+Math.cos(a)*r,cy+Math.sin(a)*r);
+  }
+  ctx.closePath();
+  ctx.fill();
+}
+
+updateParticles();
+
+// ═══════════════════════════════════════════════════════
+// LIGHTNING
+// ═══════════════════════════════════════════════════════
+const lCanvas = document.getElementById('lightningCanvas');
+const lCtx = lCanvas.getContext('2d');
+lCanvas.width = window.innerWidth;
+lCanvas.height = window.innerHeight;
+window.addEventListener('resize',()=>{lCanvas.width=window.innerWidth;lCanvas.height=window.innerHeight;});
+
+const lightnings = [];
+
+function createLightning(x1,y1,x2,y2,color){
+  const segs = [];
+  function split(ax,ay,bx,by,depth){
+    if(depth===0){segs.push({ax,ay,bx,by});return;}
+    const mx=(ax+bx)/2+(Math.random()-0.5)*80/depth;
+    const my=(ay+by)/2+(Math.random()-0.5)*80/depth;
+    split(ax,ay,mx,my,depth-1);
+    split(mx,my,bx,by,depth-1);
+    if(Math.random()<0.3 && depth>=2) split(mx,my,mx+(Math.random()-0.5)*100,my+(Math.random()-0.5)*100,depth-2);
+  }
+  split(x1,y1,x2,y2,4);
+  lightnings.push({segs,color,life:1,id:Date.now()});
+}
+
+function drawLightnings(){
+  lCtx.clearRect(0,0,lCanvas.width,lCanvas.height);
+  for(let i=lightnings.length-1;i>=0;i--){
+    const l=lightnings[i];
+    l.life-=0.08;
+    if(l.life<=0){lightnings.splice(i,1);continue;}
+    l.segs.forEach(s=>{
+      lCtx.beginPath();
+      lCtx.strokeStyle=l.color;
+      lCtx.lineWidth=l.life*2;
+      lCtx.shadowColor=l.color;
+      lCtx.shadowBlur=15*l.life;
+      lCtx.globalAlpha=l.life;
+      lCtx.moveTo(s.ax,s.ay);
+      lCtx.lineTo(s.bx,s.by);
+      lCtx.stroke();
+    });
+    lCtx.globalAlpha=1;
+  }
+  requestAnimationFrame(drawLightnings);
+}
+drawLightnings();
+
+// ═══════════════════════════════════════════════════════
+// GLITCH EFFECT
+// ═══════════════════════════════════════════════════════
+const glitchEl = document.getElementById('glitchOverlay');
+function triggerGlitch(intensity){
+  const lines = [];
+  const count = Math.floor(intensity*10)+3;
+  for(let i=0;i<count;i++){
+    const y = Math.random()*100;
+    const h = Math.random()*4+1;
+    const x = (Math.random()-0.5)*30;
+    const col = `hsl(${Math.random()*360},100%,60%)`;
+    lines.push(`<div style="position:absolute;top:${y}%;left:${x}%;right:0;height:${h}px;background:${col};opacity:0.7;mix-blend-mode:screen"></div>`);
+  }
+  // Horizontal slice displacement
+  const slices = Math.floor(intensity*5)+2;
+  for(let i=0;i<slices;i++){
+    const y = Math.random()*100;
+    const h = Math.random()*20+5;
+    const dx = (Math.random()-0.5)*60;
+    const col = i%2===0?'rgba(255,0,60,0.15)':'rgba(0,255,247,0.15)';
+    lines.push(`<div style="position:absolute;top:${y}%;left:0;right:0;height:${h}px;background:${col};transform:translateX(${dx}px);mix-blend-mode:screen"></div>`);
+  }
+  glitchEl.innerHTML = lines.join('');
+  setTimeout(()=>glitchEl.innerHTML='', 80+intensity*50);
+}
+
+// Periodic random glitch
+setInterval(()=>{
+  if(Math.random()<0.15) triggerGlitch(Math.random()*0.5+0.1);
+},2000);
+
+// ═══════════════════════════════════════════════════════
+// SCREEN FLASH
+// ═══════════════════════════════════════════════════════
+const flashEl = document.getElementById('flash');
+function screenFlash(color, intensity){
+  flashEl.style.background = color;
+  flashEl.style.opacity = intensity;
+  setTimeout(()=>{ flashEl.style.transition='opacity 0.2s'; flashEl.style.opacity=0; },30);
+  setTimeout(()=>{ flashEl.style.transition=''; },300);
+}
+
+// ═══════════════════════════════════════════════════════
+// SHOCKWAVE
+// ═══════════════════════════════════════════════════════
+function createShockwave(x,y,color){
+  const s = document.createElement('div');
+  s.className='shockwave';
+  s.style.left=x+'px';
+  s.style.top=y+'px';
+  s.style.borderColor=color;
+  s.style.boxShadow=`0 0 20px ${color}`;
+  document.body.appendChild(s);
+  setTimeout(()=>s.remove(),700);
+}
+
+function createRipple(x,y,color){
+  const r=document.createElement('div');
+  r.className='ripple';
+  r.style.left=x+'px';
+  r.style.top=y+'px';
+  r.style.background=`radial-gradient(circle, ${color}44 0%, transparent 70%)`;
+  document.body.appendChild(r);
+  setTimeout(()=>r.remove(),900);
+}
+
+// ═══════════════════════════════════════════════════════
+// COMBO SYSTEM
+// ═══════════════════════════════════════════════════════
+let combo=0, comboTimer=null;
+const comboEl=document.getElementById('combo');
+const comboNumEl=document.getElementById('comboNum');
+
+function bumpCombo(){
+  combo++;
+  comboNumEl.textContent=combo;
+  comboEl.style.opacity=1;
+  comboEl.style.transform=`scale(${1+Math.min(combo/50,0.8)}) rotate(${(Math.random()-0.5)*8}deg)`;
+  comboEl.style.textShadow=combo>20?`0 0 40px #ff003c, 0 0 80px #ff003c`:`0 0 20px #ffe600`;
+  clearTimeout(comboTimer);
+  comboTimer=setTimeout(()=>{ comboEl.style.opacity=0; combo=0; },1500);
+  // Every 10 combos = mega event
+  if(combo%10===0) megaEvent();
+}
+
+// ═══════════════════════════════════════════════════════
+// CHAOS METER
+// ═══════════════════════════════════════════════════════
+let chaos=0;
+const chaosFill=document.getElementById('chaosFill');
+function updateChaos(delta){
+  chaos=Math.min(100,Math.max(0,chaos+delta));
+  chaosFill.style.width=chaos+'%';
+  if(chaos>=100){
+    chaos=0;
+    chaosOverload();
+  }
+}
+setInterval(()=>updateChaos(-1),200);
+
+// ═══════════════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════════════
+const toastEl=document.getElementById('toast');
+let toastTimer;
+function showToast(msg,color='#00fff7'){
+  toastEl.textContent=msg;
+  toastEl.style.color=color;
+  toastEl.style.textShadow=`0 0 30px ${color}`;
+  toastEl.style.opacity=1;
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>toastEl.style.opacity=0,1200);
+}
+
+// ═══════════════════════════════════════════════════════
+// MEGA EVENT (combo ×10)
+// ═══════════════════════════════════════════════════════
+function megaEvent(){
+  screenFlash('rgba(255,0,60,0.4)',0.4);
+  triggerGlitch(1);
+  const msgs=['INSANE!!','UNSTOPPABLE!!','LEGENDARY!!','CHAOS!!','MAXIMUM!!','BERSERK!!'];
+  showToast(msgs[Math.floor(Math.random()*msgs.length)],'#ffe600');
+  for(let i=0;i<5;i++){
+    setTimeout(()=>{
+      const x=Math.random()*window.innerWidth;
+      const y=Math.random()*window.innerHeight;
+      spawnParticles(x,y,30,'explode');
+      createLightning(x,y,Math.random()*window.innerWidth,Math.random()*window.innerHeight,'#ffe600');
+    },i*80);
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// CHAOS OVERLOAD (meter full)
+// ═══════════════════════════════════════════════════════
+function chaosOverload(){
+  showToast('⚡ CHAOS OVERLOAD ⚡','#ff003c');
+  screenFlash('rgba(255,0,60,0.7)',0.7);
+  triggerGlitch(2);
+  const editor=document.getElementById('editor');
+  editor.classList.add('warping');
+  setTimeout(()=>editor.classList.remove('warping'),400);
+  for(let i=0;i<20;i++){
+    setTimeout(()=>{
+      const x=Math.random()*window.innerWidth;
+      const y=Math.random()*window.innerHeight;
+      spawnParticles(x,y,25,'explode');
+      spawnParticles(x,y,15,'spark');
+      createLightning(x,y,Math.random()*window.innerWidth,0,'#bf00ff');
+    },i*40);
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// MAIN EDITOR LOGIC
+// ═══════════════════════════════════════════════════════
+const editor=document.getElementById('editor');
+const charCount=document.getElementById('charCount');
+const wordCount=document.getElementById('wordCount');
+const lineCount=document.getElementById('lineCount');
+const wpmEl=document.getElementById('wpm');
+const lineNums=document.getElementById('lineNums');
+
+let keyTimes=[], lastKey=0;
+
+function getCaretCoords(){
+  // Approximate caret position
+  const rect=editor.getBoundingClientRect();
+  const lineH=24;
+  const lines=editor.value.substring(0,editor.selectionStart).split('\n');
+  const curLine=lines.length;
+  const curCol=lines[lines.length-1].length;
+  return {
+    x: rect.left+24+curCol*9,
+    y: rect.top+16+(curLine-1)*lineH+lineH/2
+  };
+}
+
+function updateStats(){
+  const val=editor.value;
+  charCount.textContent=val.length;
+  wordCount.textContent=val.trim()===''?0:val.trim().split(/\s+/).length;
+  const lc=val.split('\n').length;
+  lineCount.textContent=lc;
+  // Line numbers
+  let html='';
+  for(let i=1;i<=lc;i++) html+=`<span>${i}</span>`;
+  lineNums.innerHTML=html;
+}
+
+function calcWPM(){
+  const now=Date.now();
+  keyTimes=keyTimes.filter(t=>now-t<60000);
+  wpmEl.textContent=Math.round(keyTimes.length/5);
+}
+
+editor.addEventListener('keydown', e=>{
+  if(wanderMode) return;
+  resetIdle();
+  const now=Date.now();
+  const timeSinceLast=now-lastKey;
+  lastKey=now;
+  keyTimes.push(now);
+
+  const pos=getCaretCoords();
+  const x=Math.min(Math.max(pos.x,0),window.innerWidth);
+  const y=Math.min(Math.max(pos.y,52),window.innerHeight);
+
+  // Base particles on every key
+  spawnParticles(x,y,6,'spark');
+  spawnParticles(x,y,3,'dot');
+
+  // Fast typing = more chaos
+  if(timeSinceLast<120){
+    spawnParticles(x,y,12,'explode');
+    createLightning(x,y,x+(Math.random()-0.5)*300,y-(Math.random()*200+50),COLORS[Math.floor(Math.random()*COLORS.length)]);
+    updateChaos(5);
+  } else if(timeSinceLast<250){
+    spawnParticles(x,y,8,'star');
+    updateChaos(2);
+  }
+
+  bumpCombo();
+  updateChaos(2);
+  calcWPM();
+
+  // ENTER = EXPLOSION
+  if(e.key==='Enter'){
+    screenFlash('rgba(0,255,247,0.25)',0.25);
+    createShockwave(x,y,'#00fff7');
+    spawnParticles(x,y,40,'explode');
+    spawnParticles(x,y,20,'star');
+    for(let i=0;i<3;i++){
+      createLightning(x,y,
+        Math.random()*window.innerWidth,
+        Math.random()*window.innerHeight,
+        COLORS[Math.floor(Math.random()*COLORS.length)]
+      );
+    }
+    triggerGlitch(0.6);
+    updateChaos(15);
+  }
+
+  // BACKSPACE = dark flash
+  if(e.key==='Backspace'){
+    screenFlash('rgba(255,0,60,0.2)',0.2);
+    spawnParticles(x,y,8,'spark');
+    createLightning(x,y,x+(Math.random()-0.5)*200,y+Math.random()*200,'#ff003c');
+    updateChaos(3);
+  }
+
+  // SPACE = ripple
+  if(e.key===' '){
+    createRipple(x,y,'rgba(191,0,255,0.6)');
+    spawnParticles(x,y,15,'star');
+    updateChaos(4);
+  }
+
+  updateStats();
+});
+
+editor.addEventListener('keyup', ()=>{
+  updateStats();
+  calcWPM();
+});
+
+// Click effects
+editor.addEventListener('click', ()=>{
+  const pos=getCaretCoords();
+  createRipple(pos.x,pos.y,'rgba(0,255,247,0.5)');
+  spawnParticles(pos.x,pos.y,10,'explode');
+});
+
+// Paste = MEGA EXPLOSION
+editor.addEventListener('paste', ()=>{
+  setTimeout(()=>{
+    const pos=getCaretCoords();
+    screenFlash('rgba(255,230,0,0.4)',0.4);
+    for(let i=0;i<5;i++){
+      spawnParticles(pos.x+(Math.random()-0.5)*200,pos.y+(Math.random()-0.5)*200,30,'explode');
+    }
+    for(let i=0;i<8;i++){
+      createLightning(pos.x,pos.y,Math.random()*window.innerWidth,Math.random()*window.innerHeight,'#ffe600');
+    }
+    createShockwave(pos.x,pos.y,'#ffe600');
+    triggerGlitch(1.5);
+    showToast('PASTE DETONATED','#ffe600');
+    updateChaos(30);
+    updateStats();
+  },10);
+});
+
+// Scroll sync line numbers
+editor.addEventListener('scroll', ()=>{
+  lineNums.scrollTop = editor.scrollTop;
+});
+
+// Periodic ambient lightning
+setInterval(()=>{
+  if(Math.random()<0.2){
+    const x1=Math.random()*window.innerWidth;
+    const x2=Math.random()*window.innerWidth;
+    createLightning(x1,0,x2,window.innerHeight*0.3,'rgba(100,0,255,0.5)');
+  }
+},3000);
+
+// Periodic ambient particles
+setInterval(()=>{
+  if(Math.random()<0.3){
+    const x=Math.random()*window.innerWidth;
+    spawnParticles(x,window.innerHeight,8,'spark');
+  }
+},500);
+
+// ═══════════════════════════════════════════════════════
+// IDLE RAGE & WANDER SYSTEM (ピクミン方式)
+// ═══════════════════════════════════════════════════════
+let lastActivity = Date.now();
+let rageLevel = 0;
+let wanderMode = false;
+let wanderChars = [];
+let wanderRAF = null;
+
+const CHAR_W = 9;
+const CHAR_H = 24;
+const EDITOR_PL = 48 + 24; // linenum width + padding
+const EDITOR_PT = 16;
+const EDITOR_TOP_OFFSET = 52;
+
+const wanderContainer = document.getElementById('wanderContainer');
+const whistleBtn      = document.getElementById('whistleBtn');
+const rageFaceEl      = document.getElementById('rageFace');
+const idleBar         = document.getElementById('idleBar');
+
+const IDLE_WANDER = 22; // seconds until wander
+const IDLE_L2     = 12;
+const IDLE_L1     = 7;
+
+const RAGE_MSGS = [
+  ['…', 'おい', 'ねえ？', 'まだ？', 'もしもし？'],
+  ['打てよ！', 'サボるな！！', 'こらっ！！', '早く！！', '何してる！！'],
+  ['もう限界！！！', '文字が逃げるぞ！！', 'ABANDON SHIP!!!', '脱走開始！！！']
+];
+
+let rageFaceTimer;
+function showRageFace() {
+  const faces = ['😡','🤬','💢','😤','👿','🔥'];
+  rageFaceEl.textContent = faces[Math.floor(Math.random() * faces.length)];
+  rageFaceEl.style.left = (10 + Math.random() * (window.innerWidth - 110)) + 'px';
+  rageFaceEl.style.top  = (60 + Math.random() * (window.innerHeight - 160)) + 'px';
+  rageFaceEl.style.opacity = 1;
+  clearTimeout(rageFaceTimer);
+  rageFaceTimer = setTimeout(() => rageFaceEl.style.opacity = 0, 700);
+}
+
+function resetIdle() {
+  lastActivity = Date.now();
+  if (wanderMode) return;
+  if (rageLevel > 0) {
+    rageLevel = 0;
+    editor.style.animation = '';
+    document.body.style.animation = '';
+  }
+  idleBar.style.transform = 'scaleX(0)';
+}
+
+// Idle ticker
+setInterval(() => {
+  if (wanderMode) return;
+  const idle = (Date.now() - lastActivity) / 1000;
+  const progress = Math.min(idle / IDLE_WANDER, 1);
+  idleBar.style.transform = `scaleX(${progress})`;
+
+  if (idle >= IDLE_WANDER && rageLevel < 3) {
+    rageLevel = 3;
+    triggerWander();
+  } else if (idle >= IDLE_L2 && rageLevel < 2) {
+    rageLevel = 2;
+    editor.style.animation = 'rageShake2 0.25s infinite';
+    document.body.style.animation = 'bodyRage 0.4s infinite';
+    showToast(RAGE_MSGS[1][Math.floor(Math.random() * RAGE_MSGS[1].length)], '#ff6600');
+    screenFlash('rgba(255,60,0,0.2)', 0.2);
+    triggerGlitch(0.5);
+    showRageFace();
+  } else if (idle >= IDLE_L1 && rageLevel < 1) {
+    rageLevel = 1;
+    editor.style.animation = 'rageShake1 0.7s infinite';
+    showToast(RAGE_MSGS[0][Math.floor(Math.random() * RAGE_MSGS[0].length)], '#ffaa00');
+  }
+
+  if (rageLevel === 2 && Math.random() < 0.35) {
+    showToast(RAGE_MSGS[1][Math.floor(Math.random() * RAGE_MSGS[1].length)], '#ff6600');
+    showRageFace();
+  }
+}, 1000);
+
+// ── WANDER TRIGGER ───────────────────────────────────
+function triggerWander() {
+  if (wanderMode) return;
+  const text = editor.value;
+  if (text.trim().length === 0) return;
+
+  wanderMode = true;
+  editor.style.animation = '';
+  document.body.style.animation = '';
+  showToast('文字が逃げた！！', '#ff003c');
+  screenFlash('rgba(255,0,60,0.5)', 0.5);
+  triggerGlitch(2);
+
+  // Show wander container, hide editor text
+  editor.style.visibility = 'hidden';
+  wanderContainer.style.display = 'block';
+  whistleBtn.style.display = 'inline-block';
+  idleBar.style.transform = 'scaleX(0)';
+
+  // Build char objects
+  wanderChars = [];
+  const lines = text.split('\n');
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+
+  lines.forEach((line, li) => {
+    const homeY = EDITOR_PT + li * CHAR_H;
+    for (let ci = 0; ci < line.length; ci++) {
+      const ch = line[ci];
+      const homeX = EDITOR_PL + ci * CHAR_W;
+
+      const span = document.createElement('span');
+      span.className = 'wchar';
+      span.textContent = ch === ' ' ? '·' : ch;
+      if (ch === ' ') span.style.opacity = '0.25';
+
+      // Start position: scatter randomly
+      const sx = 20 + Math.random() * (vw - 40);
+      const sy = 10 + Math.random() * (vh - EDITOR_TOP_OFFSET - 30);
+      span.style.left = sx + 'px';
+      span.style.top  = sy + 'px';
+      wanderContainer.appendChild(span);
+
+      wanderChars.push({
+        el: span,
+        x: sx, y: sy,
+        vx: (Math.random() - 0.5) * 12,
+        vy: (Math.random() - 0.5) * 12,
+        homeX, homeY,
+        returning: false,
+        arrived: false,
+        li, ci
+      });
+    }
+  });
+
+  startWanderLoop();
+}
+
+function startWanderLoop() {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const maxY = vh - EDITOR_TOP_OFFSET;
+
+  function loop() {
+    if (!wanderMode) return;
+    let allArrived = true;
+
+    wanderChars.forEach(wc => {
+      if (wc.arrived) return;
+
+      if (wc.returning) {
+        const dx = wc.homeX - wc.x;
+        const dy = wc.homeY - wc.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 1.5) {
+          wc.x = wc.homeX; wc.y = wc.homeY;
+          wc.vx = 0; wc.vy = 0;
+          wc.arrived = true;
+          wc.el.style.left = wc.x + 'px';
+          wc.el.style.top  = wc.y + 'px';
+          return;
+        }
+        // Attraction force
+        const f = Math.min(dist * 0.12, 10);
+        wc.vx += (dx / dist) * f * 0.35;
+        wc.vy += (dy / dist) * f * 0.35;
+        wc.vx *= 0.78;
+        wc.vy *= 0.78;
+        allArrived = false;
+      } else {
+        // Wandering physics
+        wc.vx += (Math.random() - 0.5) * 0.7;
+        wc.vy += (Math.random() - 0.5) * 0.7;
+        // Soft boundary repulsion
+        if (wc.x < 10)       wc.vx += 0.8;
+        if (wc.x > vw - 12)  wc.vx -= 0.8;
+        if (wc.y < 5)        wc.vy += 0.8;
+        if (wc.y > maxY - 5) wc.vy -= 0.8;
+        // Speed cap
+        const spd = Math.sqrt(wc.vx * wc.vx + wc.vy * wc.vy);
+        if (spd > 5) { wc.vx *= 5 / spd; wc.vy *= 5 / spd; }
+        wc.vx *= 0.97; wc.vy *= 0.97;
+        allArrived = false;
+      }
+
+      wc.x += wc.vx;
+      wc.y += wc.vy;
+      wc.el.style.left = wc.x + 'px';
+      wc.el.style.top  = wc.y + 'px';
+    });
+
+    // All home → restore editor
+    if (allArrived && wanderChars.some(w => w.returning)) {
+      finishReturn();
+      return;
+    }
+
+    wanderRAF = requestAnimationFrame(loop);
+  }
+  wanderRAF = requestAnimationFrame(loop);
+}
+
+function finishReturn() {
+  cancelAnimationFrame(wanderRAF);
+  wanderContainer.innerHTML = '';
+  wanderContainer.style.display = 'none';
+  wanderChars = [];
+  wanderMode = false;
+  rageLevel = 0;
+  editor.style.visibility = 'visible';
+  whistleBtn.style.display = 'none';
+  lastActivity = Date.now();
+  editor.focus();
+  showToast('全員帰還！！', '#00ff88');
+  spawnParticles(window.innerWidth / 2, window.innerHeight / 2, 50, 'star');
+  screenFlash('rgba(0,255,136,0.2)', 0.2);
+}
+
+// ── WHISTLE ──────────────────────────────────────────
+function blowWhistle() {
+  if (!wanderMode) return;
+
+  // Web Audio whistle tone
+  try {
+    const actx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc  = actx.createOscillator();
+    const gain = actx.createGain();
+    osc.connect(gain); gain.connect(actx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(1800, actx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(2600, actx.currentTime + 0.08);
+    osc.frequency.exponentialRampToValueAtTime(1500, actx.currentTime + 0.45);
+    gain.gain.setValueAtTime(0.35, actx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.5);
+    osc.start(actx.currentTime);
+    osc.stop(actx.currentTime + 0.5);
+  } catch(e) {}
+
+  // Shockwave from whistle button
+  const br = whistleBtn.getBoundingClientRect();
+  const bx = br.left + br.width / 2;
+  const by = br.top  + br.height / 2;
+  createShockwave(bx, by, '#00ff88');
+  createRipple(bx, by, 'rgba(0,255,136,0.5)');
+  screenFlash('rgba(0,255,136,0.18)', 0.18);
+  showToast('集合せよ！！', '#00ff88');
+
+  // Stagger return in reading order
+  const sorted = [...wanderChars].sort((a, b) =>
+    a.li !== b.li ? a.li - b.li : a.ci - b.ci
+  );
+  sorted.forEach((wc, i) => {
+    setTimeout(() => { wc.returning = true; }, i * 6);
+  });
+}
+
+// Also reset idle on click
+editor.addEventListener('click', resetIdle);
+
+// ═══════════════════════════════════════════════════════
+// Initial greeting
+setTimeout(()=>{
+  showToast('CHAOS EDITOR READY','#00ff88');
+  screenFlash('rgba(0,255,136,0.2)',0.2);
+},300);
+</script>
+</body>
+</html>

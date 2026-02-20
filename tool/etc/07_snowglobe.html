@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Snow Globe</title>
+<style>
+  :root {
+    --night:   #06090f;
+    --gold:    #c8a96a;
+    --gold-hi: #f0d090;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: radial-gradient(ellipse at 50% 30%, #0d1b3e 0%, #06090f 70%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Palatino Linotype', Palatino, Georgia, serif;
+    overflow: hidden;
+  }
+
+  /* Ambient light effect */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse 600px 400px at 50% 60%, rgba(30,60,130,0.18), transparent);
+    pointer-events: none;
+  }
+
+  .label {
+    color: var(--gold);
+    font-size: 11px;
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    margin-bottom: 28px;
+    opacity: 0.75;
+  }
+
+  /* ── Globe wrapper ── */
+  .globe-wrap {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+
+  /* Shake animation */
+  @keyframes shake {
+    0%   { transform: translateX(0); }
+    15%  { transform: translateX(-8px) rotate(-2deg); }
+    30%  { transform: translateX( 8px) rotate( 2deg); }
+    45%  { transform: translateX(-5px) rotate(-1deg); }
+    60%  { transform: translateX( 5px) rotate( 1deg); }
+    75%  { transform: translateX(-2px); }
+    100% { transform: translateX(0); }
+  }
+  .globe-wrap.shaking {
+    animation: shake 0.45s ease;
+  }
+
+  /* ── Glass sphere ── */
+  .globe {
+    position: relative;
+    width: 300px;
+    height: 300px;
+    border-radius: 50%;
+    overflow: hidden;
+
+    /* Layered glass shadows */
+    box-shadow:
+      0 0 0 1.5px rgba(180,210,255,0.12),
+      0 0 0 4px   rgba(80,130,200,0.06),
+      0 30px 80px rgba(0,5,30,0.85),
+      0  8px 20px rgba(0,10,50,0.6),
+      inset 0 0 60px rgba(0,15,70,0.35);
+  }
+
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Primary highlight – top-left glint */
+  .globe::before {
+    content: '';
+    position: absolute;
+    top: 7%;
+    left: 10%;
+    width: 38%;
+    height: 35%;
+    background: radial-gradient(ellipse at 35% 30%,
+      rgba(255,255,255,0.28) 0%,
+      rgba(255,255,255,0.04) 55%,
+      transparent 100%);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  /* Secondary caustic – bottom-right */
+  .globe::after {
+    content: '';
+    position: absolute;
+    bottom: 8%;
+    right: 12%;
+    width: 22%;
+    height: 12%;
+    background: radial-gradient(ellipse,
+      rgba(160,200,255,0.18) 0%,
+      transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  /* ── Base ── */
+  .neck {
+    width: 120px;
+    height: 14px;
+    background: linear-gradient(180deg, #2a1a10 0%, #1a0e08 100%);
+    margin-top: -2px;
+    clip-path: polygon(8% 0%, 92% 0%, 100% 100%, 0% 100%);
+  }
+
+  .base {
+    width: 240px;
+    height: 58px;
+    background: linear-gradient(175deg, #3d2415 0%, #1a0e08 60%, #0e0806 100%);
+    border-radius: 6px 6px 16px 16px;
+    position: relative;
+    box-shadow:
+      0 12px 40px rgba(0,0,0,0.8),
+      0  4px 10px rgba(0,0,0,0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Gold rim on top of base */
+  .base::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg,
+      transparent 2%,
+      var(--gold) 20%,
+      var(--gold-hi) 50%,
+      var(--gold) 80%,
+      transparent 98%);
+    opacity: 0.9;
+  }
+
+  /* Base wood grain lines */
+  .base::after {
+    content: '';
+    position: absolute;
+    inset: 6px 12px;
+    background: repeating-linear-gradient(
+      175deg,
+      transparent 0px,
+      transparent 5px,
+      rgba(0,0,0,0.08) 5px,
+      rgba(0,0,0,0.08) 6px
+    );
+    border-radius: 0 0 10px 10px;
+    pointer-events: none;
+  }
+
+  .base-label {
+    position: relative;
+    z-index: 1;
+    color: var(--gold);
+    font-size: 12px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    opacity: 0.85;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+  }
+
+  .hint {
+    color: rgba(255,255,255,0.22);
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-top: 22px;
+    transition: opacity 0.3s;
+  }
+  .globe-wrap:hover .hint { opacity: 0; }
+
+  /* ── Lighting switcher ── */
+  .lights {
+    display: flex;
+    gap: 10px;
+    margin-top: 28px;
+  }
+  .light-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: transform 0.2s, border-color 0.2s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .light-btn:hover  { transform: scale(1.18); }
+  .light-btn.active { border-color: rgba(255,255,255,0.75); transform: scale(1.18); }
+  .light-btn.night   { background: radial-gradient(circle at 35% 35%, #2a5ab8, #06091a); }
+  .light-btn.golden  { background: radial-gradient(circle at 35% 35%, #e8a840, #5a2a08); }
+  .light-btn.aurora  { background: radial-gradient(circle at 35% 35%, #30c090, #0c2040); }
+  .light-btn.dusk    { background: radial-gradient(circle at 35% 35%, #c060c0, #1a0830); }
+</style>
+</head>
+<body>
+
+<div class="label">Collection Series</div>
+
+<div class="globe-wrap" id="wrap">
+  <div class="globe" id="globe">
+    <canvas id="c" width="300" height="300"></canvas>
+  </div>
+  <div class="neck"></div>
+  <div class="base"><span class="base-label">Winter Scene</span></div>
+</div>
+
+<div class="hint">— click to shake —</div>
+
+<div class="lights">
+  <button class="light-btn night  active" data-mode="night"  title="Night"></button>
+  <button class="light-btn golden"        data-mode="golden" title="Golden Hour"></button>
+  <button class="light-btn aurora"        data-mode="aurora" title="Aurora"></button>
+  <button class="light-btn dusk"          data-mode="dusk"   title="Dusk"></button>
+</div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('c');
+  const ctx    = canvas.getContext('2d');
+  const W = 300, H = 300;
+  const CX = W / 2, CY = H / 2;
+  const GLOBE_R = 147;      // physical snow area radius
+  const FLOOR_Y = CY + 80; // y-coord of flat ground
+
+  // ── Physics constants ──────────────────────────────
+  const GRAVITY   = 0.048;
+  const BOUNCE    = 0.18;   // wall restitution
+  const FLOOR_BNC = 0.10;   // floor restitution
+  const AIR_DRAG  = 0.994;
+  const FLOOR_FRX = 0.82;
+  const N         = 140;
+
+  // ── Flakes ─────────────────────────────────────────
+  const flakes = [];
+
+  function makeFlake(settled) {
+    const r  = 1.0 + Math.random() * 2.2;
+    // Place settled ones on ground area
+    const px = CX + (Math.random() - 0.5) * GLOBE_R * 1.6;
+    const py = settled ? FLOOR_Y + Math.random() * 5 : CY - GLOBE_R * 0.3 + Math.random() * GLOBE_R * 0.6;
+    return { x: px, y: py, vx: 0, vy: 0, r,
+             opacity: 0.55 + Math.random() * 0.45,
+             twinkle: Math.random() * Math.PI * 2 };
+  }
+
+  for (let i = 0; i < N; i++) flakes.push(makeFlake(true));
+
+  function shake() {
+    flakes.forEach(f => {
+      f.vx = (Math.random() - 0.5) * 4.5;
+      f.vy = -Math.random() * 7 - 1.5;
+    });
+  }
+
+  function updateFlakes() {
+    flakes.forEach(f => {
+      // Gravity
+      f.vy += GRAVITY;
+      f.x  += f.vx;
+      f.y  += f.vy;
+
+      // ── Sphere boundary ──
+      const dx   = f.x - CX;
+      const dy   = f.y - CY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const lim  = GLOBE_R - f.r - 0.5;
+
+      if (dist > lim) {
+        const nx = dx / dist, ny = dy / dist;
+        const dot = f.vx * nx + f.vy * ny;
+        f.vx = (f.vx - 2 * dot * nx) * BOUNCE;
+        f.vy = (f.vy - 2 * dot * ny) * BOUNCE;
+        f.x  = CX + nx * lim;
+        f.y  = CY + ny * lim;
+      }
+
+      // ── Floor ──
+      if (f.y + f.r > FLOOR_Y) {
+        f.y  = FLOOR_Y - f.r;
+        f.vy = -Math.abs(f.vy) * FLOOR_BNC;
+        f.vx *= FLOOR_FRX;
+      }
+
+      // Air drag
+      f.vx *= AIR_DRAG;
+      f.vy *= AIR_DRAG;
+
+      f.twinkle += 0.04;
+    });
+  }
+
+  // ── Lighting modes ─────────────────────────────────
+  const MODES = {
+    night:  {
+      sky0: '#1c3f80', sky1: '#0c1e4a', sky2: '#04091a',
+      hill0: '#8aaed8', hill1: '#6b93c5', hill2: '#4a6ea0',
+      gnd0: '#e6f2ff', gnd1: '#cce0f5', gnd2: '#9bbbd8', gnd3: '#6a96c0',
+      gndHi: 'rgba(255,255,255,0.55)',
+      flake: '210,235,255', rim: '5,20,70',
+      body: 'radial-gradient(ellipse at 50% 30%, #0d1b3e 0%, #06090f 70%)',
+    },
+    golden: {
+      sky0: '#7a4020', sky1: '#3d1c08', sky2: '#120804',
+      hill0: '#c8845a', hill1: '#a06035', hill2: '#6a3818',
+      gnd0: '#fff0d0', gnd1: '#f5d898', gnd2: '#d0a860', gnd3: '#906030',
+      gndHi: 'rgba(255,240,180,0.65)',
+      flake: '255,240,210', rim: '60,20,0',
+      body: 'radial-gradient(ellipse at 50% 30%, #3a1808 0%, #100404 70%)',
+    },
+    aurora: {
+      sky0: '#0c4030', sky1: '#082818', sky2: '#020c08',
+      hill0: '#4ab89a', hill1: '#2a8870', hill2: '#1a5848',
+      gnd0: '#d0fff0', gnd1: '#a0e8d0', gnd2: '#60c0a8', gnd3: '#309080',
+      gndHi: 'rgba(160,255,220,0.55)',
+      flake: '180,255,230', rim: '0,30,20',
+      body: 'radial-gradient(ellipse at 50% 30%, #082818 0%, #020808 70%)',
+    },
+    dusk:   {
+      sky0: '#8030a0', sky1: '#3a1060', sky2: '#100820',
+      hill0: '#c078d8', hill1: '#8848a8', hill2: '#502870',
+      gnd0: '#f0d8ff', gnd1: '#d8b0f8', gnd2: '#b070d8', gnd3: '#804098',
+      gndHi: 'rgba(240,200,255,0.55)',
+      flake: '240,210,255', rim: '30,0,50',
+      body: 'radial-gradient(ellipse at 50% 30%, #3a0c50 0%, #0e0418 70%)',
+    },
+  };
+  let currentMode = 'night';
+
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function parseRGB(s) { return s.split(',').map(Number); }
+
+  // Smooth transition
+  let modeFrom = MODES.night, modeTo = MODES.night, modeT = 1;
+
+  function blendColor(key) {
+    if (modeT >= 1) return modeTo[key];
+    // For simple hex/rgba strings just snap; only blend for flake/rim as rgb strings
+    return modeT > 0.5 ? modeTo[key] : modeFrom[key];
+  }
+  function blendRGB(key) {
+    const from = parseRGB(modeFrom[key]);
+    const to   = parseRGB(modeTo[key]);
+    const t    = modeT;
+    return `${Math.round(lerp(from[0],to[0],t))},${Math.round(lerp(from[1],to[1],t))},${Math.round(lerp(from[2],to[2],t))}`;
+  }
+
+  function setMode(name) {
+    if (name === currentMode) return;
+    modeFrom = modeT < 1
+      ? { ...modeTo }
+      : { ...MODES[currentMode] };
+    modeTo   = MODES[name];
+    modeT    = 0;
+    currentMode = name;
+
+    // Update body background
+    document.body.style.background = modeTo.body;
+
+    // Button active states
+    document.querySelectorAll('.light-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.mode === name);
+    });
+  }
+
+  // ── Scene drawing ──────────────────────────────────
+  function drawBackground() {
+    const m = modeTo;
+    const sky = ctx.createRadialGradient(CX, CY - 20, 0, CX, CY, GLOBE_R);
+    sky.addColorStop(0.0, m.sky0);
+    sky.addColorStop(0.6, m.sky1);
+    sky.addColorStop(1.0, m.sky2);
+    ctx.fillStyle = sky;
+    ctx.beginPath();
+    ctx.arc(CX, CY, GLOBE_R, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Tiny twinkling stars
+  const starData = [
+    [68,52,1.0],[198,44,0.8],[246,60,0.9],[54,90,0.7],
+    [175,38,1.0],[128,68,0.6],[258,88,0.9],[95,38,0.8],
+    [222,110,0.7],[155,80,0.9],[80,118,0.6],[210,30,1.0],
+    [140,55,0.7],[38,78,0.8],[265,45,0.6]
+  ];
+  let starPhase = 0;
+
+  function drawStars() {
+    starPhase += 0.02;
+    const m = modeTo;
+    starData.forEach(([sx, sy, base], i) => {
+      const t = 0.5 + 0.5 * Math.sin(starPhase + i * 0.9);
+      ctx.beginPath();
+      ctx.arc(sx, sy, 1.1, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${m.flake},${base * (0.4 + 0.6 * t)})`;
+      ctx.fill();
+    });
+  }
+
+  // Distant snow-covered hills
+  function drawHills() {
+    const m = modeTo;
+    const grad = ctx.createLinearGradient(0, FLOOR_Y - 35, 0, FLOOR_Y + 20);
+    grad.addColorStop(0,   m.hill0);
+    grad.addColorStop(0.5, m.hill1);
+    grad.addColorStop(1,   m.hill2);
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(CX - GLOBE_R, FLOOR_Y + 30);
+    ctx.bezierCurveTo(CX - GLOBE_R * 0.9, FLOOR_Y - 10,
+                      CX - GLOBE_R * 0.4, FLOOR_Y - 24,
+                      CX - GLOBE_R * 0.15, FLOOR_Y - 18);
+    ctx.bezierCurveTo(CX + GLOBE_R * 0.1,  FLOOR_Y - 30,
+                      CX + GLOBE_R * 0.5,  FLOOR_Y - 20,
+                      CX + GLOBE_R,         FLOOR_Y + 30);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // Main ground
+  function drawGround() {
+    const m = modeTo;
+    const g = ctx.createLinearGradient(0, FLOOR_Y - 8, 0, FLOOR_Y + 50);
+    g.addColorStop(0,    m.gnd0);
+    g.addColorStop(0.25, m.gnd1);
+    g.addColorStop(0.7,  m.gnd2);
+    g.addColorStop(1,    m.gnd3);
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(0, FLOOR_Y + 50);
+    ctx.lineTo(0, FLOOR_Y);
+    ctx.bezierCurveTo(CX * 0.4, FLOOR_Y - 6, CX * 0.8, FLOOR_Y - 10, CX, FLOOR_Y - 8);
+    ctx.bezierCurveTo(CX * 1.2, FLOOR_Y - 10, CX * 1.6, FLOOR_Y - 6, W, FLOOR_Y);
+    ctx.lineTo(W, FLOOR_Y + 50);
+    ctx.closePath();
+    ctx.fill();
+
+    // Snow surface highlight
+    ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(CX - 100, FLOOR_Y - 3);
+    ctx.bezierCurveTo(CX - 50, FLOOR_Y - 9, CX + 50, FLOOR_Y - 9, CX + 100, FLOOR_Y - 3);
+    ctx.stroke();
+  }
+
+  // Christmas tree
+  function drawTree() {
+    const tx = CX + 20, ty = FLOOR_Y - 8;
+    const layers = [
+      { dy:  0, w: 50, h: 26 },
+      { dy:-22, w: 39, h: 24 },
+      { dy:-43, w: 29, h: 22 },
+      { dy:-62, w: 19, h: 19 },
+    ];
+
+    // Trunk
+    const trunkGrad = ctx.createLinearGradient(tx - 5, 0, tx + 5, 0);
+    trunkGrad.addColorStop(0, '#2a1505');
+    trunkGrad.addColorStop(0.5, '#5c3010');
+    trunkGrad.addColorStop(1, '#2a1505');
+    ctx.fillStyle = trunkGrad;
+    ctx.fillRect(tx - 5, ty - 68, 10, 42);
+
+    layers.forEach((l, i) => {
+      const lTop = ty + l.dy - l.h;
+      const lBot = ty + l.dy;
+
+      // Green body
+      const tg = ctx.createLinearGradient(tx - l.w / 2, lBot, tx + l.w / 2, lBot);
+      tg.addColorStop(0, '#163616');
+      tg.addColorStop(0.45, '#2e7030');
+      tg.addColorStop(1,   '#122812');
+      ctx.fillStyle = tg;
+      ctx.beginPath();
+      ctx.moveTo(tx, lTop);
+      ctx.lineTo(tx + l.w / 2, lBot);
+      ctx.lineTo(tx - l.w / 2, lBot);
+      ctx.closePath();
+      ctx.fill();
+
+      // Dark edge shading
+      ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+
+      // Snow cap
+      const snowH = l.h * 0.42;
+      ctx.fillStyle = 'rgba(215,235,255,0.88)';
+      ctx.beginPath();
+      ctx.moveTo(tx, lTop - 1);
+      const sw = l.w * 0.42;
+      ctx.lineTo(tx + sw, lTop + snowH);
+      ctx.lineTo(tx - sw, lTop + snowH);
+      ctx.closePath();
+      ctx.fill();
+
+      // Snow droop on branch tips
+      ctx.fillStyle = 'rgba(200,225,250,0.70)';
+      ctx.beginPath();
+      ctx.moveTo(tx + l.w / 2, lBot);
+      ctx.lineTo(tx + l.w / 2 + 2, lBot + 4);
+      ctx.lineTo(tx + l.w / 2 - 6, lBot);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(tx - l.w / 2, lBot);
+      ctx.lineTo(tx - l.w / 2 - 2, lBot + 4);
+      ctx.lineTo(tx - l.w / 2 + 6, lBot);
+      ctx.closePath();
+      ctx.fill();
+    });
+
+    // Star topper
+    const starY = ty - 62 - 19 - 3;
+    ctx.save();
+    ctx.translate(tx, starY);
+    ctx.fillStyle = '#f8e060';
+    ctx.shadowColor = 'rgba(255,230,60,0.8)';
+    ctx.shadowBlur   = 8;
+    ctx.beginPath();
+    for (let i = 0; i < 5; i++) {
+      const a1 = (i * 4 * Math.PI / 5) - Math.PI / 2;
+      const a2 = (i * 4 * Math.PI / 5 + 2 * Math.PI / 5) - Math.PI / 2;
+      ctx.lineTo(Math.cos(a1) * 7,   Math.sin(a1) * 7);
+      ctx.lineTo(Math.cos(a2) * 2.8, Math.sin(a2) * 2.8);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+
+    // Ornament lights (tiny colored dots)
+    const lights = [
+      { x: tx - 18, y: ty - 12, c: '#ff4040' },
+      { x: tx + 14, y: ty - 22, c: '#40c0ff' },
+      { x: tx - 6,  y: ty - 32, c: '#ffe040' },
+      { x: tx + 6,  y: ty - 48, c: '#ff4040' },
+      { x: tx - 10, y: ty - 52, c: '#60ff60' },
+    ];
+    lights.forEach(l => {
+      ctx.save();
+      ctx.shadowColor = l.c;
+      ctx.shadowBlur  = 5;
+      ctx.fillStyle   = l.c;
+      ctx.beginPath();
+      ctx.arc(l.x, l.y, 2.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    });
+  }
+
+  // Small snowman
+  function drawSnowman() {
+    const mx = CX - 68, my = FLOOR_Y - 7;
+
+    // Shadow
+    ctx.fillStyle = 'rgba(0,20,60,0.3)';
+    ctx.beginPath();
+    ctx.ellipse(mx, my, 14, 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Bottom ball
+    ctx.fillStyle = '#d8eeff';
+    ctx.shadowColor = 'rgba(0,30,80,0.25)';
+    ctx.shadowBlur = 4;
+    ctx.beginPath();
+    ctx.arc(mx, my - 12, 12, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Top ball
+    ctx.beginPath();
+    ctx.arc(mx, my - 30, 9, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Eyes
+    ctx.fillStyle = '#1a2a40';
+    ctx.beginPath(); ctx.arc(mx - 3, my - 32, 1.3, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(mx + 3, my - 32, 1.3, 0, Math.PI * 2); ctx.fill();
+
+    // Carrot nose
+    ctx.fillStyle = '#e06010';
+    ctx.beginPath();
+    ctx.moveTo(mx, my - 30);
+    ctx.lineTo(mx + 5, my - 29.5);
+    ctx.lineTo(mx, my - 28.5);
+    ctx.closePath();
+    ctx.fill();
+
+    // Scarf
+    ctx.fillStyle = '#c03030';
+    ctx.fillRect(mx - 9, my - 22, 18, 3.5);
+
+    // Buttons
+    ctx.fillStyle = '#3a3a50';
+    [my - 14, my - 10, my - 6].forEach(by => {
+      ctx.beginPath();
+      ctx.arc(mx, by, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  }
+
+  // ── Snow flake rendering ───────────────────────────
+  function drawFlakes() {
+    const rgb = blendRGB('flake');
+    flakes.forEach(f => {
+      // Soft glow for larger flakes
+      if (f.r > 1.8) {
+        const g = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, f.r * 2.5);
+        g.addColorStop(0,   `rgba(${rgb},${f.opacity * 0.8})`);
+        g.addColorStop(0.5, `rgba(${rgb},${f.opacity * 0.3})`);
+        g.addColorStop(1,    `rgba(${rgb},0)`);
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(f.x, f.y, f.r * 2.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.beginPath();
+      ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${rgb},${f.opacity})`;
+      ctx.fill();
+    });
+  }
+
+  // Inner rim vignette
+  function drawRim() {
+    const m = modeTo;
+    const rim = ctx.createRadialGradient(CX, CY, GLOBE_R * 0.80, CX, CY, GLOBE_R);
+    rim.addColorStop(0, 'transparent');
+    rim.addColorStop(1, `rgba(${m.rim},0.55)`);
+    ctx.fillStyle = rim;
+    ctx.beginPath();
+    ctx.arc(CX, CY, GLOBE_R, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // ── Main loop ──────────────────────────────────────
+  function frame() {
+    ctx.clearRect(0, 0, W, H);
+
+    // Advance transition
+    if (modeT < 1) modeT = Math.min(1, modeT + 0.04);
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(CX, CY, GLOBE_R, 0, Math.PI * 2);
+    ctx.clip();
+
+    drawBackground();
+    drawStars();
+    drawHills();
+    drawGround();
+    drawTree();
+    drawSnowman();
+    drawFlakes();
+    drawRim();
+
+    ctx.restore();
+
+    updateFlakes();
+    requestAnimationFrame(frame);
+  }
+
+  frame();
+
+  // ── Interactions ───────────────────────────────────
+  const wrap = document.getElementById('wrap');
+
+  wrap.addEventListener('click', () => {
+    shake();
+    wrap.classList.remove('shaking');
+    void wrap.offsetWidth; // reflow to restart anim
+    wrap.classList.add('shaking');
+    wrap.addEventListener('animationend', () => wrap.classList.remove('shaking'), { once: true });
+  });
+
+  // Auto-shake on load
+  setTimeout(shake, 600);
+
+  // ── Lighting buttons ───────────────────────────────
+  document.querySelectorAll('.light-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      setMode(btn.dataset.mode);
+    });
+  });
+})();
+</script>
+</body>
+</html>

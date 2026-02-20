@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PRISM BREAKER</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
+
+  :root {
+    --bg: #06070f;
+    --surface: #0d1021;
+    --glow-blue: #00d4ff;
+    --glow-purple: #bf5fff;
+    --glow-gold: #ffd166;
+    --glow-green: #06ffa5;
+    --glow-red: #ff4757;
+    --text: #e8eaf0;
+    --dim: #4a5080;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'Orbitron', sans-serif;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  /* Animated background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    animation: gridShift 20s linear infinite;
+    pointer-events: none;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 40% at 20% 50%, rgba(191,95,255,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 60% at 80% 30%, rgba(0,212,255,0.06) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  @keyframes gridShift {
+    0% { transform: translate(0,0); }
+    100% { transform: translate(40px, 40px); }
+  }
+
+  #wrapper {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    z-index: 1;
+  }
+
+  /* Header */
+  #header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 480px;
+  }
+
+  .brand {
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 6px;
+    color: var(--glow-blue);
+    text-shadow: 0 0 20px var(--glow-blue), 0 0 40px rgba(0,212,255,0.3);
+  }
+
+  .stats {
+    display: flex;
+    gap: 24px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--dim);
+  }
+
+  .stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+  }
+
+  .stat-label {
+    font-size: 8px;
+    letter-spacing: 2px;
+    color: var(--dim);
+  }
+
+  .stat-value {
+    font-size: 16px;
+    color: var(--text);
+    transition: color 0.2s, text-shadow 0.2s;
+  }
+
+  .stat-value.flash {
+    color: var(--glow-gold);
+    text-shadow: 0 0 12px var(--glow-gold);
+  }
+
+  /* Canvas container */
+  #canvas-wrap {
+    position: relative;
+    border: 1px solid rgba(0,212,255,0.15);
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow:
+      0 0 0 1px rgba(0,212,255,0.05),
+      0 0 40px rgba(0,212,255,0.08),
+      0 0 80px rgba(191,95,255,0.06),
+      inset 0 0 60px rgba(0,0,0,0.6);
+  }
+
+  canvas {
+    display: block;
+    background: var(--surface);
+  }
+
+  /* Scanline overlay */
+  #canvas-wrap::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.06) 2px,
+      rgba(0,0,0,0.06) 4px
+    );
+    pointer-events: none;
+    border-radius: 4px;
+  }
+
+  /* Lives indicator */
+  #lives {
+    display: flex;
+    gap: 8px;
+    width: 480px;
+    justify-content: flex-start;
+    align-items: center;
+  }
+
+  .life-pip {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--glow-blue);
+    box-shadow: 0 0 8px var(--glow-blue), 0 0 16px rgba(0,212,255,0.4);
+    transition: all 0.3s;
+  }
+
+  .life-pip.dead {
+    background: rgba(255,255,255,0.1);
+    box-shadow: none;
+  }
+
+  .life-label {
+    font-size: 8px;
+    letter-spacing: 3px;
+    color: var(--dim);
+    margin-right: 4px;
+  }
+
+  /* Overlay screens */
+  #overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    background: rgba(6,7,15,0.88);
+    backdrop-filter: blur(2px);
+    transition: opacity 0.4s;
+    z-index: 10;
+  }
+
+  #overlay.hidden { opacity: 0; pointer-events: none; }
+
+  .overlay-title {
+    font-size: 28px;
+    font-weight: 900;
+    letter-spacing: 6px;
+    color: var(--text);
+    text-shadow: 0 0 30px var(--glow-blue), 0 0 60px rgba(0,212,255,0.3);
+  }
+
+  .overlay-sub {
+    font-size: 9px;
+    letter-spacing: 4px;
+    color: var(--dim);
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  .start-btn {
+    margin-top: 8px;
+    padding: 10px 32px;
+    background: transparent;
+    border: 1px solid var(--glow-blue);
+    color: var(--glow-blue);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 10px;
+    letter-spacing: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    box-shadow: 0 0 12px rgba(0,212,255,0.2), inset 0 0 12px rgba(0,212,255,0.05);
+  }
+
+  .start-btn:hover {
+    background: rgba(0,212,255,0.08);
+    box-shadow: 0 0 24px rgba(0,212,255,0.4), inset 0 0 20px rgba(0,212,255,0.1);
+    color: #fff;
+  }
+
+  .score-display {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 36px;
+    color: var(--glow-gold);
+    text-shadow: 0 0 20px var(--glow-gold);
+    letter-spacing: 4px;
+  }
+
+  .final-label {
+    font-size: 8px;
+    letter-spacing: 4px;
+    color: var(--glow-gold);
+    opacity: 0.6;
+  }
+</style>
+</head>
+<body>
+
+<div id="wrapper">
+  <div id="header">
+    <div class="brand">PRISM BREAKER</div>
+    <div class="stats">
+      <div class="stat-item">
+        <span class="stat-label">SCORE</span>
+        <span class="stat-value" id="scoreDisplay">0</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">BEST</span>
+        <span class="stat-value" id="bestDisplay">0</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">LEVEL</span>
+        <span class="stat-value" id="levelDisplay">1</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="canvas-wrap">
+    <canvas id="game" width="480" height="560"></canvas>
+
+    <div id="overlay">
+      <div class="overlay-title" id="overlayTitle">PRISM BREAKER</div>
+      <div class="overlay-sub" id="overlaySub">MOUSE · TOUCH TO CONTROL</div>
+      <div class="score-display" id="overlayScore" style="display:none"></div>
+      <div class="final-label" id="overlayScoreLabel" style="display:none">FINAL SCORE</div>
+      <button class="start-btn" id="startBtn">START GAME</button>
+    </div>
+  </div>
+
+  <div id="lives">
+    <span class="life-label">LIVES</span>
+    <div class="life-pip" id="l0"></div>
+    <div class="life-pip" id="l1"></div>
+    <div class="life-pip" id="l2"></div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+
+// ─── State ─────────────────────────────────────────────────────────────────
+let state = 'idle'; // idle | playing | paused | dead | win
+let score = 0, best = 0, lives = 3, level = 1;
+let particles = [], floatingTexts = [];
+let bgStars = [];
+
+// Paddle
+const pad = { x: W/2, y: H - 36, w: 80, h: 10, target: W/2, speed: 0 };
+
+// Ball
+function makeBall() {
+  return {
+    x: W/2, y: H - 80,
+    vx: (Math.random() > 0.5 ? 1 : -1) * (3.5 + level * 0.3),
+    vy: -(4 + level * 0.2),
+    r: 6,
+    trail: [],
+    glowPhase: 0
+  };
+}
+let ball = makeBall();
+let ballLaunched = false;
+
+// Bricks
+const COLS = 10, ROWS = 6;
+const BW = 40, BH = 16, BPADX = 4, BPADY = 5;
+const BOFFX = (W - (COLS * (BW + BPADX) - BPADX)) / 2;
+const BOFFY = 52;
+
+const BRICK_TYPES = [
+  { hp: 1, color: '#00d4ff', glow: 'rgba(0,212,255,0.8)', pts: 10 },
+  { hp: 1, color: '#06ffa5', glow: 'rgba(6,255,165,0.8)', pts: 15 },
+  { hp: 2, color: '#bf5fff', glow: 'rgba(191,95,255,0.8)', pts: 25 },
+  { hp: 2, color: '#ffd166', glow: 'rgba(255,209,102,0.8)', pts: 30 },
+  { hp: 3, color: '#ff4757', glow: 'rgba(255,71,87,0.8)',   pts: 50 },
+];
+
+let bricks = [];
+
+function initBricks() {
+  bricks = [];
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const typeIdx = Math.min(Math.floor(r / 1.4), BRICK_TYPES.length - 1);
+      const t = BRICK_TYPES[typeIdx];
+      bricks.push({
+        x: BOFFX + c * (BW + BPADX),
+        y: BOFFY + r * (BH + BPADY),
+        w: BW, h: BH,
+        hp: t.hp + (level > 3 ? 1 : 0),
+        maxHp: t.hp + (level > 3 ? 1 : 0),
+        color: t.color,
+        glow: t.glow,
+        pts: t.pts * level,
+        alive: true,
+        shakeX: 0, shakeTimer: 0,
+        crack: 0,
+        shimmer: Math.random() * Math.PI * 2
+      });
+    }
+  }
+}
+
+// Background stars
+function initStars() {
+  bgStars = Array.from({length: 80}, () => ({
+    x: Math.random() * W, y: Math.random() * H,
+    r: Math.random() * 1.2,
+    a: Math.random(),
+    speed: 0.002 + Math.random() * 0.004
+  }));
+}
+
+// ─── Particles ─────────────────────────────────────────────────────────────
+function spawnParticles(x, y, color, count = 12) {
+  for (let i = 0; i < count; i++) {
+    const angle = (Math.PI * 2 / count) * i + Math.random() * 0.5;
+    const speed = 1.5 + Math.random() * 3;
+    particles.push({
+      x, y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      color,
+      life: 1,
+      decay: 0.025 + Math.random() * 0.02,
+      r: 1.5 + Math.random() * 2.5,
+      glow: true
+    });
+  }
+}
+
+function spawnSpark(x, y, color) {
+  for (let i = 0; i < 6; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 3 + Math.random() * 5;
+    particles.push({
+      x, y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      color,
+      life: 1,
+      decay: 0.04 + Math.random() * 0.04,
+      r: 0.8 + Math.random() * 1.5,
+      glow: false
+    });
+  }
+}
+
+function spawnFloatingText(x, y, text, color) {
+  floatingTexts.push({ x, y, text, color, life: 1, vy: -1.2 });
+}
+
+// ─── Controls ──────────────────────────────────────────────────────────────
+canvas.addEventListener('mousemove', e => {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = W / rect.width;
+  pad.target = (e.clientX - rect.left) * scaleX;
+});
+
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = W / rect.width;
+  pad.target = (e.touches[0].clientX - rect.left) * scaleX;
+}, { passive: false });
+
+canvas.addEventListener('click', () => {
+  if (state === 'playing' && !ballLaunched) ballLaunched = true;
+});
+
+canvas.addEventListener('touchend', () => {
+  if (state === 'playing' && !ballLaunched) ballLaunched = true;
+});
+
+// ─── UI ────────────────────────────────────────────────────────────────────
+const overlay   = document.getElementById('overlay');
+const overlayTitle = document.getElementById('overlayTitle');
+const overlaySub   = document.getElementById('overlaySub');
+const overlayScore = document.getElementById('overlayScore');
+const overlayScoreLabel = document.getElementById('overlayScoreLabel');
+const startBtn  = document.getElementById('startBtn');
+const scoreEl   = document.getElementById('scoreDisplay');
+const bestEl    = document.getElementById('bestDisplay');
+const levelEl   = document.getElementById('levelDisplay');
+
+startBtn.addEventListener('click', startGame);
+
+function updateUI() {
+  scoreEl.textContent = score;
+  bestEl.textContent = best;
+  levelEl.textContent = level;
+  for (let i = 0; i < 3; i++) {
+    document.getElementById('l' + i).classList.toggle('dead', i >= lives);
+  }
+}
+
+function flashScore() {
+  scoreEl.classList.add('flash');
+  setTimeout(() => scoreEl.classList.remove('flash'), 300);
+}
+
+function showOverlay(title, sub, showScore, btnText) {
+  overlayTitle.textContent = title;
+  overlaySub.textContent = sub;
+  if (showScore) {
+    overlayScore.style.display = 'block';
+    overlayScoreLabel.style.display = 'block';
+    overlayScore.textContent = score;
+  } else {
+    overlayScore.style.display = 'none';
+    overlayScoreLabel.style.display = 'none';
+  }
+  startBtn.textContent = btnText;
+  overlay.classList.remove('hidden');
+}
+
+function startGame() {
+  score = 0; lives = 3; level = 1;
+  initBricks();
+  resetBall();
+  particles = []; floatingTexts = [];
+  state = 'playing';
+  overlay.classList.add('hidden');
+  updateUI();
+}
+
+function resetBall() {
+  ball = makeBall();
+  ballLaunched = false;
+}
+
+function nextLevel() {
+  level++;
+  initBricks();
+  resetBall();
+  particles = []; floatingTexts = [];
+  updateUI();
+  // Burst celebration
+  for (let i = 0; i < 5; i++) {
+    setTimeout(() => {
+      spawnParticles(W/2, H/2, '#ffd166', 20);
+      spawnParticles(W/3, H/3, '#00d4ff', 12);
+      spawnParticles(2*W/3, H/3, '#bf5fff', 12);
+    }, i * 80);
+  }
+}
+
+// ─── Collision ─────────────────────────────────────────────────────────────
+function rectBallCollide(rx, ry, rw, rh, bx, by, br) {
+  const nearX = Math.max(rx, Math.min(bx, rx + rw));
+  const nearY = Math.max(ry, Math.min(by, ry + rh));
+  const dx = bx - nearX, dy = by - nearY;
+  return dx*dx + dy*dy < br*br;
+}
+
+// ─── Update ────────────────────────────────────────────────────────────────
+let lastTime = 0;
+
+function update(dt) {
+  if (state !== 'playing') return;
+
+  // Stars shimmer
+  bgStars.forEach(s => { s.a = 0.3 + 0.3 * Math.sin(Date.now() * s.speed); });
+
+  // Paddle
+  const diff = pad.target - pad.x;
+  pad.x += diff * 0.18;
+  pad.x = Math.max(pad.w/2, Math.min(W - pad.w/2, pad.x));
+
+  // Ball held on paddle
+  if (!ballLaunched) {
+    ball.x = pad.x;
+    ball.y = pad.y - pad.h/2 - ball.r;
+    ball.trail = [];
+    return;
+  }
+
+  // Trail
+  ball.trail.unshift({ x: ball.x, y: ball.y });
+  if (ball.trail.length > 14) ball.trail.pop();
+
+  ball.glowPhase += 0.08;
+  ball.x += ball.vx;
+  ball.y += ball.vy;
+
+  // Walls
+  if (ball.x - ball.r < 0)  { ball.x = ball.r;    ball.vx *= -1; wallFX(ball.x, ball.y); }
+  if (ball.x + ball.r > W)  { ball.x = W - ball.r; ball.vx *= -1; wallFX(ball.x, ball.y); }
+  if (ball.y - ball.r < 0)  { ball.y = ball.r;     ball.vy *= -1; wallFX(ball.x, ball.y); }
+
+  // Paddle collision
+  if (
+    ball.vy > 0 &&
+    ball.y + ball.r > pad.y - pad.h/2 &&
+    ball.y - ball.r < pad.y + pad.h/2 &&
+    ball.x > pad.x - pad.w/2 - 4 &&
+    ball.x < pad.x + pad.w/2 + 4
+  ) {
+    ball.vy = -Math.abs(ball.vy);
+    ball.y = pad.y - pad.h/2 - ball.r;
+    // Angle based on hit position
+    const rel = (ball.x - pad.x) / (pad.w / 2);
+    ball.vx = rel * 6;
+    const speed = Math.sqrt(ball.vx*ball.vx + ball.vy*ball.vy);
+    const minSpeed = 4 + level * 0.2;
+    if (speed < minSpeed) {
+      const scale = minSpeed / speed;
+      ball.vx *= scale; ball.vy *= scale;
+    }
+    // Cap max speed
+    const maxSpeed = 10;
+    if (speed > maxSpeed) {
+      ball.vx = ball.vx / speed * maxSpeed;
+      ball.vy = ball.vy / speed * maxSpeed;
+    }
+    spawnSpark(ball.x, ball.y, '#00d4ff');
+  }
+
+  // Ball lost
+  if (ball.y - ball.r > H) {
+    lives--;
+    updateUI();
+    if (lives <= 0) {
+      state = 'dead';
+      if (score > best) best = score;
+      updateUI();
+      setTimeout(() => showOverlay('GAME OVER', 'BETTER LUCK NEXT TIME', true, 'PLAY AGAIN'), 600);
+    } else {
+      resetBall();
+      spawnParticles(ball.x, H - 20, '#ff4757', 16);
+    }
+    return;
+  }
+
+  // Brick collision
+  let bricksLeft = 0;
+  for (const b of bricks) {
+    if (!b.alive) continue;
+    bricksLeft++;
+
+    if (!rectBallCollide(b.x, b.y, b.w, b.h, ball.x, ball.y, ball.r)) continue;
+
+    // Which face?
+    const overlapL = (ball.x + ball.r) - b.x;
+    const overlapR = (b.x + b.w) - (ball.x - ball.r);
+    const overlapT = (ball.y + ball.r) - b.y;
+    const overlapB = (b.y + b.h) - (ball.y - ball.r);
+    const minH = Math.min(overlapL, overlapR);
+    const minV = Math.min(overlapT, overlapB);
+    if (minH < minV) ball.vx *= -1; else ball.vy *= -1;
+
+    b.hp--;
+    b.shakeTimer = 8;
+    b.crack = 1 - b.hp / b.maxHp;
+
+    if (b.hp <= 0) {
+      b.alive = false;
+      score += b.pts;
+      if (score > best) best = score;
+      spawnParticles(b.x + b.w/2, b.y + b.h/2, b.color, 16);
+      spawnSpark(b.x + b.w/2, b.y + b.h/2, b.color);
+      spawnFloatingText(b.x + b.w/2, b.y, '+' + b.pts, b.color);
+      flashScore();
+      updateUI();
+    } else {
+      spawnSpark(b.x + b.w/2, b.y + b.h/2, b.color);
+    }
+    break; // one brick per frame
+  }
+
+  // Win?
+  if (bricksLeft === 0) {
+    nextLevel();
+  }
+
+  // Update brick shake
+  for (const b of bricks) {
+    if (b.shakeTimer > 0) {
+      b.shakeX = (Math.random() - 0.5) * 3;
+      b.shakeTimer--;
+    } else b.shakeX = 0;
+    b.shimmer += 0.03;
+  }
+
+  // Particles
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx; p.y += p.vy;
+    p.vy += 0.06;
+    p.life -= p.decay;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+
+  // Floating texts
+  for (let i = floatingTexts.length - 1; i >= 0; i--) {
+    const t = floatingTexts[i];
+    t.y += t.vy;
+    t.life -= 0.022;
+    if (t.life <= 0) floatingTexts.splice(i, 1);
+  }
+}
+
+function wallFX(x, y) {
+  spawnSpark(x, y, '#4a90d9');
+}
+
+// ─── Draw ──────────────────────────────────────────────────────────────────
+function draw(time) {
+  ctx.clearRect(0, 0, W, H);
+
+  // Background subtle vignette
+  const vg = ctx.createRadialGradient(W/2, H/2, 80, W/2, H/2, W*0.8);
+  vg.addColorStop(0, 'rgba(13,16,33,0)');
+  vg.addColorStop(1, 'rgba(0,0,0,0.5)');
+  ctx.fillStyle = vg;
+  ctx.fillRect(0, 0, W, H);
+
+  // Stars
+  for (const s of bgStars) {
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(200,220,255,${s.a})`;
+    ctx.fill();
+  }
+
+  // Bricks
+  for (const b of bricks) {
+    if (!b.alive) continue;
+    const bx = b.x + b.shakeX;
+    const shimmerAlpha = 0.08 + 0.04 * Math.sin(b.shimmer);
+    const hpRatio = b.hp / b.maxHp;
+
+    ctx.save();
+    // Glow
+    ctx.shadowColor = b.glow;
+    ctx.shadowBlur = 8 + 4 * Math.sin(b.shimmer * 0.5);
+
+    // Main brick body — glass-like gradient
+    const bg = ctx.createLinearGradient(bx, b.y, bx, b.y + b.h);
+    bg.addColorStop(0, b.color + 'cc');
+    bg.addColorStop(0.4, b.color + '88');
+    bg.addColorStop(1, b.color + '44');
+    ctx.fillStyle = bg;
+    roundRect(ctx, bx, b.y, b.w, b.h, 3);
+    ctx.fill();
+
+    // Shimmer highlight
+    ctx.shadowBlur = 0;
+    const sg = ctx.createLinearGradient(bx, b.y, bx + b.w * 0.6, b.y + b.h * 0.5);
+    sg.addColorStop(0, `rgba(255,255,255,${shimmerAlpha + 0.1})`);
+    sg.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = sg;
+    roundRect(ctx, bx, b.y, b.w, b.h, 3);
+    ctx.fill();
+
+    // Border
+    ctx.strokeStyle = b.color + '99';
+    ctx.lineWidth = 0.8;
+    roundRect(ctx, bx, b.y, b.w, b.h, 3);
+    ctx.stroke();
+
+    // HP indicator for multi-hit bricks
+    if (b.maxHp > 1) {
+      ctx.fillStyle = `rgba(255,255,255,${0.15 * hpRatio})`;
+      roundRect(ctx, bx + 2, b.y + b.h - 3, (b.w - 4) * hpRatio, 2, 1);
+      ctx.fill();
+      // Crack lines
+      if (b.crack > 0) {
+        ctx.strokeStyle = `rgba(0,0,0,${b.crack * 0.5})`;
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(bx + b.w * 0.3, b.y);
+        ctx.lineTo(bx + b.w * 0.45, b.y + b.h);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(bx + b.w * 0.7, b.y);
+        ctx.lineTo(bx + b.w * 0.55, b.y + b.h);
+        ctx.stroke();
+      }
+    }
+
+    ctx.restore();
+  }
+
+  // Particles
+  for (const p of particles) {
+    ctx.save();
+    if (p.glow) {
+      ctx.shadowColor = p.color;
+      ctx.shadowBlur = 8;
+    }
+    ctx.globalAlpha = p.life;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+    ctx.fillStyle = p.color;
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Ball trail
+  for (let i = 0; i < ball.trail.length; i++) {
+    const t = ball.trail[i];
+    const a = (1 - i / ball.trail.length) * 0.35;
+    const r = ball.r * (1 - i / ball.trail.length) * 0.8;
+    ctx.beginPath();
+    ctx.arc(t.x, t.y, r, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(0,212,255,${a})`;
+    ctx.fill();
+  }
+
+  // Ball
+  ctx.save();
+  const glowPulse = 10 + 4 * Math.sin(ball.glowPhase);
+  ctx.shadowColor = '#00d4ff';
+  ctx.shadowBlur = glowPulse;
+
+  // Outer glow ring
+  const ballGrad = ctx.createRadialGradient(
+    ball.x - 1.5, ball.y - 1.5, 0,
+    ball.x, ball.y, ball.r
+  );
+  ballGrad.addColorStop(0, '#ffffff');
+  ballGrad.addColorStop(0.4, '#80eaff');
+  ballGrad.addColorStop(1, '#00d4ff');
+  ctx.beginPath();
+  ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2);
+  ctx.fillStyle = ballGrad;
+  ctx.fill();
+  ctx.restore();
+
+  // Paddle
+  ctx.save();
+  const padX = pad.x - pad.w/2;
+  const padGrad = ctx.createLinearGradient(padX, pad.y - pad.h/2, padX, pad.y + pad.h/2);
+  padGrad.addColorStop(0, '#60e8ff');
+  padGrad.addColorStop(0.5, '#00d4ff');
+  padGrad.addColorStop(1, '#0088bb');
+
+  ctx.shadowColor = '#00d4ff';
+  ctx.shadowBlur = 16;
+  ctx.fillStyle = padGrad;
+  roundRect(ctx, padX, pad.y - pad.h/2, pad.w, pad.h, 5);
+  ctx.fill();
+
+  // Paddle sheen
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = 'rgba(255,255,255,0.2)';
+  roundRect(ctx, padX + 4, pad.y - pad.h/2 + 2, pad.w - 8, 3, 2);
+  ctx.fill();
+  ctx.restore();
+
+  // Floating score texts
+  for (const ft of floatingTexts) {
+    ctx.save();
+    ctx.globalAlpha = ft.life;
+    ctx.shadowColor = ft.color;
+    ctx.shadowBlur = 8;
+    ctx.fillStyle = ft.color;
+    ctx.font = '700 11px Orbitron, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(ft.text, ft.x, ft.y);
+    ctx.restore();
+  }
+
+  // "CLICK TO LAUNCH" hint
+  if (state === 'playing' && !ballLaunched) {
+    ctx.save();
+    ctx.globalAlpha = 0.4 + 0.3 * Math.sin(Date.now() * 0.004);
+    ctx.fillStyle = '#00d4ff';
+    ctx.font = '700 9px Orbitron, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('CLICK TO LAUNCH', W/2, H - 16);
+    ctx.restore();
+  }
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+// ─── Loop ──────────────────────────────────────────────────────────────────
+function loop(time) {
+  const dt = time - lastTime;
+  lastTime = time;
+  update(dt);
+  draw(time);
+  requestAnimationFrame(loop);
+}
+
+// Init
+initStars();
+initBricks();
+updateUI();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

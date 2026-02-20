@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>わちゃわちゃ Physics Tetris</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@300;700&family=Share+Tech+Mono&display=swap');
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #05080f;
+    --panel: rgba(10, 18, 35, 0.85);
+    --border: rgba(0, 200, 255, 0.18);
+    --accent: #00e5ff;
+    --accent2: #c040ff;
+    --text: rgba(255,255,255,0.82);
+    --dim: rgba(255,255,255,0.32);
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    font-family: 'Zen Kaku Gothic New', sans-serif;
+  }
+
+  /* Animated background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,200,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,200,255,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Ambient glow blob */
+  body::after {
+    content: '';
+    position: fixed;
+    width: 600px; height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(100,0,255,0.06) 0%, transparent 70%);
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  #header {
+    position: relative;
+    z-index: 10;
+    text-align: center;
+    line-height: 1.2;
+  }
+
+  #header h1 {
+    font-size: clamp(18px, 3vw, 26px);
+    font-weight: 300;
+    color: var(--text);
+    letter-spacing: 0.15em;
+  }
+
+  #header h1 em {
+    font-style: normal;
+    font-weight: 700;
+    background: linear-gradient(90deg, var(--accent), var(--accent2), #ff6040);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  #header p {
+    font-size: 11px;
+    color: var(--dim);
+    letter-spacing: 0.08em;
+    margin-top: 3px;
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  #layout {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  #sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 130px;
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 12px;
+    backdrop-filter: blur(12px);
+  }
+
+  .panel-label {
+    font-size: 9px;
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    opacity: 0.7;
+  }
+
+  .stat-value {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 24px;
+    color: var(--text);
+    line-height: 1;
+  }
+
+  .stat-sub {
+    font-size: 10px;
+    color: var(--dim);
+    margin-top: 3px;
+  }
+
+  #gameCanvas {
+    display: block;
+    border-radius: 14px;
+    box-shadow:
+      0 0 0 1px var(--border),
+      0 0 50px rgba(0, 200, 255, 0.15),
+      0 0 100px rgba(150, 0, 255, 0.08),
+      0 30px 80px rgba(0,0,0,0.9);
+    cursor: grab;
+  }
+
+  #gameCanvas:active { cursor: grabbing; }
+
+  .btn-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  button {
+    width: 100%;
+    padding: 9px 12px;
+    background: rgba(255,255,255,0.05);
+    color: var(--text);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 9px;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: 'Zen Kaku Gothic New', sans-serif;
+    letter-spacing: 0.04em;
+    transition: all 0.18s;
+    text-align: left;
+  }
+
+  button:hover {
+    background: rgba(255,255,255,0.12);
+    border-color: rgba(255,255,255,0.25);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  }
+
+  button:active { transform: translateY(0); }
+
+  button.danger {
+    border-color: rgba(255, 80, 80, 0.3);
+    color: #ff8080;
+  }
+
+  button.danger:hover {
+    background: rgba(255,80,80,0.12);
+    border-color: rgba(255,80,80,0.5);
+  }
+
+  #hint {
+    position: relative;
+    z-index: 10;
+    font-size: 11px;
+    color: var(--dim);
+    letter-spacing: 0.05em;
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  #hint kbd {
+    display: inline-block;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: 10px;
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  #nextCanvas {
+    display: block;
+    border-radius: 8px;
+    background: rgba(0,0,0,0.3);
+  }
+
+  #gravityDisplay {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .gravity-bar {
+    flex: 1;
+    height: 4px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .gravity-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 2px;
+    transition: width 0.3s;
+    width: 50%;
+  }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <h1><em>わちゃわちゃ</em> Physics Tetris</h1>
+  <p>GRAB · FLING · CHAOS</p>
+</div>
+
+<div id="layout">
+  <div id="sidebar">
+    <div class="panel">
+      <div class="panel-label">PIECES</div>
+      <div class="stat-value" id="pieceCount">0</div>
+      <div class="stat-sub">in play</div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-label">NEXT</div>
+      <canvas id="nextCanvas" width="106" height="80"></canvas>
+    </div>
+
+    <div class="panel">
+      <div class="panel-label">GRAVITY</div>
+      <div id="gravityDisplay">
+        <div class="gravity-bar"><div class="gravity-fill" id="gravityFill"></div></div>
+      </div>
+      <div class="stat-sub" id="gravityLabel">normal</div>
+    </div>
+
+    <div class="panel btn-group">
+      <div class="panel-label">ACTIONS</div>
+      <button onclick="spawnPiece()">✨ 召喚 <span style="opacity:0.4;font-size:10px">[Space]</span></button>
+      <button onclick="toggleGravity()">🌊 重力反転 <span style="opacity:0.4;font-size:10px">[G]</span></button>
+      <button onclick="explosion()">💥 爆発 <span style="opacity:0.4;font-size:10px">[E]</span></button>
+      <button onclick="bigBang()">🌌 ビッグバン</button>
+      <button class="danger" onclick="clearAll()">🔄 リセット <span style="opacity:0.4;font-size:10px">[R]</span></button>
+    </div>
+  </div>
+
+  <canvas id="gameCanvas"></canvas>
+</div>
+
+<div id="hint">
+  ドラッグでブロックをつまもう ·
+  <kbd>Space</kbd> 召喚 ·
+  <kbd>E</kbd> 爆発 ·
+  <kbd>G</kbd> 重力反転
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════
+//  SETUP
+// ═══════════════════════════════════════════════════════
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const nextCanvas = document.getElementById('nextCanvas');
+const nctx = nextCanvas.getContext('2d');
+
+const CELL = 30;
+const COLS = 13;
+const ROWS = 23;
+const W = COLS * CELL;  // 390
+const H = ROWS * CELL;  // 690
+
+canvas.width  = W;
+canvas.height = H;
+
+const { Engine, Bodies, Body, Composite, Mouse, MouseConstraint, Events, Runner, Vector } = Matter;
+
+const engine = Engine.create({ gravity: { y: 2.8 } });
+const world  = engine.world;
+
+// Walls
+const W_OPT = { isStatic: true, friction: 0.9, restitution: 0.35, label: 'wall' };
+Composite.add(world, [
+  Bodies.rectangle(W/2,  H + 26, W + 200, 52, W_OPT),  // floor
+  Bodies.rectangle(-26,  H/2,    52, H*3,  W_OPT),       // left
+  Bodies.rectangle(W+26, H/2,    52, H*3,  W_OPT),       // right
+]);
+
+// Mouse
+const mouse = Mouse.create(canvas);
+const mouseConstraint = MouseConstraint.create(engine, {
+  mouse,
+  constraint: { stiffness: 0.22, angularStiffness: 0.06, render: { visible: false } }
+});
+Composite.add(world, mouseConstraint);
+
+Runner.run(Runner.create(), engine);
+
+// ═══════════════════════════════════════════════════════
+//  TETROMINO DEFINITIONS
+// ═══════════════════════════════════════════════════════
+const SHAPES = [
+  { cells: [[0,1],[1,1],[2,1],[3,1]], color: '#00f5ff', glow: '#00c8ff', name: 'I' },
+  { cells: [[0,0],[1,0],[0,1],[1,1]], color: '#ffe040', glow: '#ffc000', name: 'O' },
+  { cells: [[1,0],[0,1],[1,1],[2,1]], color: '#d050ff', glow: '#a000e0', name: 'T' },
+  { cells: [[1,0],[2,0],[0,1],[1,1]], color: '#40ff90', glow: '#00cc60', name: 'S' },
+  { cells: [[0,0],[1,0],[1,1],[2,1]], color: '#ff4466', glow: '#cc0030', name: 'Z' },
+  { cells: [[0,0],[0,1],[1,1],[2,1]], color: '#4488ff', glow: '#0050cc', name: 'J' },
+  { cells: [[2,0],[0,1],[1,1],[2,1]], color: '#ff8c20', glow: '#cc5500', name: 'L' },
+];
+
+let pieces     = [];
+let particles  = [];
+let screenShake = 0;
+let gravityDir  = 1;
+let gravityMag  = 2.8;
+let nextShape   = randomShape();
+
+function randomShape() {
+  return SHAPES[Math.floor(Math.random() * SHAPES.length)];
+}
+
+// ═══════════════════════════════════════════════════════
+//  CREATE PIECE
+// ═══════════════════════════════════════════════════════
+function spawnPiece(sx) {
+  const def = nextShape;
+  nextShape = randomShape();
+  drawNextPiece();
+
+  const x = sx !== undefined ? sx : CELL * 1.5 + Math.random() * (W - CELL * 3);
+
+  const parts = def.cells.map(([gx, gy]) =>
+    Bodies.rectangle(
+      gx * CELL + CELL / 2,
+      gy * CELL + CELL / 2,
+      CELL - 5, CELL - 5,
+      { chamfer: { radius: 6 } }
+    )
+  );
+
+  const piece = Body.create({
+    parts,
+    restitution: 0.38,
+    friction: 0.55,
+    frictionAir: 0.01,
+    density: 0.0025,
+  });
+
+  Body.setPosition(piece, { x, y: -80 });
+  Body.setAngularVelocity(piece, (Math.random() - 0.5) * 0.4);
+
+  piece.gameColor = def.color;
+  piece.gameGlow  = def.glow;
+
+  Composite.add(world, piece);
+  pieces.push(piece);
+
+  emitBirthParticles(x, -80, def.color);
+  document.getElementById('pieceCount').textContent = pieces.length;
+}
+
+function clearAll() {
+  pieces.forEach(p => Composite.remove(world, p));
+  pieces = [];
+  particles = [];
+  document.getElementById('pieceCount').textContent = 0;
+}
+
+function explosion() {
+  const cx = W / 2, cy = H * 0.5;
+  pieces.forEach(piece => {
+    const dx = piece.position.x - cx;
+    const dy = piece.position.y - cy;
+    const dist = Math.max(Math.sqrt(dx*dx + dy*dy), 1);
+    const f = 0.1 / dist * 300;
+    Body.applyForce(piece, piece.position, {
+      x: (dx / dist) * f + (Math.random() - 0.5) * 0.03,
+      y: (dy / dist) * f - 0.04,
+    });
+    Body.setAngularVelocity(piece, (Math.random() - 0.5) * 2.0);
+  });
+  screenShake = 18;
+  emitExplosion(cx, cy, '#ffffff');
+}
+
+function bigBang() {
+  // Spawn 10 pieces at once and explode
+  for (let i = 0; i < 8; i++) {
+    setTimeout(() => spawnPiece(), i * 80);
+  }
+  setTimeout(() => explosion(), 900);
+}
+
+function toggleGravity() {
+  gravityDir *= -1;
+  engine.gravity.y = 2.8 * gravityDir;
+  const label = document.getElementById('gravityLabel');
+  const fill  = document.getElementById('gravityFill');
+  label.textContent = gravityDir > 0 ? 'normal' : 'reversed';
+  fill.style.background = gravityDir > 0
+    ? 'linear-gradient(90deg, #00e5ff, #c040ff)'
+    : 'linear-gradient(90deg, #ff6040, #ffaa00)';
+  screenShake = 10;
+}
+
+// ═══════════════════════════════════════════════════════
+//  PARTICLES
+// ═══════════════════════════════════════════════════════
+function emitParticles(x, y, color, count, speed) {
+  if (particles.length > 400) return;
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const s = speed * (0.4 + Math.random() * 0.6);
+    particles.push({
+      x, y,
+      vx: Math.cos(angle) * s,
+      vy: Math.sin(angle) * s,
+      life: 1,
+      size: Math.random() * 4 + 1.5,
+      color,
+      gravity: 0.12,
+    });
+  }
+}
+
+function emitBirthParticles(x, y, color) {
+  emitParticles(x, y, color, 10, 3);
+}
+
+function emitExplosion(x, y, color) {
+  for (let i = 0; i < 80; i++) {
+    const c = SHAPES[Math.floor(Math.random() * SHAPES.length)].color;
+    emitParticles(x, y, c, 1, 6 + Math.random() * 6);
+  }
+}
+
+Events.on(engine, 'collisionStart', event => {
+  if (particles.length > 400) return;
+  event.pairs.forEach(pair => {
+    const { bodyA, bodyB } = pair;
+    const parentA = bodyA.parent || bodyA;
+    const parentB = bodyB.parent || bodyB;
+
+    const rv = Vector.sub(bodyA.velocity, bodyB.velocity);
+    const n  = pair.collision.normal || { x: 0, y: 1 };
+    const impact = Math.abs(Vector.dot(rv, n));
+
+    if (impact < 1.2) return;
+
+    const support = pair.collision.supports?.[0];
+    if (!support) return;
+
+    const color = parentA.gameColor || parentB.gameColor || '#ffffff';
+    const count = Math.min(12, Math.floor(impact * 1.2));
+
+    for (let i = 0; i < count; i++) {
+      particles.push({
+        x: support.x, y: support.y,
+        vx: (Math.random() - 0.5) * impact * 0.9,
+        vy: (Math.random() - 0.5) * impact * 0.9 - 0.5,
+        life: 1,
+        size: Math.random() * 3.5 + 1,
+        color,
+        gravity: 0.1,
+      });
+    }
+
+    if (impact > 5) {
+      screenShake = Math.max(screenShake, Math.min(impact, 14));
+    }
+  });
+});
+
+// ═══════════════════════════════════════════════════════
+//  RENDERING HELPERS
+// ═══════════════════════════════════════════════════════
+function hexToRgb(hex) {
+  return [
+    parseInt(hex.slice(1, 3), 16),
+    parseInt(hex.slice(3, 5), 16),
+    parseInt(hex.slice(5, 7), 16),
+  ];
+}
+
+function drawPiece(piece) {
+  const color = piece.gameColor;
+  const glow  = piece.gameGlow || color;
+  const [r, g, b] = hexToRgb(color);
+  const partsToRender = piece.parts.length > 1 ? piece.parts.slice(1) : piece.parts;
+  const isDragging = mouseConstraint.body === piece ||
+    (mouseConstraint.body && (mouseConstraint.body.parent === piece));
+
+  ctx.save();
+
+  partsToRender.forEach(part => {
+    const verts = part.vertices;
+    const cx = part.position.x;
+    const cy = part.position.y;
+
+    // Build path from vertices (world-space)
+    ctx.beginPath();
+    ctx.moveTo(verts[0].x, verts[0].y);
+    for (let i = 1; i < verts.length; i++) ctx.lineTo(verts[i].x, verts[i].y);
+    ctx.closePath();
+
+    // Glow shadow
+    ctx.shadowBlur  = isDragging ? 36 : 20;
+    ctx.shadowColor = glow;
+
+    // Radial gradient fill
+    const gr = ctx.createRadialGradient(cx - CELL*0.15, cy - CELL*0.15, 1, cx, cy, CELL * 0.9);
+    gr.addColorStop(0,   `rgba(${Math.min(255,r+90)}, ${Math.min(255,g+90)}, ${Math.min(255,b+90)}, 1)`);
+    gr.addColorStop(0.45, `rgba(${r}, ${g}, ${b}, 0.95)`);
+    gr.addColorStop(1,   `rgba(${Math.max(0,r-70)}, ${Math.max(0,g-70)}, ${Math.max(0,b-70)}, 0.88)`);
+    ctx.fillStyle = gr;
+    ctx.fill();
+
+    // Bright border
+    ctx.shadowBlur  = 6;
+    ctx.shadowColor = color;
+    ctx.strokeStyle = `rgba(${Math.min(255,r+140)}, ${Math.min(255,g+140)}, ${Math.min(255,b+140)}, 0.85)`;
+    ctx.lineWidth   = 1.8;
+    ctx.stroke();
+
+    // Top-left specular line
+    ctx.shadowBlur  = 0;
+    ctx.beginPath();
+    ctx.moveTo(verts[0].x, verts[0].y);
+    ctx.lineTo(verts[1].x, verts[1].y);
+    ctx.strokeStyle = `rgba(255,255,255, ${isDragging ? 0.5 : 0.28})`;
+    ctx.lineWidth   = 2;
+    ctx.stroke();
+  });
+
+  // Drag glow ring on grabbed piece
+  if (isDragging) {
+    ctx.shadowBlur = 0;
+    ctx.beginPath();
+    ctx.arc(piece.position.x, piece.position.y, CELL * 1.4, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(255,255,255,0.08)`;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+function drawParticles() {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x  += p.vx;
+    p.y  += p.vy;
+    p.vy += p.gravity * gravityDir;
+    p.vx *= 0.97;
+    p.vy *= 0.97;
+    p.life -= 0.038;
+
+    if (p.life <= 0) { particles.splice(i, 1); continue; }
+
+    ctx.save();
+    ctx.globalAlpha = p.life * p.life;
+    ctx.fillStyle   = p.color;
+    ctx.shadowBlur  = 10;
+    ctx.shadowColor = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size * Math.max(0, p.life), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+function drawDragLine() {
+  const grabbed = mouseConstraint.body;
+  if (!grabbed) return;
+  const parent = grabbed.parent || grabbed;
+  const mp = mouse.position;
+  ctx.save();
+  ctx.setLineDash([5, 5]);
+  ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(parent.position.x, parent.position.y);
+  ctx.lineTo(mp.x, mp.y);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  // dot at cursor
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.shadowBlur = 12;
+  ctx.shadowColor = '#ffffff';
+  ctx.beginPath();
+  ctx.arc(mp.x, mp.y, 4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawBackground() {
+  ctx.fillStyle = '#070d1a';
+  ctx.fillRect(0, 0, W, H);
+
+  // Grid lines
+  ctx.strokeStyle = 'rgba(30, 70, 130, 0.3)';
+  ctx.lineWidth = 0.5;
+  for (let x = 0; x <= COLS; x++) {
+    ctx.beginPath(); ctx.moveTo(x*CELL, 0); ctx.lineTo(x*CELL, H); ctx.stroke();
+  }
+  for (let y = 0; y <= ROWS; y++) {
+    ctx.beginPath(); ctx.moveTo(0, y*CELL); ctx.lineTo(W, y*CELL); ctx.stroke();
+  }
+
+  // Floor glow line
+  ctx.save();
+  ctx.shadowBlur = 20;
+  ctx.shadowColor = 'rgba(0, 200, 255, 0.6)';
+  ctx.strokeStyle = 'rgba(0, 200, 255, 0.5)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(0, H); ctx.lineTo(W, H);
+  ctx.stroke();
+  ctx.restore();
+
+  // Side wall glows
+  const lg = ctx.createLinearGradient(0, 0, 12, 0);
+  lg.addColorStop(0, 'rgba(0,200,255,0.12)');
+  lg.addColorStop(1, 'rgba(0,200,255,0)');
+  ctx.fillStyle = lg;
+  ctx.fillRect(0, 0, 12, H);
+
+  const rg = ctx.createLinearGradient(W-12, 0, W, 0);
+  rg.addColorStop(0, 'rgba(0,200,255,0)');
+  rg.addColorStop(1, 'rgba(0,200,255,0.12)');
+  ctx.fillStyle = rg;
+  ctx.fillRect(W-12, 0, 12, H);
+
+  // Vignette
+  const vig = ctx.createRadialGradient(W/2, H/2, W*0.25, W/2, H/2, W*0.85);
+  vig.addColorStop(0, 'rgba(0,0,0,0)');
+  vig.addColorStop(1, 'rgba(0,0,0,0.55)');
+  ctx.fillStyle = vig;
+  ctx.fillRect(0, 0, W, H);
+}
+
+function drawHUD() {
+  // Piece count (already in DOM)
+  document.getElementById('pieceCount').textContent = pieces.length;
+
+  // Debug info in corner
+  ctx.fillStyle = 'rgba(255,255,255,0.18)';
+  ctx.font = '10px "Share Tech Mono", monospace';
+  ctx.fillText(`particles: ${particles.length}`, 8, H - 8);
+}
+
+// ═══════════════════════════════════════════════════════
+//  NEXT PIECE PREVIEW
+// ═══════════════════════════════════════════════════════
+function drawNextPiece() {
+  const nc = nextCanvas;
+  nctx.clearRect(0, 0, nc.width, nc.height);
+  nctx.fillStyle = 'rgba(0,0,0,0.3)';
+  nctx.fillRect(0, 0, nc.width, nc.height);
+
+  const def = nextShape;
+  const cellSize = 18;
+  const minX = Math.min(...def.cells.map(c => c[0]));
+  const maxX = Math.max(...def.cells.map(c => c[0]));
+  const minY = Math.min(...def.cells.map(c => c[1]));
+  const maxY = Math.max(...def.cells.map(c => c[1]));
+  const pw = (maxX - minX + 1) * cellSize;
+  const ph = (maxY - minY + 1) * cellSize;
+  const ox = (nc.width  - pw) / 2 - minX * cellSize;
+  const oy = (nc.height - ph) / 2 - minY * cellSize;
+
+  const [r, g, b] = hexToRgb(def.color);
+
+  def.cells.forEach(([gx, gy]) => {
+    const x = ox + gx * cellSize + 2;
+    const y = oy + gy * cellSize + 2;
+    const s = cellSize - 4;
+
+    nctx.save();
+    nctx.shadowBlur  = 12;
+    nctx.shadowColor = def.color;
+    const gr = nctx.createRadialGradient(x + s*0.35, y + s*0.3, 1, x + s/2, y + s/2, s * 0.75);
+    gr.addColorStop(0, `rgba(${Math.min(255,r+80)}, ${Math.min(255,g+80)}, ${Math.min(255,b+80)}, 1)`);
+    gr.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0.9)`);
+    nctx.fillStyle = gr;
+    nctx.beginPath();
+    nctx.roundRect(x, y, s, s, 3);
+    nctx.fill();
+    nctx.strokeStyle = `rgba(${Math.min(255,r+130)}, ${Math.min(255,g+130)}, ${Math.min(255,b+130)}, 0.8)`;
+    nctx.lineWidth = 1;
+    nctx.stroke();
+    nctx.restore();
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+//  GAME LOOP
+// ═══════════════════════════════════════════════════════
+let lastSpawn = 0;
+const SPAWN_INTERVAL = 2600;
+
+function gameLoop(ts) {
+  requestAnimationFrame(gameLoop);
+
+  // Auto-spawn
+  if (ts - lastSpawn > SPAWN_INTERVAL && pieces.length < 45) {
+    spawnPiece();
+    lastSpawn = ts;
+  }
+
+  // Remove fallen pieces
+  for (let i = pieces.length - 1; i >= 0; i--) {
+    const p = pieces[i];
+    if (Math.abs(p.position.y) > H + 400) {
+      Composite.remove(world, p);
+      pieces.splice(i, 1);
+    }
+  }
+
+  // Screen shake
+  let sx = 0, sy = 0;
+  if (screenShake > 0.4) {
+    sx = (Math.random() - 0.5) * screenShake;
+    sy = (Math.random() - 0.5) * screenShake;
+    screenShake *= 0.75;
+  } else {
+    screenShake = 0;
+  }
+
+  ctx.save();
+  if (sx || sy) ctx.translate(sx, sy);
+
+  drawBackground();
+  pieces.forEach(drawPiece);
+  drawParticles();
+  drawDragLine();
+  drawHUD();
+
+  ctx.restore();
+}
+
+// ═══════════════════════════════════════════════════════
+//  KEYBOARD
+// ═══════════════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.code === 'Space') { e.preventDefault(); spawnPiece(); }
+  if (e.code === 'KeyR') clearAll();
+  if (e.code === 'KeyE') explosion();
+  if (e.code === 'KeyG') toggleGravity();
+});
+
+// ═══════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════
+drawNextPiece();
+
+// Seed with a few pieces
+const positions = [0.25, 0.5, 0.75, 0.35, 0.65];
+positions.forEach((frac, i) => {
+  setTimeout(() => spawnPiece(W * frac), i * 320);
+});
+
+requestAnimationFrame(gameLoop);
+</script>
+</body>
+</html>
