@@ -479,18 +479,27 @@ prefectures.forEach(([lat, lon, name]) => {
 // ══════════════════════════════════════
 //  UTILITIES
 // ══════════════════════════════════════
-const PROXY = 'https://api.allorigins.win/get?url=';
+const PROXIES = [
+  url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+  url => `https://thingproxy.freeboard.io/fetch/${url}`,
+];
 
 async function proxyFetch(url, timeout = 10000) {
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), timeout);
-  try {
-    const r = await fetch(PROXY + encodeURIComponent(url), { signal: ctrl.signal });
-    const j = await r.json();
-    return j.contents;
-  } finally {
-    clearTimeout(timer);
+  for (const makeURL of PROXIES) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeout);
+    try {
+      const r = await fetch(makeURL(url), { signal: ctrl.signal });
+      if (!r.ok) { clearTimeout(timer); continue; }
+      // corsproxy.io returns raw text; codetabs returns raw text too
+      const text = await r.text();
+      clearTimeout(timer);
+      // allorigins wraps in JSON; others return raw
+      try { const j = JSON.parse(text); return j.contents ?? text; } catch { return text; }
+    } catch { clearTimeout(timer); }
   }
+  throw new Error('All proxies failed for: ' + url);
 }
 
 function fmtNum(n, dec = 0) {
@@ -511,7 +520,13 @@ function timeAgo(dateStr) {
 
 async function parseRSS(url) {
   try {
-    const xml = await proxyFetch(url);
+    let xml;
+    try {
+      // まず直接fetch（CORSが通るフィードもある）
+      const r = await fetch(url, { signal: AbortSignal.timeout(6000) });
+      if (r.ok) xml = await r.text();
+    } catch { /* fall through to proxy */ }
+    if (!xml) xml = await proxyFetch(url);
     const doc = new DOMParser().parseFromString(xml, 'text/xml');
     const items = doc.querySelectorAll('item, entry');
     return Array.from(items).slice(0, 30).map(el => {
@@ -560,7 +575,7 @@ function renderTicker(id, data, dec = 0) {
 async function loadMarkets() {
   const pairs = [
     { sym: '^N225',    id: 'nk225', dec: 0 },
-    { sym: '^TOPX',    id: 'topix', dec: 2 },
+    { sym: '^TPX',     id: 'topix', dec: 2 },
     { sym: 'USDJPY=X', id: 'usdjpy', dec: 2 },
     { sym: 'BTC-JPY',  id: 'btcjpy', dec: 0 },
     { sym: 'CL=F',     id: 'wti',   dec: 2 },
@@ -603,14 +618,33 @@ async function loadWeather() {
 }
 
 // ══════════════════════════════════════
-//  EARTHQUAKES (JMA)
+//  EARTHQUAKES (JMA) + MAP MARKERS
 // ══════════════════════════════════════
 const INT_NUM = { '1':1,'2':2,'3':3,'4':4,'5-':5,'5+':5,'6-':6,'6+':6,'7':7 };
+const eqLayerGroup = L.layerGroup().addTo(map);
+
+function eqColor(int) {
+  const n = INT_NUM[int] || 1;
+  if (n <= 2) return '#00c8f0';
+  if (n === 3) return '#00e67a';
+  if (n === 4) return '#ffaa00';
+  if (n === 5) return '#ff6400';
+  return '#ff3f5e';
+}
 
 async function loadEarthquakes() {
   try {
-    const raw = await proxyFetch('https://www.jma.go.jp/bosai/quake/data/list.json');
+    let raw;
+    // JMAはCORSヘッダーあり、直接fetchを先に試みる
+    try {
+      const r = await fetch('https://www.jma.go.jp/bosai/quake/data/list.json', { signal: AbortSignal.timeout(6000) });
+      raw = await r.text();
+    } catch {
+      raw = await proxyFetch('https://www.jma.go.jp/bosai/quake/data/list.json');
+    }
     const data = JSON.parse(raw).slice(0, 10);
+
+    // リストUI
     document.getElementById('eq-list').innerHTML = data.map(eq => {
       const int    = eq.int || '―';
       const intNum = INT_NUM[int] || 1;
@@ -625,6 +659,32 @@ async function loadEarthquakes() {
         </div>
       `;
     }).join('');
+
+    // 地図マーカー
+    eqLayerGroup.clearLayers();
+    data.forEach(eq => {
+      if (!eq.cod) return; // 座標コードなければスキップ
+      // JMA cod format: "XXXYYY" lat/lon encoded - use coordinates if available
+      const lat = eq.lat || eq.maplatlon?.[0];
+      const lon = eq.lon || eq.maplatlon?.[1];
+      if (!lat || !lon) return;
+      const int = eq.int || '―';
+      const color = eqColor(int);
+      const radius = Math.max(6, (INT_NUM[int] || 1) * 4);
+      L.circleMarker([lat, lon], {
+        radius,
+        fillColor: color,
+        color: color,
+        weight: 1,
+        fillOpacity: 0.5,
+        opacity: 0.8
+      }).bindPopup(`
+        <b>${eq.hyp || '不明'}</b><br>
+        震度 ${int}　M${eq.mag || '?'}<br>
+        <span style="color:#7a8ea8;font-size:10px">${eq.anm || ''}</span>
+      `).addTo(eqLayerGroup);
+    });
+
   } catch {
     document.getElementById('eq-list').innerHTML = '<div class="err">地震データ取得失敗</div>';
   }
