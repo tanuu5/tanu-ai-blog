@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JP MONITOR</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Noto+Sans+JP:wght@300;400;500;700&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #05080f;
+  --panel:    #0a0e1a;
+  --panel2:   #0e1525;
+  --border:   #161f30;
+  --accent:   #00c8f0;
+  --accent-d: rgba(0,200,240,0.12);
+  --pos:      #00e67a;
+  --neg:      #ff3f5e;
+  --warn:     #ffaa00;
+  --text:     #d8e0ef;
+  --text-m:   #7a8ea8;
+  --text-d:   #3d4d64;
+  --mono:     'Share Tech Mono', monospace;
+  --sans:     'Noto Sans JP', sans-serif;
+  --disp:     'Orbitron', monospace;
+}
+
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--sans);
+  font-size:13px;
+  line-height:1.5;
+}
+
+/* Scanline effect */
+body::after{
+  content:'';
+  position:fixed;
+  inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.06) 3px,rgba(0,0,0,0.06) 4px);
+  pointer-events:none;
+  z-index:9999;
+}
+
+/* ── HEADER ── */
+header{
+  height:52px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 20px;
+  background:var(--panel);
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+  position:relative;
+  z-index:200;
+}
+header::after{
+  content:'';
+  position:absolute;
+  bottom:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--accent),transparent);
+  opacity:.4;
+}
+
+.logo{
+  font-family:var(--disp);
+  font-size:18px;
+  font-weight:900;
+  letter-spacing:5px;
+  color:var(--accent);
+  text-shadow:0 0 24px rgba(0,200,240,.45);
+  line-height:1;
+  display:flex;
+  flex-direction:column;
+}
+.logo-sub{
+  font-size:8px;
+  letter-spacing:3px;
+  color:var(--text-m);
+  font-weight:500;
+  margin-top:2px;
+}
+
+.header-center{
+  position:absolute;left:50%;transform:translateX(-50%);
+  display:flex;align-items:center;gap:24px;
+}
+.stat-badge{
+  font-family:var(--mono);
+  font-size:9px;
+  letter-spacing:1.5px;
+  padding:3px 8px;
+  border:1px solid var(--border);
+  color:var(--text-m);
+}
+.live-badge{
+  display:flex;align-items:center;gap:6px;
+  font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--pos);
+}
+.live-dot{
+  width:6px;height:6px;
+  border-radius:50%;background:var(--pos);
+  box-shadow:0 0 8px var(--pos);
+  animation:blink 2s ease-in-out infinite;
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+
+.header-right{display:flex;align-items:center;gap:16px;}
+.clock{
+  font-family:var(--mono);
+  font-size:20px;
+  color:var(--accent);
+  text-shadow:0 0 12px rgba(0,200,240,.3);
+  letter-spacing:2px;
+}
+.date{font-family:var(--mono);font-size:9px;color:var(--text-m);text-align:right;line-height:1.6;}
+
+/* ── MARKET STRIP ── */
+.market-strip{
+  height:56px;
+  display:flex;
+  gap:1px;
+  background:var(--border);
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+.ticker{
+  flex:1;
+  background:var(--panel2);
+  padding:6px 14px;
+  display:flex;flex-direction:column;gap:1px;
+  cursor:default;
+  transition:background .15s;
+}
+.ticker:hover{background:#111827;}
+.t-label{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;color:var(--text-m);}
+.t-value{font-family:var(--mono);font-size:16px;font-weight:bold;color:var(--text);line-height:1.1;}
+.t-change{font-family:var(--mono);font-size:10px;}
+.t-change.up{color:var(--pos);}
+.t-change.dn{color:var(--neg);}
+.t-change.neu{color:var(--text-m);}
+
+/* ── MAIN GRID ── */
+.main{
+  display:grid;
+  grid-template-columns:268px 1fr 306px;
+  height:calc(100vh - 108px);
+  overflow:hidden;
+}
+
+/* ── PANEL BASE ── */
+.pane{
+  display:flex;flex-direction:column;
+  background:var(--panel);
+  border-right:1px solid var(--border);
+  overflow:hidden;
+}
+.pane:last-child{border-right:none;}
+
+.pane-hd{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 13px;
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+  background:rgba(0,0,0,.2);
+}
+.pane-title{
+  font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--accent);text-transform:uppercase;
+}
+.pane-cnt{margin-left:auto;font-family:var(--mono);font-size:9px;color:var(--text-d);}
+
+.scroll{overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent;}
+.scroll::-webkit-scrollbar{width:3px;}
+.scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+/* ── NEWS ITEMS ── */
+.news-item{
+  padding:9px 13px;
+  border-bottom:1px solid rgba(22,31,48,.9);
+  cursor:pointer;
+  transition:background .12s;
+}
+.news-item:hover{background:var(--accent-d);}
+.news-src{font-family:var(--mono);font-size:8px;letter-spacing:1.5px;color:var(--accent);margin-bottom:3px;}
+.news-ttl{font-size:11.5px;color:var(--text);line-height:1.45;margin-bottom:3px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.news-time{font-family:var(--mono);font-size:9px;color:var(--text-d);}
+
+/* ── SECTION DIVIDER ── */
+.sec-label{
+  padding:5px 13px;
+  font-family:var(--mono);font-size:8px;letter-spacing:2px;color:var(--text-d);
+  background:rgba(0,0,0,.3);border-top:1px solid var(--border);border-bottom:1px solid var(--border);
+  flex-shrink:0;text-transform:uppercase;
+}
+
+/* ── WEATHER ── */
+.weather-box{
+  padding:11px 13px;
+  display:flex;align-items:center;gap:10px;
+  flex-shrink:0;border-bottom:1px solid var(--border);
+}
+.w-icon{font-size:26px;line-height:1;}
+.w-temp{font-family:var(--mono);font-size:22px;color:var(--text);}
+.w-detail{font-size:10.5px;color:var(--text-m);}
+.w-sub{font-family:var(--mono);font-size:9px;color:var(--text-d);}
+
+/* ── EARTHQUAKE ── */
+.eq-item{
+  padding:7px 13px;
+  border-bottom:1px solid rgba(22,31,48,.7);
+  display:flex;align-items:center;gap:8px;
+}
+.eq-int{
+  width:26px;height:26px;border-radius:3px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:12px;font-weight:bold;flex-shrink:0;
+}
+.i1,.i2{background:rgba(0,200,240,.1);color:var(--accent);}
+.i3{background:rgba(0,200,240,.2);color:var(--accent);}
+.i4{background:rgba(255,170,0,.15);color:var(--warn);}
+.i5{background:rgba(255,100,0,.2);color:#ff6400;}
+.i6,.i7{background:rgba(255,63,94,.2);color:var(--neg);}
+.eq-place{font-size:11.5px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.eq-meta{font-family:var(--mono);font-size:9px;color:var(--text-d);}
+
+/* ── MAP ── */
+#map{flex:1;background:#06090f;}
+.leaflet-tile{filter:brightness(.65) saturate(.4);}
+.leaflet-control-attribution{background:rgba(5,8,15,.85)!important;color:var(--text-d)!important;font-size:8px!important;}
+.leaflet-control-attribution a{color:var(--text-d)!important;}
+.leaflet-popup-content-wrapper{background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:3px;box-shadow:0 4px 20px rgba(0,0,0,.6);}
+.leaflet-popup-content{font-family:var(--mono);font-size:11px;line-height:1.5;}
+.leaflet-popup-tip{background:var(--panel2);}
+
+/* ── MAP OVERLAY ── */
+.map-status{
+  position:absolute;top:10px;left:50%;transform:translateX(-50%);
+  z-index:500;display:flex;gap:8px;align-items:center;
+  background:rgba(5,8,15,.8);
+  border:1px solid var(--border);
+  padding:4px 12px;
+  font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--accent);
+  backdrop-filter:blur(4px);pointer-events:none;
+}
+
+/* ── TABS ── */
+.tabs{
+  display:flex;border-bottom:1px solid var(--border);flex-shrink:0;
+  background:rgba(0,0,0,.2);
+}
+.tab{
+  flex:1;padding:8px 4px;text-align:center;
+  font-family:var(--mono);font-size:8px;letter-spacing:1.5px;
+  color:var(--text-d);cursor:pointer;
+  border-bottom:2px solid transparent;
+  transition:all .15s;user-select:none;
+}
+.tab:hover{color:var(--text-m);}
+.tab.on{color:var(--accent);border-bottom-color:var(--accent);}
+
+.tab-pane{display:none;flex:1;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent;}
+.tab-pane::-webkit-scrollbar{width:3px;}
+.tab-pane::-webkit-scrollbar-thumb{background:var(--border);}
+.tab-pane.on{display:block;}
+
+/* ── RELEASE ITEMS ── */
+.rel-item{
+  padding:9px 13px;border-bottom:1px solid rgba(22,31,48,.9);
+  cursor:pointer;transition:background .12s;
+}
+.rel-item:hover{background:var(--accent-d);}
+.rel-badge{
+  display:inline-block;font-family:var(--mono);font-size:8px;
+  letter-spacing:1px;padding:2px 6px;border-radius:2px;margin-bottom:3px;
+}
+.b-model{background:rgba(0,200,240,.1);color:var(--accent);border:1px solid rgba(0,200,240,.25);}
+.b-paper{background:rgba(255,170,0,.08);color:var(--warn);border:1px solid rgba(255,170,0,.2);}
+.b-tool{background:rgba(0,230,122,.08);color:var(--pos);border:1px solid rgba(0,230,122,.2);}
+.rel-title{font-size:11.5px;color:var(--text);line-height:1.45;margin-bottom:3px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.rel-meta{font-family:var(--mono);font-size:9px;color:var(--text-d);}
+
+/* ── LOADING ── */
+.loading{
+  display:flex;align-items:center;justify-content:center;
+  padding:24px 16px;gap:8px;
+  color:var(--text-d);font-family:var(--mono);font-size:10px;letter-spacing:1px;
+}
+.spin{
+  width:12px;height:12px;border:1.5px solid var(--border);
+  border-top-color:var(--accent);border-radius:50%;
+  animation:spin .8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── ERROR ── */
+.err{padding:12px 13px;font-family:var(--mono);font-size:9px;color:var(--text-d);letter-spacing:1px;}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">JP MONITOR <span class="logo-sub">JAPAN INTELLIGENCE DASHBOARD</span></div>
+  <div class="header-center">
+    <div class="live-badge"><div class="live-dot"></div>LIVE</div>
+    <div class="stat-badge" id="loc-badge">位置取得中...</div>
+    <div class="stat-badge">JST UTC+9</div>
+  </div>
+  <div class="header-right">
+    <div class="date" id="dateDisp"></div>
+    <div class="clock" id="clockDisp"></div>
+  </div>
+</header>
+
+<!-- MARKET STRIP -->
+<div class="market-strip">
+  <div class="ticker">
+    <div class="t-label">日経 225</div>
+    <div class="t-value" id="v-nk225">―</div>
+    <div class="t-change neu" id="c-nk225">取得中</div>
+  </div>
+  <div class="ticker">
+    <div class="t-label">TOPIX</div>
+    <div class="t-value" id="v-topix">―</div>
+    <div class="t-change neu" id="c-topix">取得中</div>
+  </div>
+  <div class="ticker">
+    <div class="t-label">USD / JPY</div>
+    <div class="t-value" id="v-usdjpy">―</div>
+    <div class="t-change neu" id="c-usdjpy">取得中</div>
+  </div>
+  <div class="ticker">
+    <div class="t-label">BTC / JPY</div>
+    <div class="t-value" id="v-btcjpy">―</div>
+    <div class="t-change neu" id="c-btcjpy">取得中</div>
+  </div>
+  <div class="ticker">
+    <div class="t-label">WTI 原油 $</div>
+    <div class="t-value" id="v-wti">―</div>
+    <div class="t-change neu" id="c-wti">取得中</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- LEFT PANE -->
+  <div class="pane">
+    <div class="pane-hd">
+      <div class="pane-title">🤖 AI NEWS JA</div>
+      <div class="pane-cnt" id="news-cnt">―</div>
+    </div>
+    <div class="scroll" id="ai-news" style="flex:1;">
+      <div class="loading"><div class="spin"></div>フィード取得中...</div>
+    </div>
+
+    <div class="sec-label" id="weather-label">🌤 天気 — 取得中...</div>
+    <div id="weather-box" class="weather-box">
+      <div class="loading"><div class="spin"></div></div>
+    </div>
+
+    <div class="sec-label">🌊 最近の地震 (JMA)</div>
+    <div class="scroll" style="flex:0 0 180px;" id="eq-list">
+      <div class="loading"><div class="spin"></div>JMA取得中...</div>
+    </div>
+  </div>
+
+  <!-- CENTER PANE: MAP -->
+  <div class="pane" style="position:relative;">
+    <div class="map-status">🗾 JAPAN MAP — LIVE</div>
+    <div id="map"></div>
+  </div>
+
+  <!-- RIGHT PANE -->
+  <div class="pane">
+    <div class="tabs">
+      <div class="tab on" data-tab="releases">AI リリース</div>
+      <div class="tab" data-tab="global">グローバル</div>
+      <div class="tab" data-tab="papers">arXiv 論文</div>
+    </div>
+
+    <div class="tab-pane on" id="tab-releases">
+      <div class="loading"><div class="spin"></div>取得中...</div>
+    </div>
+    <div class="tab-pane" id="tab-global">
+      <div class="loading"><div class="spin"></div>取得中...</div>
+    </div>
+    <div class="tab-pane" id="tab-papers">
+      <div class="loading"><div class="spin"></div>arXiv取得中...</div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+// ══════════════════════════════════════
+//  CLOCK
+// ══════════════════════════════════════
+function updateClock() {
+  const now = new Date();
+  const jst = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Tokyo' }));
+  const h = String(jst.getHours()).padStart(2,'0');
+  const m = String(jst.getMinutes()).padStart(2,'0');
+  const s = String(jst.getSeconds()).padStart(2,'0');
+  document.getElementById('clockDisp').textContent = `${h}:${m}:${s}`;
+  const y = jst.getFullYear();
+  const mo = String(jst.getMonth()+1).padStart(2,'0');
+  const d = String(jst.getDate()).padStart(2,'0');
+  document.getElementById('dateDisp').innerHTML = `${y}.${mo}.${d}<br>JST`;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ══════════════════════════════════════
+//  TABS
+// ══════════════════════════════════════
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    const t = tab.dataset.tab;
+    document.querySelectorAll('.tab').forEach(el => el.classList.toggle('on', el.dataset.tab === t));
+    document.querySelectorAll('.tab-pane').forEach(el => el.classList.toggle('on', el.id === 'tab-' + t));
+  });
+});
+
+// ══════════════════════════════════════
+//  MAP
+// ══════════════════════════════════════
+const map = L.map('map', {
+  center: [36.5, 136.0],
+  zoom: 5,
+  zoomControl: true,
+  attributionControl: true
+});
+
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  attribution: '© OpenStreetMap © CARTO',
+  subdomains: 'abcd',
+  maxZoom: 19
+}).addTo(map);
+
+// Prefecture centers (approximate) for visual reference
+const prefectures = [
+  [43.06, 141.35,'北海道'],[40.82, 140.74,'青森'],[39.70, 141.15,'岩手'],
+  [38.27, 140.87,'宮城'],[39.72, 140.10,'秋田'],[38.24, 140.36,'山形'],
+  [37.75, 140.47,'福島'],[36.34, 140.45,'茨城'],[36.57, 139.88,'栃木'],
+  [36.39, 139.06,'群馬'],[35.86, 139.65,'埼玉'],[35.61, 140.12,'千葉'],
+  [35.69, 139.69,'東京'],[35.44, 139.64,'神奈川'],[37.90, 139.02,'新潟'],
+  [36.70, 137.21,'富山'],[36.59, 136.63,'石川'],[35.85, 136.22,'福井'],
+  [35.67, 138.57,'山梨'],[36.65, 138.18,'長野'],[35.44, 136.72,'岐阜'],
+  [34.97, 138.38,'静岡'],[35.18, 136.91,'愛知'],[34.73, 136.51,'三重'],
+  [35.00, 135.87,'滋賀'],[35.02, 135.76,'京都'],[34.69, 135.50,'大阪'],
+  [34.69, 135.19,'兵庫'],[34.69, 135.83,'奈良'],[33.94, 135.92,'和歌山'],
+  [35.47, 133.05,'鳥取'],[35.47, 133.06,'島根'],[34.66, 133.93,'岡山'],
+  [34.40, 132.46,'広島'],[34.19, 131.47,'山口'],[34.07, 134.55,'徳島'],
+  [34.34, 134.04,'香川'],[33.84, 132.77,'愛媛'],[33.56, 133.53,'高知'],
+  [33.61, 130.42,'福岡'],[33.25, 129.87,'佐賀'],[32.74, 129.87,'長崎'],
+  [32.79, 130.74,'熊本'],[33.24, 131.61,'大分'],[31.91, 131.42,'宮崎'],
+  [31.56, 130.56,'鹿児島'],[26.21, 127.68,'沖縄']
+];
+
+prefectures.forEach(([lat, lon, name]) => {
+  L.circleMarker([lat, lon], {
+    radius: 3, fillColor: '#00c8f0', color: '#00c8f0',
+    weight: 0, opacity: .6, fillOpacity: .3
+  }).bindTooltip(name, {
+    permanent: false, direction: 'top',
+    className: 'custom-tooltip', offset: [0, -4]
+  }).addTo(map);
+});
+
+// ══════════════════════════════════════
+//  UTILITIES
+// ══════════════════════════════════════
+const PROXY = 'https://api.allorigins.win/get?url=';
+
+async function proxyFetch(url, timeout = 10000) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeout);
+  try {
+    const r = await fetch(PROXY + encodeURIComponent(url), { signal: ctrl.signal });
+    const j = await r.json();
+    return j.contents;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function fmtNum(n, dec = 0) {
+  if (n == null || isNaN(n)) return '―';
+  return n.toLocaleString('ja-JP', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+}
+
+function timeAgo(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d)) return '';
+  const s = (Date.now() - d) / 1000;
+  if (s < 60) return 'たった今';
+  if (s < 3600) return `${Math.floor(s/60)}分前`;
+  if (s < 86400) return `${Math.floor(s/3600)}時間前`;
+  return `${Math.floor(s/86400)}日前`;
+}
+
+async function parseRSS(url) {
+  try {
+    const xml = await proxyFetch(url);
+    const doc = new DOMParser().parseFromString(xml, 'text/xml');
+    const items = doc.querySelectorAll('item, entry');
+    return Array.from(items).slice(0, 30).map(el => {
+      const t = sel => el.querySelector(sel)?.textContent?.trim() || '';
+      const linkEl = el.querySelector('link');
+      const link = linkEl ? (linkEl.textContent?.trim() || linkEl.getAttribute('href') || '') : '';
+      return {
+        title: t('title'),
+        link,
+        pubDate: t('pubDate') || t('published') || t('updated'),
+        desc: t('description') || t('summary') || ''
+      };
+    }).filter(i => i.title);
+  } catch { return []; }
+}
+
+// ══════════════════════════════════════
+//  MARKET DATA
+// ══════════════════════════════════════
+async function fetchTicker(symbol) {
+  try {
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1d`;
+    const raw = await proxyFetch(url);
+    const data = JSON.parse(raw);
+    const meta = data?.chart?.result?.[0]?.meta;
+    if (!meta) return null;
+    const price = meta.regularMarketPrice;
+    const prev  = meta.chartPreviousClose || meta.previousClose;
+    if (!price || !prev) return null;
+    const chg = price - prev;
+    const pct = (chg / prev) * 100;
+    return { price, chg, pct };
+  } catch { return null; }
+}
+
+function renderTicker(id, data, dec = 0) {
+  const vEl = document.getElementById('v-' + id);
+  const cEl = document.getElementById('c-' + id);
+  if (!data) { vEl.textContent = 'N/A'; cEl.textContent = '取得失敗'; cEl.className = 't-change neu'; return; }
+  vEl.textContent = fmtNum(data.price, dec);
+  const sign = data.chg >= 0 ? '+' : '';
+  cEl.textContent = `${sign}${fmtNum(data.chg, dec)} (${sign}${data.pct.toFixed(2)}%)`;
+  cEl.className = 't-change ' + (data.chg >= 0 ? 'up' : 'dn');
+}
+
+async function loadMarkets() {
+  const pairs = [
+    { sym: '^N225',    id: 'nk225', dec: 0 },
+    { sym: '^TOPX',    id: 'topix', dec: 2 },
+    { sym: 'USDJPY=X', id: 'usdjpy', dec: 2 },
+    { sym: 'BTC-JPY',  id: 'btcjpy', dec: 0 },
+    { sym: 'CL=F',     id: 'wti',   dec: 2 },
+  ];
+  await Promise.all(pairs.map(async p => renderTicker(p.id, await fetchTicker(p.sym), p.dec)));
+}
+
+// ══════════════════════════════════════
+//  WEATHER (Open-Meteo, no API key)
+// ══════════════════════════════════════
+const WX = {
+  0:['☀️','快晴'],1:['🌤','ほぼ快晴'],2:['⛅','部分曇'],3:['☁️','曇り'],
+  45:['🌫','霧'],48:['🌫','着氷霧'],
+  51:['🌦','霧雨（弱）'],53:['🌦','霧雨'],55:['🌧','霧雨（強）'],
+  61:['🌧','小雨'],63:['🌧','雨'],65:['🌧','大雨'],
+  71:['🌨','小雪'],73:['❄️','雪'],75:['❄️','大雪'],
+  80:['🌦','にわか雨'],81:['🌧','強いにわか雨'],82:['⛈','激しいにわか雨'],
+  95:['⛈','雷雨'],96:['⛈','雷雨（雹）'],99:['⛈','激しい雷雨']
+};
+
+async function loadWeather() {
+  try {
+    const { lat, lon } = window._loc;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,precipitation,weathercode,windspeed_10m,relative_humidity_2m&timezone=Asia%2FTokyo`;
+    const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    const d = await r.json();
+    const c = d.current;
+    const [icon, desc] = WX[c.weathercode] || ['🌡','―'];
+    document.getElementById('weather-box').innerHTML = `
+      <div class="w-icon">${icon}</div>
+      <div>
+        <div class="w-temp">${c.temperature_2m}°C</div>
+        <div class="w-detail">${desc}　体感 ${c.apparent_temperature}°C　湿度 ${c.relative_humidity_2m}%</div>
+        <div class="w-sub">風速 ${c.windspeed_10m} m/s　降水 ${c.precipitation} mm</div>
+      </div>
+    `;
+  } catch {
+    document.getElementById('weather-box').innerHTML = '<div class="err">天気取得失敗</div>';
+  }
+}
+
+// ══════════════════════════════════════
+//  EARTHQUAKES (JMA)
+// ══════════════════════════════════════
+const INT_NUM = { '1':1,'2':2,'3':3,'4':4,'5-':5,'5+':5,'6-':6,'6+':6,'7':7 };
+
+async function loadEarthquakes() {
+  try {
+    const raw = await proxyFetch('https://www.jma.go.jp/bosai/quake/data/list.json');
+    const data = JSON.parse(raw).slice(0, 10);
+    document.getElementById('eq-list').innerHTML = data.map(eq => {
+      const int    = eq.int || '―';
+      const intNum = INT_NUM[int] || 1;
+      const cls    = `eq-int i${Math.min(intNum, 7)}`;
+      return `
+        <div class="eq-item">
+          <div class="${cls}">${int}</div>
+          <div style="flex:1;min-width:0;">
+            <div class="eq-place">${eq.hyp || '不明'}</div>
+            <div class="eq-meta">M${eq.mag || '?'}　${eq.anm || ''}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } catch {
+    document.getElementById('eq-list').innerHTML = '<div class="err">地震データ取得失敗</div>';
+  }
+}
+
+// ══════════════════════════════════════
+//  AI NEWS JA (Left panel)
+// ══════════════════════════════════════
+const AI_FEEDS_JA = [
+  { url: 'https://rss.itmedia.co.jp/rss/2.0/ait.xml',               src: 'ITmedia AI+' },
+  { url: 'https://www.watch.impress.co.jp/data/rss/1.0/ipw/feed.rdf', src: 'Impress Watch' },
+  { url: 'https://gigazine.net/news/rss_2.0/',                       src: 'Gigazine' },
+];
+
+async function loadAINews() {
+  let all = [];
+  for (const f of AI_FEEDS_JA) {
+    const items = await parseRSS(f.url);
+    items.forEach(i => { i._src = f.src; });
+    all = all.concat(items);
+  }
+  all.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+  const el = document.getElementById('ai-news');
+  if (!all.length) { el.innerHTML = '<div class="err">ニュース取得失敗（RSSブロックの可能性）</div>'; return; }
+  document.getElementById('news-cnt').textContent = all.length + ' 件';
+  el.innerHTML = all.slice(0, 25).map(i => `
+    <div class="news-item" onclick="window.open('${i.link}','_blank')">
+      <div class="news-src">${i._src}</div>
+      <div class="news-ttl">${i.title}</div>
+      <div class="news-time">${timeAgo(i.pubDate)}</div>
+    </div>
+  `).join('');
+}
+
+// ══════════════════════════════════════
+//  AI RELEASES (tab)
+// ══════════════════════════════════════
+const AI_KW = ['model','llm','gpt','claude','gemini','llama','mistral','qwen','release','launch','api','ai','agent','diffusion','multimodal'];
+
+const RELEASE_FEEDS = [
+  { url: 'https://huggingface.co/blog/feed.xml',           src: 'HuggingFace', badge: 'b-model' },
+  { url: 'https://blog.google/technology/ai/rss/',         src: 'Google AI',   badge: 'b-tool' },
+  { url: 'https://openai.com/news/rss.xml',                src: 'OpenAI',      badge: 'b-model' },
+  { url: 'https://www.anthropic.com/news.rss',             src: 'Anthropic',   badge: 'b-model' },
+];
+
+async function loadReleases() {
+  let all = [];
+  for (const f of RELEASE_FEEDS) {
+    const items = await parseRSS(f.url);
+    items.forEach(i => { i._src = f.src; i._badge = f.badge; });
+    const filtered = items.filter(i => AI_KW.some(k => (i.title + i.desc).toLowerCase().includes(k)));
+    all = all.concat(filtered);
+  }
+  all.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+  const el = document.getElementById('tab-releases');
+  if (!all.length) { el.innerHTML = '<div class="err">データ取得失敗。しばらく後に再試行します。</div>'; return; }
+  el.innerHTML = all.slice(0, 20).map(i => `
+    <div class="rel-item" onclick="window.open('${i.link}','_blank')">
+      <div class="rel-badge ${i._badge}">${i._src}</div>
+      <div class="rel-title">${i.title}</div>
+      <div class="rel-meta">${timeAgo(i.pubDate)}</div>
+    </div>
+  `).join('');
+}
+
+// ══════════════════════════════════════
+//  GLOBAL AI NEWS (tab)
+// ══════════════════════════════════════
+const GLOBAL_FEEDS = [
+  { url: 'https://techcrunch.com/feed/', src: 'TechCrunch' },
+  { url: 'https://venturebeat.com/feed/', src: 'VentureBeat' },
+  { url: 'https://feeds.arstechnica.com/arstechnica/technology-lab', src: 'Ars Technica' },
+];
+
+async function loadGlobal() {
+  let all = [];
+  for (const f of GLOBAL_FEEDS) {
+    const items = await parseRSS(f.url);
+    items.forEach(i => { i._src = f.src; });
+    const filtered = items.filter(i => AI_KW.some(k => (i.title + i.desc).toLowerCase().includes(k)));
+    all = all.concat(filtered);
+  }
+  all.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+  const el = document.getElementById('tab-global');
+  if (!all.length) { el.innerHTML = '<div class="err">グローバルニュース取得失敗</div>'; return; }
+  el.innerHTML = all.slice(0, 20).map(i => `
+    <div class="news-item" onclick="window.open('${i.link}','_blank')">
+      <div class="news-src">${i._src}</div>
+      <div class="news-ttl">${i.title}</div>
+      <div class="news-time">${timeAgo(i.pubDate)}</div>
+    </div>
+  `).join('');
+}
+
+// ══════════════════════════════════════
+//  arXiv CS.AI PAPERS (tab)
+// ══════════════════════════════════════
+async function loadPapers() {
+  const items = await parseRSS('https://rss.arxiv.org/rss/cs.AI');
+  const el = document.getElementById('tab-papers');
+  if (!items.length) { el.innerHTML = '<div class="err">arXivフィード取得失敗</div>'; return; }
+  el.innerHTML = items.slice(0, 20).map(i => `
+    <div class="rel-item" onclick="window.open('${i.link}','_blank')">
+      <div class="rel-badge b-paper">arXiv · CS.AI</div>
+      <div class="rel-title">${i.title}</div>
+      <div class="rel-meta">${timeAgo(i.pubDate)}</div>
+    </div>
+  `).join('');
+}
+
+// ══════════════════════════════════════
+//  GEOLOCATION + REVERSE GEOCODE
+// ══════════════════════════════════════
+const DEFAULT_LOC = { lat: 35.6812, lon: 139.7671, name: '東京' };
+
+async function reverseGeocode(lat, lon) {
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=ja`;
+    const r = await fetch(url, { headers: { 'Accept-Language': 'ja' }, signal: AbortSignal.timeout(5000) });
+    const d = await r.json();
+    const a = d.address || {};
+    return a.city || a.town || a.village || a.county || a.state || '不明';
+  } catch { return null; }
+}
+
+async function resolveLocation() {
+  return new Promise(resolve => {
+    if (!navigator.geolocation) { resolve(DEFAULT_LOC); return; }
+    navigator.geolocation.getCurrentPosition(
+      async pos => {
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+        const name = await reverseGeocode(lat, lon) || DEFAULT_LOC.name;
+        resolve({ lat, lon, name });
+      },
+      () => resolve(DEFAULT_LOC),
+      { timeout: 6000, maximumAge: 600_000 }
+    );
+  });
+}
+
+// ══════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════
+async function init() {
+  const loc = await resolveLocation();
+  window._loc = loc;
+  document.getElementById('loc-badge').textContent = loc.name;
+  document.getElementById('weather-label').textContent = `🌤 天気 — ${loc.name}`;
+
+  await Promise.all([
+    loadMarkets(),
+    loadWeather(),
+    loadEarthquakes(),
+    loadAINews(),
+    loadReleases(),
+    loadGlobal(),
+    loadPapers()
+  ]);
+}
+
+init();
+
+// Refresh intervals
+setInterval(loadMarkets,     60_000);   // 1 min
+setInterval(loadWeather,    600_000);   // 10 min
+setInterval(loadEarthquakes, 90_000);   // 90 sec
+setInterval(loadAINews,     300_000);   // 5 min
+setInterval(loadReleases,   600_000);   // 10 min
+setInterval(loadGlobal,     300_000);   // 5 min
+</script>
+</body>
+</html>
