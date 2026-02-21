@@ -531,12 +531,14 @@ async function parseRSS(url) {
     const items = doc.querySelectorAll('item, entry');
     return Array.from(items).slice(0, 30).map(el => {
       const t = sel => el.querySelector(sel)?.textContent?.trim() || '';
+      // RDF 1.0: linkはrdf:about属性 or <link>テキスト or <link href>
       const linkEl = el.querySelector('link');
-      const link = linkEl ? (linkEl.textContent?.trim() || linkEl.getAttribute('href') || '') : '';
+      const link = el.getAttribute('rdf:about')
+        || (linkEl ? (linkEl.textContent?.trim() || linkEl.getAttribute('href') || '') : '');
       return {
         title: t('title'),
         link,
-        pubDate: t('pubDate') || t('published') || t('updated'),
+        pubDate: t('pubDate') || t('dc\\:date') || t('published') || t('updated'),
         desc: t('description') || t('summary') || ''
       };
     }).filter(i => i.title);
@@ -644,17 +646,44 @@ async function loadEarthquakes() {
     }
     const data = JSON.parse(raw).slice(0, 10);
 
+    // JMA list.json: maxi = 最大震度文字列, int = エリア別オブジェクト配列
+    const getInt = eq => eq.maxi || (typeof eq.int === 'string' ? eq.int : '―');
+    const getAnm = eq => {
+      if (!eq.anm) return '';
+      if (Array.isArray(eq.anm)) return eq.anm.join(' / ');
+      return String(eq.anm);
+    };
+    // JMA cod: "+緯度6桁+経度7桁" 例 "+351234+1392345"
+    const parseCod = cod => {
+      if (!cod) return null;
+      const m = String(cod).match(/([+-]\d+)([+-]\d+)/);
+      if (!m) return null;
+      const parseDMS = s => {
+        const sign = s[0] === '-' ? -1 : 1;
+        const n = s.slice(1);
+        // 緯度6桁DDMMSS or 経度7桁DDDMMSS
+        const len = n.length;
+        if (len === 6) return sign * (parseInt(n.slice(0,2)) + parseInt(n.slice(2,4))/60 + parseInt(n.slice(4,6))/3600);
+        if (len === 7) return sign * (parseInt(n.slice(0,3)) + parseInt(n.slice(3,5))/60 + parseInt(n.slice(5,7))/3600);
+        return null;
+      };
+      const lat = parseDMS(m[1]);
+      const lon = parseDMS(m[2]);
+      if (!lat || !lon) return null;
+      return { lat, lon };
+    };
+
     // リストUI
     document.getElementById('eq-list').innerHTML = data.map(eq => {
-      const int    = eq.int || '―';
-      const intNum = INT_NUM[int] || 1;
+      const intStr = getInt(eq);
+      const intNum = INT_NUM[intStr] || 1;
       const cls    = `eq-int i${Math.min(intNum, 7)}`;
       return `
         <div class="eq-item">
-          <div class="${cls}">${int}</div>
+          <div class="${cls}">${intStr}</div>
           <div style="flex:1;min-width:0;">
             <div class="eq-place">${eq.hyp || '不明'}</div>
-            <div class="eq-meta">M${eq.mag || '?'}　${eq.anm || ''}</div>
+            <div class="eq-meta">M${eq.mag || '?'}　${getAnm(eq).slice(0, 20)}</div>
           </div>
         </div>
       `;
@@ -663,25 +692,18 @@ async function loadEarthquakes() {
     // 地図マーカー
     eqLayerGroup.clearLayers();
     data.forEach(eq => {
-      if (!eq.cod) return; // 座標コードなければスキップ
-      // JMA cod format: "XXXYYY" lat/lon encoded - use coordinates if available
-      const lat = eq.lat || eq.maplatlon?.[0];
-      const lon = eq.lon || eq.maplatlon?.[1];
-      if (!lat || !lon) return;
-      const int = eq.int || '―';
-      const color = eqColor(int);
-      const radius = Math.max(6, (INT_NUM[int] || 1) * 4);
-      L.circleMarker([lat, lon], {
-        radius,
-        fillColor: color,
-        color: color,
-        weight: 1,
-        fillOpacity: 0.5,
-        opacity: 0.8
+      const pos = parseCod(eq.cod);
+      if (!pos) return;
+      const intStr = getInt(eq);
+      const color  = eqColor(intStr);
+      const radius = Math.max(6, (INT_NUM[intStr] || 1) * 4);
+      L.circleMarker([pos.lat, pos.lon], {
+        radius, fillColor: color, color,
+        weight: 1, fillOpacity: 0.5, opacity: 0.8
       }).bindPopup(`
         <b>${eq.hyp || '不明'}</b><br>
-        震度 ${int}　M${eq.mag || '?'}<br>
-        <span style="color:#7a8ea8;font-size:10px">${eq.anm || ''}</span>
+        震度 ${intStr}　M${eq.mag || '?'}<br>
+        <span style="color:#7a8ea8;font-size:10px">${getAnm(eq).slice(0,40)}</span>
       `).addTo(eqLayerGroup);
     });
 
@@ -694,9 +716,10 @@ async function loadEarthquakes() {
 //  AI NEWS JA (Left panel)
 // ══════════════════════════════════════
 const AI_FEEDS_JA = [
-  { url: 'https://rss.itmedia.co.jp/rss/2.0/ait.xml',               src: 'ITmedia AI+' },
-  { url: 'https://www.watch.impress.co.jp/data/rss/1.0/ipw/feed.rdf', src: 'Impress Watch' },
-  { url: 'https://gigazine.net/news/rss_2.0/',                       src: 'Gigazine' },
+  { url: 'https://rss.itmedia.co.jp/rss/2.0/ait.xml',                          src: 'ITmedia AI+' },
+  { url: 'https://forest.watch.impress.co.jp/data/rss/1.0/wf/feed.rdf',        src: 'やじうまWatch' },
+  { url: 'https://www.itmedia.co.jp/news/subtop/rss/bursts.rdf',               src: 'ITmedia NEWS' },
+  { url: 'https://xtech.nikkei.com/rss/index.rdf',                             src: '日経XTECH' },
 ];
 
 async function loadAINews() {
