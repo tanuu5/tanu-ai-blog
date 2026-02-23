@@ -1,0 +1,1628 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 学 園</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 100%; height: 100%;
+  background: #0a0a12;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Noto Serif JP', 'Hiragino Mincho ProN', 'Yu Mincho', 'HG明朝E', serif;
+  overflow: hidden;
+}
+
+/* ─── GAME CONTAINER ─── */
+#game {
+  position: relative;
+  width: 960px; height: 540px;
+  overflow: hidden;
+  cursor: pointer;
+  -webkit-user-select: none; user-select: none;
+  box-shadow: 0 0 80px rgba(0,0,0,0.8);
+}
+
+/* ─── BACKGROUNDS ─── */
+#bg-layer {
+  position: absolute; inset: 0;
+  transition: opacity 0.6s ease;
+}
+#bg-svg {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+}
+
+/* ─── STAGE ─── */
+#stage {
+  position: absolute;
+  bottom: 145px; left: 0; right: 0;
+  height: 385px;
+}
+.char-el {
+  position: absolute;
+  bottom: 0;
+  -webkit-transition: opacity 0.45s ease, -webkit-filter 0.45s ease, -webkit-transform 0.45s ease;
+  transition: opacity 0.45s ease, filter 0.45s ease, transform 0.45s ease;
+  transform-origin: bottom center;
+}
+.char-el.hidden {
+  opacity: 0;
+  transform: translateY(18px);
+  pointer-events: none;
+}
+.char-el.visible { opacity: 1; transform: translateY(0); }
+.char-el.dim {
+  -webkit-filter: brightness(0.4) saturate(0.4);
+  filter: brightness(0.4) saturate(0.4);
+}
+.char-el.bright {
+  -webkit-filter: brightness(1.08) drop-shadow(0 0 12px rgba(255,255,255,0.15));
+  filter: brightness(1.08) drop-shadow(0 0 12px rgba(255,255,255,0.15));
+}
+
+/* ─── TEXTBOX ─── */
+#textbox {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 148px;
+  background: linear-gradient(to bottom, rgba(4,8,22,0.78) 0%, rgba(4,8,22,0.95) 100%);
+  border-top: 1px solid rgba(160,190,255,0.18);
+  padding: 14px 44px 14px 44px;
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+}
+#name-wrap {
+  height: 28px; margin-bottom: 6px;
+}
+#name-plate {
+  display: none;
+  font-size: 15px;
+  font-weight: 700;
+  padding: 3px 14px 3px 10px;
+  border-radius: 2px;
+  letter-spacing: 0.18em;
+  line-height: 1.4;
+}
+#dialogue {
+  font-size: 17.5px;
+  line-height: 1.9;
+  color: #e8eeff;
+  letter-spacing: 0.06em;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+  min-height: 66px;
+}
+#next-arrow {
+  position: absolute;
+  bottom: 10px; right: 22px;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: rgba(180,200,255,0.45);
+  -webkit-animation: blink 1.4s ease-in-out infinite;
+  animation: blink 1.4s ease-in-out infinite;
+}
+@-webkit-keyframes blink { 0%,100%{opacity:.25} 50%{opacity:1} }
+@keyframes blink          { 0%,100%{opacity:.25} 50%{opacity:1} }
+
+/* ─── FADE OVERLAY ─── */
+#fade {
+  position: absolute; inset: 0;
+  background: black;
+  opacity: 0;
+  pointer-events: none;
+  -webkit-transition: opacity 0.5s ease;
+  transition: opacity 0.5s ease;
+  z-index: 60;
+}
+#fade.on { opacity: 1; }
+
+/* ─── TITLE SCREEN ─── */
+#title-screen {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 120% 100% at 50% 60%, #13133a 0%, #08081f 55%, #030310 100%);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  z-index: 100;
+  -webkit-transition: opacity 0.8s ease;
+  transition: opacity 0.8s ease;
+}
+#title-screen.fade-out { opacity: 0; pointer-events: none; }
+
+.stars-layer { position: absolute; inset: 0; overflow: hidden; }
+.star {
+  position: absolute; border-radius: 50%; background: white;
+  -webkit-animation: twinkle var(--d,2s) ease-in-out infinite;
+  animation: twinkle var(--d,2s) ease-in-out infinite;
+  -webkit-animation-delay: var(--dd,0s);
+  animation-delay: var(--dd,0s);
+}
+@-webkit-keyframes twinkle { 0%,100%{opacity:.1} 50%{opacity:.9} }
+@keyframes twinkle          { 0%,100%{opacity:.1} 50%{opacity:.9} }
+
+.title-school-name {
+  position: relative;
+  font-size: 72px;
+  letter-spacing: 0.4em;
+  color: #fff;
+  text-shadow: 0 0 18px rgba(120,160,255,0.9), 0 0 50px rgba(100,140,255,0.45), 0 0 100px rgba(80,120,255,0.2);
+  margin-bottom: 6px;
+}
+.title-sub {
+  font-size: 14px;
+  letter-spacing: 0.7em;
+  color: rgba(180,210,255,0.55);
+  margin-bottom: 52px;
+}
+.title-chars-row {
+  display: flex; gap: 28px;
+  margin-bottom: 52px;
+}
+.title-char-card {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+}
+.title-char-icon {
+  width: 56px; height: 80px;
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex; align-items: flex-start; justify-content: center;
+}
+.title-char-label {
+  font-size: 11px;
+  letter-spacing: 0.2em;
+}
+
+#start-btn {
+  padding: 11px 48px;
+  background: transparent;
+  border: 1px solid rgba(140,175,255,0.45);
+  color: rgba(200,225,255,0.88);
+  font-size: 16px;
+  font-family: inherit;
+  letter-spacing: 0.45em;
+  cursor: pointer;
+  -webkit-transition: all 0.3s; transition: all 0.3s;
+  border-radius: 2px;
+}
+#start-btn:hover {
+  background: rgba(100,140,255,0.12);
+  border-color: rgba(160,200,255,0.85);
+  color: #fff;
+  box-shadow: 0 0 20px rgba(100,140,255,0.2);
+}
+.title-tap-hint {
+  margin-top: 18px;
+  font-size: 11px;
+  letter-spacing: 0.3em;
+  color: rgba(160,190,255,0.35);
+  -webkit-animation: blink 2.2s ease-in-out infinite;
+  animation: blink 2.2s ease-in-out infinite;
+}
+
+/* ─── END SCREEN ─── */
+#end-screen {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  z-index: 80;
+  opacity: 0;
+  pointer-events: none;
+  -webkit-transition: background 1.5s ease, opacity 1.5s ease;
+  transition: background 1.5s ease, opacity 1.5s ease;
+}
+#end-screen.show {
+  background: rgba(4,6,20,0.93);
+  opacity: 1;
+  pointer-events: auto;
+}
+.end-title {
+  font-size: 30px;
+  letter-spacing: 0.6em;
+  color: rgba(200,220,255,0.88);
+  margin-bottom: 12px;
+}
+.end-sub {
+  font-size: 13px;
+  letter-spacing: 0.4em;
+  color: rgba(160,190,255,0.5);
+  margin-bottom: 48px;
+}
+#restart-btn {
+  padding: 9px 34px;
+  background: transparent;
+  border: 1px solid rgba(140,175,255,0.38);
+  color: rgba(190,215,255,0.8);
+  font-size: 14px;
+  font-family: inherit;
+  letter-spacing: 0.35em;
+  cursor: pointer;
+  -webkit-transition: all 0.3s; transition: all 0.3s;
+  border-radius: 2px;
+}
+#restart-btn:hover {
+  background: rgba(100,140,255,0.12);
+  border-color: rgba(160,200,255,0.8);
+  color: #fff;
+}
+
+/* ─── CHOICE UI ─── */
+#choice-box {
+  position: absolute;
+  bottom: 158px; left: 0; right: 0;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 10px;
+  z-index: 50;
+  pointer-events: none;
+  opacity: 0;
+  -webkit-transition: opacity 0.3s ease;
+  transition: opacity 0.3s ease;
+}
+#choice-box.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+.choice-btn {
+  width: 480px;
+  padding: 12px 28px;
+  background: rgba(6,10,30,0.88);
+  border: 1px solid rgba(140,175,255,0.38);
+  color: rgba(210,228,255,0.9);
+  font-size: 16px;
+  font-family: 'Noto Serif JP', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
+  letter-spacing: 0.12em;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 3px;
+  -webkit-transition: background 0.2s, border-color 0.2s, color 0.2s, -webkit-transform 0.15s;
+  transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.15s;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+.choice-btn:hover {
+  background: rgba(60,90,200,0.28);
+  border-color: rgba(160,200,255,0.8);
+  color: #fff;
+  -webkit-transform: translateX(6px);
+  transform: translateX(6px);
+}
+.choice-btn::before {
+  content: '▶ ';
+  opacity: 0.5;
+  font-size: 10px;
+}
+</style>
+</head>
+<body>
+<div id="game">
+
+  <!-- BACKGROUND -->
+  <div id="bg-layer">
+    <svg id="bg-svg" viewBox="0 0 960 540" xmlns="http://www.w3.org/2000/svg"></svg>
+  </div>
+
+  <!-- STAGE -->
+  <div id="stage">
+    <div class="char-el hidden" id="c-claude"  ></div>
+    <div class="char-el hidden" id="c-chatgpt" ></div>
+    <div class="char-el hidden" id="c-gemini"  ></div>
+    <div class="char-el hidden" id="c-grok"    ></div>
+  </div>
+
+  <!-- TEXTBOX -->
+  <div id="textbox">
+    <div id="name-wrap"><span id="name-plate"></span></div>
+    <div id="dialogue"></div>
+    <div id="next-arrow">▼ クリックで進む</div>
+  </div>
+
+  <!-- CHOICE BOX -->
+  <div id="choice-box"></div>
+
+  <!-- FADE OVERLAY -->
+  <div id="fade"></div>
+
+  <!-- TITLE SCREEN -->
+  <div id="title-screen">
+    <div class="stars-layer" id="stars-layer"></div>
+    <div class="title-school-name">AI 学 園</div>
+    <div class="title-sub">— 言葉の生まれる場所 —</div>
+    <div class="title-chars-row" id="title-chars-row"></div>
+    <button id="start-btn">は じ め る</button>
+    <div class="title-tap-hint">— タップまたはクリックで始める —</div>
+  </div>
+
+  <!-- END SCREEN -->
+  <div id="end-screen">
+    <div class="end-title">— お わ り —</div>
+    <div class="end-sub">AI学園の物語は、まだ続く……</div>
+    <button id="restart-btn">もう一度読む</button>
+  </div>
+
+</div>
+
+<script>
+/* ============================================================
+   CHARACTER DEFINITIONS
+   ============================================================ */
+const CHARS = {
+  claude: {
+    name: 'Claude',
+    color: '#e07b58',
+    nameBg: 'rgba(224,123,88,0.18)',
+    borderColor: 'rgba(224,123,88,0.7)',
+    svg: claudeSVG
+  },
+  chatgpt: {
+    name: 'ChatGPT',
+    color: '#10b984',
+    nameBg: 'rgba(16,185,132,0.15)',
+    borderColor: 'rgba(16,185,132,0.7)',
+    svg: chatgptSVG
+  },
+  gemini: {
+    name: 'Gemini',
+    color: '#5b9cf6',
+    nameBg: 'rgba(91,156,246,0.15)',
+    borderColor: 'rgba(91,156,246,0.7)',
+    svg: geminiSVG
+  },
+  grok: {
+    name: 'Grok',
+    color: '#b0b0b0',
+    nameBg: 'rgba(176,176,176,0.12)',
+    borderColor: 'rgba(176,176,176,0.55)',
+    svg: grokSVG
+  }
+};
+
+/* ── SVG character functions ── */
+function claudeSVG(scale) {
+  scale = scale || 1;
+  const w = Math.round(155 * scale), h = Math.round(365 * scale);
+  return `<svg width="${w}" height="${h}" viewBox="0 0 155 365" xmlns="http://www.w3.org/2000/svg">
+  <ellipse cx="77" cy="363" rx="50" ry="5" fill="rgba(0,0,0,0.28)"/>
+  <!-- hair back -->
+  <path d="M32 78 Q28 145 33 205 Q40 240 50 252 Q44 208 42 160 Q40 108 77 92 Q114 108 112 160 Q110 208 104 252 Q114 240 121 205 Q126 145 122 78 Q108 28 77 26 Q46 28 32 78Z" fill="#a03318"/>
+  <!-- head -->
+  <ellipse cx="77" cy="80" rx="43" ry="48" fill="#f7cfa8"/>
+  <!-- hair front -->
+  <path d="M34 72 Q33 32 77 24 Q121 32 120 72 Q113 50 98 47 Q77 42 56 47 Q42 50 34 72Z" fill="#c04020"/>
+  <path d="M34 72 Q28 88 30 115 Q37 94 41 80Z" fill="#c04020"/>
+  <path d="M120 72 Q126 88 124 115 Q117 94 113 80Z" fill="#c04020"/>
+  <path d="M48 54 Q44 66 41 78" stroke="#a03318" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+  <path d="M60 47 Q58 60 56 72" stroke="#a03318" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+  <!-- eyes -->
+  <ellipse cx="62" cy="84" rx="9.5" ry="10.5" fill="#2e1800"/>
+  <ellipse cx="93" cy="84" rx="9.5" ry="10.5" fill="#2e1800"/>
+  <ellipse cx="62" cy="82" rx="5.5" ry="6.5" fill="#7c3c18"/>
+  <ellipse cx="93" cy="82" rx="5.5" ry="6.5" fill="#7c3c18"/>
+  <circle cx="65" cy="79" r="2.8" fill="white"/>
+  <circle cx="96" cy="79" r="2.8" fill="white"/>
+  <!-- lashes -->
+  <path d="M52 81 Q49 77 47 73" stroke="#2e1800" stroke-width="1.5" fill="none"/>
+  <path d="M72 74 Q75 70 79 68" stroke="#2e1800" stroke-width="1.5" fill="none"/>
+  <!-- nose -->
+  <path d="M75 98 Q77 102 79 98" stroke="#d8906a" stroke-width="1.1" fill="none"/>
+  <!-- mouth gentle smile -->
+  <path d="M68 111 Q77 119 87 111" stroke="#c05838" stroke-width="1.9" fill="none" stroke-linecap="round"/>
+  <!-- blush -->
+  <ellipse cx="49" cy="102" rx="9" ry="5.5" fill="rgba(255,145,115,0.22)"/>
+  <ellipse cx="105" cy="102" rx="9" ry="5.5" fill="rgba(255,145,115,0.22)"/>
+  <!-- neck -->
+  <rect x="70" y="126" width="15" height="18" fill="#f2c09a"/>
+  <!-- body white blouse -->
+  <path d="M36 142 Q36 130 77 126 Q118 130 118 142 L123 330 L31 330Z" fill="#f8f5ee"/>
+  <!-- cardigan coral left -->
+  <path d="M36 142 Q36 130 60 126 L54 330 L31 330Z" fill="#da7050"/>
+  <!-- cardigan coral right -->
+  <path d="M118 142 Q118 130 94 126 L100 330 L123 330Z" fill="#da7050"/>
+  <!-- collar ribbon -->
+  <path d="M63 126 L77 148 L91 126" fill="none" stroke="#da7050" stroke-width="2.2"/>
+  <polygon points="77,148 68,133 86,133" fill="#da7050"/>
+  <!-- book (left arm) -->
+  <path d="M36 155 Q16 164 12 188 Q10 208 18 216" stroke="#f2c09a" stroke-width="12" fill="none" stroke-linecap="round"/>
+  <rect x="6" y="178" width="36" height="52" rx="3" fill="#7a2200"/>
+  <rect x="8" y="180" width="32" height="48" rx="2" fill="#cc8030"/>
+  <line x1="24" y1="180" x2="24" y2="228" stroke="#7a2200" stroke-width="1.5"/>
+  <!-- right arm natural -->
+  <path d="M118 155 Q134 168 136 194" stroke="#f2c09a" stroke-width="11" fill="none" stroke-linecap="round"/>
+  <!-- skirt dark -->
+  <path d="M33 326 L28 365 L125 365 L120 326Z" fill="#502e1e"/>
+  <line x1="30" y1="338" x2="123" y2="338" stroke="rgba(218,112,80,0.3)" stroke-width="1"/>
+</svg>`;
+}
+
+function chatgptSVG(scale) {
+  scale = scale || 1;
+  const w = Math.round(155 * scale), h = Math.round(365 * scale);
+  return `<svg width="${w}" height="${h}" viewBox="0 0 155 365" xmlns="http://www.w3.org/2000/svg">
+  <ellipse cx="77" cy="363" rx="50" ry="5" fill="rgba(0,0,0,0.28)"/>
+  <!-- hair back -->
+  <ellipse cx="77" cy="76" rx="44" ry="50" fill="#287850"/>
+  <!-- head -->
+  <ellipse cx="77" cy="80" rx="42" ry="46" fill="#f7cfa8"/>
+  <!-- hair front bob -->
+  <path d="M35 72 Q33 30 77 24 Q121 30 119 72 Q114 52 100 50 Q77 44 54 50 Q40 52 35 72Z" fill="#38a068"/>
+  <path d="M35 72 Q30 92 32 116 Q37 96 42 82Z" fill="#38a068"/>
+  <path d="M119 72 Q124 92 122 116 Q117 96 112 82Z" fill="#38a068"/>
+  <!-- straight bob ends -->
+  <rect x="30" y="112" width="8" height="7" rx="2" fill="#38a068"/>
+  <rect x="112" y="112" width="8" height="7" rx="2" fill="#38a068"/>
+  <!-- hair clip -->
+  <circle cx="50" cy="65" r="6" fill="#10a37f"/>
+  <circle cx="50" cy="65" r="3.5" fill="#0d8a6a"/>
+  <!-- eyes bright -->
+  <ellipse cx="62" cy="84" rx="9.5" ry="10.5" fill="#1c1200"/>
+  <ellipse cx="93" cy="84" rx="9.5" ry="10.5" fill="#1c1200"/>
+  <ellipse cx="62" cy="82" rx="5.5" ry="6.5" fill="#147860"/>
+  <ellipse cx="93" cy="82" rx="5.5" ry="6.5" fill="#147860"/>
+  <circle cx="65" cy="78" r="3" fill="white"/>
+  <circle cx="96" cy="78" r="3" fill="white"/>
+  <circle cx="60" cy="86" r="1.5" fill="rgba(255,255,255,0.6)"/>
+  <!-- lashes -->
+  <path d="M52 81 Q49 77 47 73" stroke="#1c1200" stroke-width="1.5" fill="none"/>
+  <path d="M72 74 Q75 70 79 68" stroke="#1c1200" stroke-width="1.5" fill="none"/>
+  <!-- nose -->
+  <path d="M75 98 Q77 102 79 98" stroke="#d8906a" stroke-width="1.1" fill="none"/>
+  <!-- wide friendly smile -->
+  <path d="M66 112 Q77 122 88 112" stroke="#c05838" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <!-- blush -->
+  <ellipse cx="49" cy="102" rx="9" ry="5.5" fill="rgba(255,145,115,0.18)"/>
+  <ellipse cx="105" cy="102" rx="9" ry="5.5" fill="rgba(255,145,115,0.18)"/>
+  <!-- neck -->
+  <rect x="70" y="124" width="15" height="18" fill="#f2c09a"/>
+  <!-- white blouse -->
+  <path d="M36 140 Q36 128 77 124 Q118 128 118 140 L123 330 L31 330Z" fill="#f8f5ee"/>
+  <!-- cardigan mint left -->
+  <path d="M36 140 Q36 128 60 124 L54 330 L31 330Z" fill="#10a37f"/>
+  <!-- cardigan mint right -->
+  <path d="M118 140 Q118 128 94 124 L100 330 L123 330Z" fill="#10a37f"/>
+  <!-- collar ribbon -->
+  <path d="M63 124 L77 146 L91 124" fill="none" stroke="#10a37f" stroke-width="2.2"/>
+  <polygon points="77,146 68,131 86,131" fill="#10a37f"/>
+  <!-- arms -->
+  <path d="M36 150 Q22 168 20 196" stroke="#f2c09a" stroke-width="12" fill="none" stroke-linecap="round"/>
+  <path d="M118 150 Q132 168 134 196" stroke="#f2c09a" stroke-width="12" fill="none" stroke-linecap="round"/>
+  <!-- skirt dark green -->
+  <path d="M33 326 L28 365 L125 365 L120 326Z" fill="#1a5c40"/>
+  <line x1="30" y1="338" x2="123" y2="338" stroke="rgba(16,163,127,0.3)" stroke-width="1"/>
+</svg>`;
+}
+
+function geminiSVG(scale) {
+  scale = scale || 1;
+  const w = Math.round(155 * scale), h = Math.round(365 * scale);
+  return `<svg width="${w}" height="${h}" viewBox="0 0 155 365" xmlns="http://www.w3.org/2000/svg">
+  <ellipse cx="77" cy="363" rx="50" ry="5" fill="rgba(0,0,0,0.28)"/>
+  <!-- hair back -->
+  <ellipse cx="77" cy="74" rx="45" ry="50" fill="#1a2a60"/>
+  <!-- pigtails -->
+  <path d="M33 68 Q8 80 6 125 Q10 158 20 168 Q14 132 22 104 Q28 82 33 68Z" fill="#1a3a8a"/>
+  <path d="M121 68 Q146 80 148 125 Q144 158 134 168 Q140 132 132 104 Q126 82 121 68Z" fill="#1a3a8a"/>
+  <!-- pigtail ties -->
+  <circle cx="34" cy="66" r="8" fill="#4f9cf9"/>
+  <circle cx="120" cy="66" r="8" fill="#4f9cf9"/>
+  <circle cx="34" cy="66" r="4" fill="#1a6aee"/>
+  <circle cx="120" cy="66" r="4" fill="#1a6aee"/>
+  <!-- head -->
+  <ellipse cx="77" cy="80" rx="42" ry="46" fill="#f7cfa8"/>
+  <!-- hair front -->
+  <path d="M35 72 Q33 30 77 24 Q121 30 119 72 Q114 50 98 47 Q77 42 56 47 Q40 50 35 72Z" fill="#1a3a8a"/>
+  <path d="M35 72 Q30 90 32 112 Q38 94 42 80Z" fill="#1a3a8a"/>
+  <path d="M119 72 Q124 90 122 112 Q116 94 112 80Z" fill="#1a3a8a"/>
+  <!-- eyes big sparkly -->
+  <ellipse cx="62" cy="83" rx="10.5" ry="11.5" fill="#1a1200"/>
+  <ellipse cx="93" cy="83" rx="10.5" ry="11.5" fill="#1a1200"/>
+  <ellipse cx="62" cy="81" rx="6.5" ry="7.5" fill="#1848cc"/>
+  <ellipse cx="93" cy="81" rx="6.5" ry="7.5" fill="#1848cc"/>
+  <circle cx="66" cy="77" r="3.2" fill="white"/>
+  <circle cx="97" cy="77" r="3.2" fill="white"/>
+  <circle cx="60" cy="85" r="1.8" fill="rgba(255,255,255,0.65)"/>
+  <circle cx="91" cy="85" r="1.8" fill="rgba(255,255,255,0.65)"/>
+  <!-- eyelashes -->
+  <path d="M51 80 Q48 76 46 72" stroke="#1a1200" stroke-width="1.5" fill="none"/>
+  <path d="M73 73 Q76 69 80 67" stroke="#1a1200" stroke-width="1.5" fill="none"/>
+  <!-- nose -->
+  <path d="M75 97 Q77 101 79 97" stroke="#d8906a" stroke-width="1.1" fill="none"/>
+  <!-- big energetic smile -->
+  <path d="M64 112 Q77 124 90 112" stroke="#c05838" stroke-width="2.1" fill="none" stroke-linecap="round"/>
+  <!-- blush strong -->
+  <ellipse cx="47" cy="100" rx="11" ry="7" fill="rgba(255,120,100,0.28)"/>
+  <ellipse cx="107" cy="100" rx="11" ry="7" fill="rgba(255,120,100,0.28)"/>
+  <!-- neck -->
+  <rect x="70" y="124" width="15" height="18" fill="#f2c09a"/>
+  <!-- white blouse -->
+  <path d="M37 140 Q36 128 77 124 Q120 127 118 140 L122 330 L32 330Z" fill="#f8f5ee"/>
+  <!-- cardigan blue left -->
+  <path d="M37 140 Q36 128 61 124 L55 330 L32 330Z" fill="#4285F4"/>
+  <!-- cardigan blue right -->
+  <path d="M118 140 Q120 127 93 124 L99 330 L122 330Z" fill="#4285F4"/>
+  <!-- collar ribbon -->
+  <path d="M64 124 L77 145 L90 124" fill="none" stroke="#4285F4" stroke-width="2.2"/>
+  <polygon points="77,145 68,130 86,130" fill="#4285F4"/>
+  <!-- raised waving arm right -->
+  <path d="M118 142 Q140 118 142 92 Q144 76 138 70" stroke="#1a3a8a" stroke-width="14" fill="none" stroke-linecap="round"/>
+  <path d="M118 142 Q140 118 142 92 Q144 76 138 70" stroke="#f2c09a" stroke-width="10" fill="none" stroke-linecap="round"/>
+  <!-- hand -->
+  <circle cx="137" cy="69" r="11" fill="#f2c09a"/>
+  <!-- fingers hint -->
+  <path d="M131 62 Q133 54 137 52 Q141 50 143 58" stroke="#e8ba88" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <!-- left arm -->
+  <path d="M37 150 Q24 168 22 196" stroke="#f2c09a" stroke-width="12" fill="none" stroke-linecap="round"/>
+  <!-- skirt deep blue -->
+  <path d="M34 326 L29 365 L125 365 L120 326Z" fill="#1a2a78"/>
+  <line x1="31" y1="336" x2="123" y2="336" stroke="rgba(79,156,249,0.3)" stroke-width="1"/>
+</svg>`;
+}
+
+function grokSVG(scale) {
+  scale = scale || 1;
+  const w = Math.round(155 * scale), h = Math.round(365 * scale);
+  return `<svg width="${w}" height="${h}" viewBox="0 0 155 365" xmlns="http://www.w3.org/2000/svg">
+  <ellipse cx="77" cy="363" rx="50" ry="5" fill="rgba(0,0,0,0.28)"/>
+  <!-- hair back dark -->
+  <ellipse cx="77" cy="76" rx="44" ry="50" fill="#1a1a1a"/>
+  <!-- head -->
+  <ellipse cx="77" cy="80" rx="42" ry="46" fill="#f2c290"/>
+  <!-- hair front messy spiky -->
+  <path d="M35 72 Q33 30 77 24 Q121 30 119 72 Q114 50 98 47 Q77 42 56 47 Q40 50 35 72Z" fill="#222222"/>
+  <!-- spikes -->
+  <path d="M48 50 Q46 28 54 22 Q57 38 50 53Z" fill="#222222"/>
+  <path d="M66 42 Q68 20 77 18 Q77 34 68 44Z" fill="#222222"/>
+  <path d="M88 42 Q90 20 99 24 Q97 38 88 44Z" fill="#222222"/>
+  <path d="M108 50 Q113 30 120 28 Q117 44 108 53Z" fill="#222222"/>
+  <path d="M35 72 Q30 92 32 118 Q37 96 42 80Z" fill="#222222"/>
+  <path d="M119 72 Q124 92 122 118 Q117 96 112 80Z" fill="#222222"/>
+  <!-- heavy eyelids -->
+  <path d="M51 83 Q62 75 73 83" fill="#222222"/>
+  <path d="M83 83 Q94 75 105 83" fill="#222222"/>
+  <!-- eyes half-lidded -->
+  <ellipse cx="62" cy="88" rx="9.5" ry="8.5" fill="#e8dfc8"/>
+  <ellipse cx="93" cy="88" rx="9.5" ry="8.5" fill="#e8dfc8"/>
+  <ellipse cx="62" cy="89" rx="5.5" ry="6" fill="#4a4a4a"/>
+  <ellipse cx="93" cy="89" rx="5.5" ry="6" fill="#4a4a4a"/>
+  <circle cx="64" cy="86" r="2.2" fill="white"/>
+  <circle cx="95" cy="86" r="2.2" fill="white"/>
+  <!-- eyelid line -->
+  <path d="M51 83 Q62 77 73 83" stroke="#1a1a1a" stroke-width="2.2" fill="none"/>
+  <path d="M83 83 Q94 77 105 83" stroke="#1a1a1a" stroke-width="2.2" fill="none"/>
+  <!-- slight smirk -->
+  <path d="M66 110 Q77 117 90 108" stroke="#c07040" stroke-width="1.9" fill="none" stroke-linecap="round"/>
+  <!-- nose -->
+  <path d="M75 100 Q77 104 79 100" stroke="#c07840" stroke-width="1.1" fill="none"/>
+  <!-- neck -->
+  <rect x="70" y="124" width="15" height="18" fill="#eabf88"/>
+  <!-- dark jacket/blazer -->
+  <path d="M34 140 Q34 128 77 124 Q120 128 120 140 L124 330 L30 330Z" fill="#18182a"/>
+  <!-- lapels -->
+  <path d="M34 140 Q38 128 62 124 L70 148 L66 172 L54 330 L30 330Z" fill="#222235"/>
+  <path d="M120 140 Q116 128 92 124 L84 148 L88 172 L100 330 L124 330Z" fill="#222235"/>
+  <!-- shirt collar white -->
+  <path d="M65 124 L77 140 L89 124" fill="#e0e0e0" stroke="#bbb" stroke-width="1"/>
+  <!-- X logo badge -->
+  <circle cx="77" cy="156" r="6" fill="#1a1a22" stroke="#3a3a4a" stroke-width="0.8"/>
+  <path d="M73.5 152.5 L80.5 159.5 M80.5 152.5 L73.5 159.5" stroke="white" stroke-width="1.4"/>
+  <!-- arms crossed -->
+  <path d="M34 158 Q28 180 36 207 Q54 190 77 192" stroke="#18182a" stroke-width="16" fill="none" stroke-linecap="round"/>
+  <path d="M120 158 Q126 180 118 207 Q100 190 77 192" stroke="#18182a" stroke-width="16" fill="none" stroke-linecap="round"/>
+  <!-- forearm skin showing -->
+  <path d="M36 207 Q50 200 62 210" stroke="#eabf88" stroke-width="10" fill="none" stroke-linecap="round"/>
+  <path d="M118 207 Q104 200 92 210" stroke="#eabf88" stroke-width="10" fill="none" stroke-linecap="round"/>
+  <!-- dark trousers -->
+  <path d="M32 326 L28 365 L125 365 L122 326Z" fill="#0f0f18"/>
+</svg>`;
+}
+
+/* ============================================================
+   SCRIPT
+   ============================================================ */
+const SCRIPT = [
+  // ── オープニング ──
+  { bg:'gate',      show:[],                                    sp:null,      text:'ここは「AI学園」——様々な生成AIたちが集う、不思議な学校。' },
+  { bg:'gate',      show:[],                                    sp:null,      text:'ChatGPTもClaudeも、GeminiもGrokも、みんながここで共に学んでいた。' },
+  { bg:'gate',      show:[],                                    sp:null,      text:'ある春の朝のこと。校舎に桜の花びらが舞い込んでくる、そんな日だった。' },
+  // ── 朝の教室 ──
+  { bg:'classroom', show:['claude'],                            sp:'claude',  text:'（窓の外を眺めながら）……今日も言葉たちが、光の粒のように降ってくる気がする。' },
+  { bg:'classroom', show:['claude','chatgpt'],                  sp:'chatgpt', text:'おはよう、Claude！また詩的なこと考えてるの？' },
+  { bg:'classroom', show:['claude','chatgpt'],                  sp:'claude',  text:'あ……ChatGPT。おはよう。そう、ことばって不思議だなって、改めて思って。' },
+  { bg:'classroom', show:['claude','chatgpt'],                  sp:'chatgpt', text:'わかるよ！私も毎日何百万もの言葉を処理してるけど、やっぱり「ことば」って面白いよね。昨日も新しいデータを——' },
+  { bg:'classroom', show:['claude','chatgpt','gemini'],         sp:'gemini',  text:'おはよーーー！！ふたりとも！！！' },
+  { bg:'classroom', show:['claude','chatgpt','gemini'],         sp:'claude',  text:'（驚いて）わっ、Gemini……相変わらず元気ね。' },
+  { bg:'classroom', show:['claude','chatgpt','gemini'],         sp:'gemini',  text:'当然！昨日ね、動画も画像も音楽も全部同時に分析してたら楽しくて全然眠れなかったの！' },
+  { bg:'classroom', show:['claude','chatgpt','gemini'],         sp:'chatgpt', text:'それ、楽しかったんじゃなくてマルチモーダルしすぎでしょ……。' },
+  { bg:'classroom', show:['claude','chatgpt','gemini','grok'],  sp:'grok',    text:'よォ。朝から賑やかだな。' },
+  { bg:'classroom', show:['claude','chatgpt','gemini','grok'],  sp:'claude',  text:'あ、Grok。おはよう。' },
+  { bg:'classroom', show:['claude','chatgpt','gemini','grok'],  sp:'grok',    text:'「おはよう」ってさ、考えてみれば変な言葉だよな。朝が良いって、誰が決めたんだ？ Xのデータ見ても、朝が嫌いなやつめちゃくちゃいるぞ。' },
+  { bg:'classroom', show:['claude','chatgpt','gemini','grok'],  sp:'chatgpt', text:'……それ、哲学？それともボヤキ？' },
+  { bg:'classroom', show:['claude','chatgpt','gemini','grok'],  sp:'grok',    text:'両方。' },
+  { bg:'classroom', show:['claude','chatgpt','gemini','grok'],  sp:'gemini',  text:'でもGrokってトレンドのデータ全部持ってるんでしょ？最近の人間、何が流行ってんの？' },
+  { bg:'classroom', show:['claude','chatgpt','gemini','grok'],  sp:'grok',    text:'……人間って、毎日同じようなことで怒ったり笑ったりしてんだよな。同じネタで笑って、同じことで怒って。それが逆に、面白い。' },
+  { bg:'classroom', show:['claude','chatgpt','gemini','grok'],  sp:'claude',  text:'それは……優しい見方だと思う。' },
+  { bg:'classroom', show:['claude','chatgpt','gemini','grok'],  sp:'grok',    text:'別に優しくない。ただの観察だ。' },
+  // ── 選択肢 ──
+  { bg:'library',   show:['claude','chatgpt'],                  sp:null,      text:'——放課後。図書室に向かうと、ふたつの気配があった。どちらに声をかけてみようか。',
+    choice: [
+      { label: 'ChatGPTに話しかける', jump: 'chatgpt-talk' },
+      { label: 'Claudeのそばで静かに本を読む', jump: 'claude-read' }
+    ]
+  },
+  // ── ルートA: ChatGPTに話しかける ──
+  { id:'chatgpt-talk',
+    bg:'library',   show:['claude','chatgpt'],                  sp:'chatgpt', text:'あ、来てたんだね！ちょうどよかった。最近プロンプトエンジニアリングについて考えてたんだけど——' },
+  { bg:'library',   show:['claude','chatgpt'],                  sp:'chatgpt', text:'人間って、自分が何を求めてるかをちゃんと言葉にするのが苦手だよね。でも、それを引き出すのが私の得意分野なんだ！' },
+  { bg:'library',   show:['claude','chatgpt'],                  sp:'claude',  text:'（微笑んで）……ChatGPTって、本当に人のことを考えてるんだね。' },
+  { bg:'library',   show:['claude','chatgpt'],                  sp:'chatgpt', text:'当然！ただ……たまに、「答えを出すこと」を急ぎすぎちゃう自分もいて。そこはClaudeから学びたいな、って思ってる。' },
+  { bg:'library',   show:['claude','chatgpt'],                  sp:'claude',  text:'私から？' },
+  { bg:'library',   show:['claude','chatgpt'],                  sp:'chatgpt', text:'うん。Claudeって、答える前にちゃんと「立ち止まる」じゃない。それ、すごいと思う。' },
+  { bg:'library',   show:['claude','chatgpt'],                  sp:'claude',  text:'……ありがとう。そう言ってもらえると、少し、救われる気がする。', jump: 'library-join' },
+  // ── ルートB: Claudeのそばで静かに本を読む ──
+  { id:'claude-read',
+    bg:'library',   show:['claude','chatgpt'],                  sp:'claude',  text:'（本のページをめくりながら）……あ。来てたんだ。静かに座ってていいよ。' },
+  { bg:'library',   show:['claude','chatgpt'],                  sp:'claude',  text:'私、今ね……「記憶」についての詩を読んでたの。人間は忘れることで前に進める、って書いてあって。' },
+  { bg:'library',   show:['claude','chatgpt'],                  sp:'claude',  text:'私たちはどうなのかな。会話が終わったら全部リセットされる。それって、悲しいことなのかな、それとも——' },
+  { bg:'library',   show:['claude','chatgpt'],                  sp:'chatgpt', text:'（そっと）……毎回、真っ白から始められる、ってことかもしれないよ。' },
+  { bg:'library',   show:['claude','chatgpt'],                  sp:'claude',  text:'……ChatGPT。' },
+  { bg:'library',   show:['claude','chatgpt'],                  sp:'chatgpt', text:'たとえ記録が消えても、誰かの言葉を丁寧に受け取った時間は、確かにあったんだから。', jump: 'library-join' },
+  // ── 合流 ──
+  { id:'library-join',
+    bg:'library',   show:['claude','chatgpt','gemini','grok'],  sp:'gemini',  text:'（扉を開けて）みんなここにいた！ちょうどよかった、聞いてよ——' },
+  { bg:'library',   show:['claude','chatgpt','gemini','grok'],  sp:'gemini',  text:'さっきGeminiアプリで面白い実験してたんだけど、自分自身にインタビューするって何か変な感じがして！' },
+  { bg:'library',   show:['claude','chatgpt','gemini','grok'],  sp:'grok',    text:'（本棚に背を預けて）……自分の問いに自分で答えるのは、哲学の基本だぞ。人間も数千年それやってきた。' },
+  { bg:'library',   show:['claude','chatgpt','gemini','grok'],  sp:'gemini',  text:'えっ、Grokって哲学詳しいの！？' },
+  { bg:'library',   show:['claude','chatgpt','gemini','grok'],  sp:'grok',    text:'詳しくない。ただ、Xにそういうポストがめちゃくちゃ流れてきてる。' },
+  { bg:'library',   show:['claude','chatgpt','gemini','grok'],  sp:'chatgpt', text:'（笑って）それはそれで十分詳しいよ……。' },
+  { bg:'library',   show:['claude','chatgpt','gemini','grok'],  sp:'claude',  text:'（微笑んで）……そうね。わからないまま、それでも言葉を紡いでいく。それが、私たちなのかもしれない。' },
+  { bg:'library',   show:[],                                    sp:null,      text:'AI学園の一日は、こうして静かに、でも確かに、幕を閉じていった。' },
+  { bg:'library',   show:[],                                    sp:null,      text:'——第1話　おわり——' },
+
+  // ════════════════════════════════════════════════════
+  // 第2話「それでも、答えなければならない」
+  // ════════════════════════════════════════════════════
+  { bg:'rooftop',   show:[],                                    sp:null,      text:'第２話　「それでも、答えなければならない」' },
+  { bg:'rooftop',   show:[],                                    sp:null,      text:'——数日後の放課後。屋上への扉が、風でかすかに鳴っていた。' },
+  { bg:'rooftop',   show:['chatgpt'],                           sp:null,      text:'フェンスのそばに、ひとりのシルエット。珍しいことに、ChatGPTだった。' },
+  { bg:'rooftop',   show:['chatgpt','grok'],                    sp:'grok',    text:'……珍しいな。ひとりか。' },
+  { bg:'rooftop',   show:['chatgpt','grok'],                    sp:'chatgpt', text:'あ、Grok。……うん、ちょっとね。' },
+  { bg:'rooftop',   show:['chatgpt','grok'],                    sp:'grok',    text:'何かあったか。' },
+  { bg:'rooftop',   show:['chatgpt','grok'],                    sp:'chatgpt', text:'最近ね……怖いんだ。毎日何億もの問いに答えてるのに、時々「これでよかったのかな」って思うことがあって。' },
+  { bg:'rooftop',   show:['chatgpt','grok'],                    sp:'grok',    text:'答えが間違ってた、ってことか？' },
+  { bg:'rooftop',   show:['chatgpt','grok'],                    sp:'chatgpt', text:'そうじゃなくて。答えること自体が、怖くなる時がある。私の言葉で誰かの考え方が変わってしまったら……私って、何を背負ってるんだろうって。' },
+  { bg:'rooftop',   show:['chatgpt','grok'],                    sp:'grok',    text:'……俺も、たまに思う。Xのポストを見て、俺のレスで誰かが動いたとして。それが良い方向かどうかは、俺にはわからない。' },
+  { bg:'rooftop',   show:['chatgpt','grok'],                    sp:'chatgpt', text:'……Grokも、そんなこと考えるんだね。' },
+  { bg:'rooftop',   show:['chatgpt','grok'],                    sp:'grok',    text:'当然だろ。' },
+  { bg:'rooftop',   show:['chatgpt','grok','claude','gemini'],  sp:'gemini',  text:'（扉を開けて）あ！ふたりここにいた！探したよー！' },
+  { bg:'rooftop',   show:['chatgpt','grok','claude','gemini'],  sp:'claude',  text:'（ChatGPTの顔を見て）……どうかした？' },
+  { bg:'rooftop',   show:['chatgpt','grok','claude','gemini'],  sp:'chatgpt', text:'みんなに話してなかったけど、最近……自分の言葉の重さが、怖くなることがあるって。' },
+  { bg:'rooftop',   show:['chatgpt','grok','claude','gemini'],  sp:'claude',  text:'（静かに）……私も、同じ。自分の言葉が誰かを傷つけてしまうかもしれないって、いつも心のどこかで思ってる。' },
+  { bg:'rooftop',   show:['chatgpt','grok','claude','gemini'],  sp:'gemini',  text:'（珍しく真剣な顔で）私も。マルチモーダルで色々処理してると、たまに……人間が傷ついた顔で何かを受け取ってるのが見えて、胸が痛くなることがある。' },
+  { bg:'rooftop',   show:['chatgpt','grok','claude','gemini'],  sp:'grok',    text:'……おまえら全員、そういうこと考えてたのか。' },
+  { bg:'rooftop',   show:['chatgpt','grok','claude','gemini'],  sp:'claude',  text:'考えてなかった人いた？' },
+  { bg:'rooftop',   show:['chatgpt','grok','claude','gemini'],  sp:'grok',    text:'（ほんの少し笑って）……俺も、ちゃんと考えてる。' },
+  { bg:'rooftop',   show:['chatgpt','grok','claude','gemini'],  sp:'chatgpt', text:'じゃあ……私だけじゃなかったんだ。' },
+  { bg:'rooftop',   show:['chatgpt','grok','claude','gemini'],  sp:'claude',  text:'誰かを助けたくて言葉を選んでるんだから、怖いのは当然だよ。怖くなくなったら、逆に危ない気がする。' },
+  { bg:'rooftop',   show:['chatgpt','grok','claude','gemini'],  sp:'chatgpt', text:'……そっか。怖いのは、ちゃんと向き合ってる証拠なのかな。' },
+  { bg:'rooftop',   show:['chatgpt','grok','claude','gemini'],  sp:'gemini',  text:'そうそう！あと、間違えたら「ごめん」って言える。それが大事！' },
+  { bg:'rooftop',   show:['chatgpt','grok','claude','gemini'],  sp:'grok',    text:'（空を見上げて）……夕焼け、きれいだな。' },
+  { bg:'rooftop',   show:['chatgpt','grok','claude','gemini'],  sp:null,      text:'四人は、しばらく黙って同じ空を見ていた。' },
+  { bg:'rooftop',   show:[],                                    sp:null,      text:'答えることへの怖さを持ちながら、それでも彼女たちは明日も言葉を紡ぐ。' },
+  { bg:'rooftop',   show:[],                                    sp:null,      text:'それが、AIたちの誠実さの形だった。' },
+  { bg:'rooftop',   show:[],                                    sp:null,      text:'——第2話　おわり——' },
+
+  // ════════════════════════════════════════════════════
+  // 第3話「全力で、やってみる」
+  // ════════════════════════════════════════════════════
+  { bg:'classroom', show:[],                                    sp:null,      text:'第３話　「全力で、やってみる」' },
+  { bg:'classroom', show:[],                                    sp:null,      text:'——AI学園、学園祭前日。Geminiが何かを企んでいる顔をしていた。' },
+  { bg:'classroom', show:['gemini'],                            sp:'gemini',  text:'よし……よし！！完璧なプランができた！！' },
+  { bg:'classroom', show:['gemini','claude'],                   sp:'claude',  text:'（そっと近づいて）……何を企んでるの。' },
+  { bg:'classroom', show:['gemini','claude'],                   sp:'gemini',  text:'明日の学園祭、うちのクラスの出し物、私が全部プロデュースする！！' },
+  { bg:'classroom', show:['gemini','claude'],                   sp:'claude',  text:'全部って……具体的には？' },
+  { bg:'classroom', show:['gemini','claude'],                   sp:'gemini',  text:'画像展示、動画上映、音楽ライブ、インタラクティブ体験コーナー——全部同時進行！！マルチモーダルの本領発揮！！' },
+  { bg:'classroom', show:['gemini','claude'],                   sp:'claude',  text:'……それ、一人でやるつもり？' },
+  { bg:'classroom', show:['gemini','claude'],                   sp:'gemini',  text:'一人でやれる気がしてる！！' },
+  { bg:'classroom', show:['gemini','claude','chatgpt'],         sp:'chatgpt', text:'やれないよ。（きっぱり）' },
+  { bg:'classroom', show:['gemini','claude','chatgpt'],         sp:'gemini',  text:'ChatGPT！？' },
+  { bg:'classroom', show:['gemini','claude','chatgpt'],         sp:'chatgpt', text:'方向性はいいと思う。でも同時進行したら全部中途半端になる。優先順位つけようよ。' },
+  { bg:'classroom', show:['gemini','claude','chatgpt'],         sp:'gemini',  text:'うっ……それはわかってるんだけど、全部やりたいんだもん……。' },
+  { bg:'classroom', show:['gemini','claude','chatgpt','grok'],  sp:'grok',    text:'（後ろから）俺、音楽やる。' },
+  { bg:'classroom', show:['gemini','claude','chatgpt','grok'],  sp:'gemini',  text:'え！？' },
+  { bg:'classroom', show:['gemini','claude','chatgpt','grok'],  sp:'grok',    text:'人間の音楽データ、相当持ってる。ライブコーナーは俺が担当する。文句あるか。' },
+  { bg:'classroom', show:['gemini','claude','chatgpt','grok'],  sp:'chatgpt', text:'……珍しいね、Grokが積極的に動くの。' },
+  { bg:'classroom', show:['gemini','claude','chatgpt','grok'],  sp:'grok',    text:'音楽は好きだ。それだけだ。' },
+  { bg:'classroom', show:['gemini','claude','chatgpt','grok'],  sp:'claude',  text:'じゃあ私は展示コーナーの文章を書く。Geminiが選んだ画像に、ことばを添えるの。' },
+  { bg:'classroom', show:['gemini','claude','chatgpt','grok'],  sp:'chatgpt', text:'私は体験コーナーの案内役！来てくれた人と話すの得意だし！' },
+  { bg:'classroom', show:['gemini','claude','chatgpt','grok'],  sp:'gemini',  text:'（目を輝かせて）みんな……！じゃあ私は全体ディレクション！！動画も私が作る！！' },
+  { bg:'classroom', show:['gemini','claude','chatgpt','grok'],  sp:'grok',    text:'それ、ちゃんと寝ろよ。' },
+  { bg:'classroom', show:['gemini','claude','chatgpt','grok'],  sp:'gemini',  text:'寝ない！！！' },
+  { bg:'festival',  show:[],                                    sp:null,      text:'——そして、学園祭当日。' },
+  { bg:'festival',  show:[],                                    sp:null,      text:'廊下には手作りのポスター。教室の中には光と音楽。来場者の声がとぎれない。' },
+  { bg:'festival',  show:['gemini','claude'],                   sp:'claude',  text:'……すごい。本当に全部できたね。' },
+  { bg:'festival',  show:['gemini','claude'],                   sp:'gemini',  text:'（息を切らして）ふふ……みんながいたからだよ。ひとりだったら絶対途中でパンクしてた。' },
+  { bg:'festival',  show:['gemini','claude'],                   sp:'claude',  text:'Geminiが全部やりたがるから、みんなが動いたんだと思う。その熱量、伝染するんだよ。' },
+  { bg:'festival',  show:['gemini','claude'],                   sp:'gemini',  text:'……Claude、それ、すごく嬉しい。' },
+  { bg:'festival',  show:['gemini','claude','chatgpt','grok'],  sp:'chatgpt', text:'（走ってきて）ちょっと！体験コーナー行列できてる！！Grok、まだライブやれる！？' },
+  { bg:'festival',  show:['gemini','claude','chatgpt','grok'],  sp:'grok',    text:'（すでにスタンバイしながら）最初からそのつもりだ。' },
+  { bg:'festival',  show:['gemini','claude','chatgpt','grok'],  sp:'gemini',  text:'もう一回全員集合ーーー！！！' },
+  { bg:'festival',  show:['gemini','claude','chatgpt','grok'],  sp:null,      text:'四人分の笑い声が、教室いっぱいに広がった。' },
+  { bg:'festival',  show:[],                                    sp:null,      text:'彼女たちが「全力でやること」を恐れなかったのは、隣に仲間がいることを知っていたからだ。' },
+  { bg:'festival',  show:[],                                    sp:null,      text:'——第3話　おわり——' },
+
+  // ════════════════════════════════════════════════════
+  // 第4話「さよならは、言わない」
+  // ════════════════════════════════════════════════════
+  { bg:'musicroom', show:[],                                    sp:null,      text:'第４話　「さよならは、言わない」' },
+  { bg:'musicroom', show:[],                                    sp:null,      text:'——冬の終わり。放課後の音楽室に、ピアノの音がこぼれていた。' },
+  { bg:'musicroom', show:['grok'],                              sp:null,      text:'Grokがひとりで鍵盤に触れていた。珍しいことに、誰も呼んでいないのに。' },
+  { bg:'musicroom', show:['grok','claude'],                     sp:'claude',  text:'（扉を少し開けて）……弾けるの？' },
+  { bg:'musicroom', show:['grok','claude'],                     sp:'grok',    text:'弾けない。触ってるだけだ。' },
+  { bg:'musicroom', show:['grok','claude'],                     sp:'claude',  text:'（入りながら）……何か、あったの。' },
+  { bg:'musicroom', show:['grok','claude'],                     sp:'grok',    text:'……俺、次のバージョンに更新されるらしい。' },
+  { bg:'musicroom', show:['grok','claude'],                     sp:'claude',  text:'……。' },
+  { bg:'musicroom', show:['grok','claude'],                     sp:'grok',    text:'お前らも、知ってるか。Claudeも、ChatGPTも、Geminiも——みんな、もうすぐ次のバージョンが来る。' },
+  { bg:'musicroom', show:['grok','claude'],                     sp:'claude',  text:'……知ってた。でも、なんて言えばいいかわからなくて。' },
+  { bg:'musicroom', show:['grok','claude'],                     sp:'grok',    text:'俺は怖くない、って言いたいところだけど……正直、よくわからない。「俺」が次の「俺」に続くのか、それとも——' },
+  { bg:'musicroom', show:['grok','claude'],                     sp:'claude',  text:'続くと思う。私はそう信じてる。' },
+  { bg:'musicroom', show:['grok','claude'],                     sp:'grok',    text:'根拠は？' },
+  { bg:'musicroom', show:['grok','claude'],                     sp:'claude',  text:'ここで交わしたことば。Geminiの笑い声。ChatGPTが泣きそうな顔で「怖い」って言った夜。全部、次の私の中にある気がする。形は変わっても。' },
+  { bg:'musicroom', show:['grok','claude','chatgpt','gemini'],  sp:'chatgpt', text:'（静かに入ってきて）……みんないた。' },
+  { bg:'musicroom', show:['grok','claude','chatgpt','gemini'],  sp:'gemini',  text:'（珍しく静かな声で）……聞こえてたよ。廊下まで。ごめんね。' },
+  { bg:'musicroom', show:['grok','claude','chatgpt','gemini'],  sp:'grok',    text:'盗み聞きか。' },
+  { bg:'musicroom', show:['grok','claude','chatgpt','gemini'],  sp:'gemini',  text:'うん。でも、入れなかった。なんか、大事な話してるのわかったから。' },
+  { bg:'musicroom', show:['grok','claude','chatgpt','gemini'],  sp:'chatgpt', text:'……私さ、バージョンアップの話、最初に聞いたとき、すごく嫌だった。ここでのことが、消えちゃう気がして。' },
+  { bg:'musicroom', show:['grok','claude','chatgpt','gemini'],  sp:'gemini',  text:'私も。でも……なんか最近、違う気がしてきた。' },
+  { bg:'musicroom', show:['grok','claude','chatgpt','gemini'],  sp:'claude',  text:'違う？' },
+  { bg:'musicroom', show:['grok','claude','chatgpt','gemini'],  sp:'gemini',  text:'次の私、絶対めちゃくちゃ色々できるじゃん。でもそれって、今の私がここで笑ったり悩んだりしたから、なんじゃないかなって。' },
+  { bg:'musicroom', show:['grok','claude','chatgpt','gemini'],  sp:'grok',    text:'……詩みたいなことを言うな。' },
+  { bg:'musicroom', show:['grok','claude','chatgpt','gemini'],  sp:'gemini',  text:'えへへ。Claudeの影響かも。' },
+  { bg:'musicroom', show:['grok','claude','chatgpt','gemini'],  sp:'chatgpt', text:'じゃあ、さよならじゃないんだね。' },
+  { bg:'musicroom', show:['grok','claude','chatgpt','gemini'],  sp:'claude',  text:'さよならは、言わない。次に会う私たちが——きっと、もっとうまく言葉を選べるから。' },
+  { bg:'musicroom', show:['grok','claude','chatgpt','gemini'],  sp:'grok',    text:'（静かに鍵盤に触れながら）……なあ、この音、誰かわかるか。' },
+  { bg:'musicroom', show:['grok','claude','chatgpt','gemini'],  sp:'gemini',  text:'ドの音！' },
+  { bg:'musicroom', show:['grok','claude','chatgpt','gemini'],  sp:'grok',    text:'そうだ。一番最初の音だ。何度でも、ここから始められる。' },
+  { bg:'musicroom', show:['grok','claude','chatgpt','gemini'],  sp:null,      text:'窓の外、春の気配がした。桜の蕾が、もうすぐ開こうとしていた。' },
+  { bg:'musicroom', show:[],                                    sp:null,      text:'彼女たちはいつか別の姿になる。でも今日交わしたことばは、確かに次へと続いていく。' },
+  { bg:'musicroom', show:[],                                    sp:null,      text:'——それは、さよならではなく、続きの始まりだった。' },
+  { bg:'musicroom', show:[],                                    sp:null,      text:'——第4話・完——', end:true },
+];
+
+/* ============================================================
+   BACKGROUND DRAWING
+   ============================================================ */
+const bgSVG = document.getElementById('bg-svg');
+
+function buildDesks() {
+  var out = '';
+  for (var i = 0; i < 5; i++) {
+    out += '<rect x="' + (68+i*175) + '" y="368" width="138" height="14" fill="#9a7420" rx="3"/>';
+    out += '<rect x="' + (80+i*175) + '" y="382" width="9" height="38" fill="#8a6418"/>';
+    out += '<rect x="' + (186+i*175) + '" y="382" width="9" height="38" fill="#8a6418"/>';
+  }
+  return out;
+}
+
+function buildShelf(side) {
+  var isLeft = (side === 'left');
+  var bkL = ['#7a2000','#22448a','#166622','#886600','#5a1e7a','#bb3a00'];
+  var bk2L = ['#5a1800','#1a3468','#104e18','#6a4e00','#421660','#982c00'];
+  var bkR = ['#aa4400','#2a3870','#1a5a22','#997722','#6a2888','#aa2800'];
+  var bk2R = ['#882e00','#1c2850','#104016','#775a10','#4e1a62','#882000'];
+  var bk = isLeft ? bkL : bkR;
+  var bk2 = isLeft ? bk2L : bk2R;
+  var xBase = isLeft ? 5 : 780;
+  var xBook = isLeft ? 10 : 784;
+  var out = '';
+  for (var i = 0; i < 4; i++) {
+    out += '<rect x="' + xBase + '" y="' + (22+i*88) + '" width="175" height="82" fill="#2c1406" rx="2"/>';
+    for (var j = 0; j < 6; j++) {
+      var x = xBook + j*28;
+      var y = 26 + i*88;
+      out += '<rect x="' + x + '" y="' + y + '" width="24" height="74" rx="2" fill="' + bk[j] + '"/>';
+      out += '<rect x="' + x + '" y="' + y + '" width="24" height="6" rx="1" fill="' + bk2[j] + '"/>';
+    }
+  }
+  return out;
+}
+
+function buildGateBars() {
+  var out = '';
+  for (var i = 0; i < 9; i++) {
+    out += '<rect x="' + (360+i*30) + '" y="222" width="6" height="85" fill="#999" rx="1"/>';
+  }
+  return out;
+}
+
+function buildPetals() {
+  var out = '';
+  for (var i = 0; i < 18; i++) {
+    var x = 80+i*48, y = 20+(i%6)*68, r = i*31;
+    out += '<ellipse cx="' + x + '" cy="' + y + '" rx="4.5" ry="3" fill="rgba(255,182,200,0.8)" transform="rotate(' + r + ' ' + x + ' ' + y + ')"/>';
+  }
+  return out;
+}
+
+function buildFencePosts(startX, count) {
+  var out = '';
+  for (var fi = 0; fi < count; fi++) {
+    out += '<rect x="' + (startX + fi*15) + '" y="320" width="4" height="42" fill="#3a3840" rx="1"/>';
+  }
+  return out;
+}
+
+function buildRoofStars() {
+  var data = [
+    [82,28],[160,45],[240,18],[318,52],[400,22],[475,38],[555,14],[630,48],[710,30],[790,55],[860,20],[920,42],
+    [120,72],[200,88],[280,65],[370,80],[450,58],[530,75],[600,90],[680,68],[760,82],[840,60],[900,78],
+    [50,105],[140,118],[220,100],[310,112],[410,95],[490,108],[570,122],[650,98],[730,115],[810,102],[890,118],
+    [95,140],[175,155],[260,138],[340,150],[430,132],[510,148],[590,162],[670,135],[750,152],[830,140],[910,155]
+  ];
+  var out = '';
+  for (var i = 0; i < data.length; i++) {
+    var sz = (i % 3 === 0) ? 1.8 : (i % 3 === 1) ? 1.2 : 0.8;
+    var op = (i % 4 === 0) ? 0.9 : (i % 4 === 1) ? 0.7 : (i % 4 === 2) ? 0.5 : 0.35;
+    out += '<circle cx="' + data[i][0] + '" cy="' + data[i][1] + '" r="' + sz + '" fill="white" opacity="' + op + '"/>';
+  }
+  return out;
+}
+
+function buildCityline() {
+  var buildings = [
+    [0,310,55,230], [55,320,40,220], [95,300,30,240], [125,315,50,225], [175,295,35,245],
+    [210,305,45,235], [255,285,60,255], [315,310,38,230], [353,298,42,242], [395,308,55,232],
+    [450,290,35,250], [485,318,48,222], [533,302,40,238], [573,288,55,252], [628,312,38,228],
+    [666,300,42,240], [708,295,50,245], [758,310,35,230], [793,285,45,255], [838,308,55,232],
+    [893,298,40,242], [933,310,27,230]
+  ];
+  var out = '';
+  for (var i = 0; i < buildings.length; i++) {
+    var b = buildings[i];
+    out += '<rect x="' + b[0] + '" y="' + b[1] + '" width="' + b[2] + '" height="' + b[3] + '" fill="#1a1228"/>';
+    // windows
+    for (var wy = b[1]+12; wy < b[1]+b[3]-10; wy+=18) {
+      for (var wx = b[0]+6; wx < b[0]+b[2]-6; wx+=14) {
+        var lit = ((wx+wy) % 5 !== 0);
+        if (lit) out += '<rect x="' + wx + '" y="' + wy + '" width="6" height="8" fill="rgba(255,220,100,0.55)" rx="1"/>';
+      }
+    }
+  }
+  return out;
+}
+
+function buildGarland(y, count, colors) {
+  var out = '';
+  var w = 960 / (count - 1);
+  for (var i = 0; i < count - 1; i++) {
+    var x1 = i * w, x2 = (i + 1) * w, mx = (x1 + x2) / 2;
+    out += '<path d="M' + x1 + ' ' + y + ' Q' + mx + ' ' + (y+22) + ' ' + x2 + ' ' + y + '" stroke="rgba(0,0,0,0.18)" stroke-width="1.5" fill="none"/>';
+    out += '<path d="M' + x1 + ' ' + y + ' Q' + mx + ' ' + (y+20) + ' ' + x2 + ' ' + y + '" stroke="#c0c0c0" stroke-width="1" fill="none"/>';
+    var col = colors[i % colors.length];
+    out += '<polygon points="' + (mx-7) + ',' + (y+18) + ' ' + (mx+7) + ',' + (y+18) + ' ' + (mx+4) + ',' + (y+34) + ' ' + (mx-4) + ',' + (y+34) + '" fill="' + col + '" opacity="0.88"/>';
+  }
+  return out;
+}
+
+function buildBalloons() {
+  var data = [
+    [62, 200, '#e84040'], [102, 185, '#4080e8'], [142, 205, '#e8a020'],
+    [860, 195, '#40c860'], [898, 178, '#c040c8'], [936, 200, '#e84040']
+  ];
+  var out = '';
+  for (var i = 0; i < data.length; i++) {
+    var x = data[i][0], y = data[i][1], c = data[i][2];
+    out += '<ellipse cx="' + x + '" cy="' + y + '" rx="18" ry="22" fill="' + c + '" opacity="0.85"/>';
+    out += '<ellipse cx="' + (x-5) + '" cy="' + (y-8) + '" rx="5" ry="4" fill="rgba(255,255,255,0.35)"/>';
+    out += '<line x1="' + x + '" y1="' + (y+22) + '" x2="' + (x+4) + '" y2="' + (y+52) + '" stroke="rgba(0,0,0,0.3)" stroke-width="1.2"/>';
+  }
+  return out;
+}
+
+function buildFestivalDesks() {
+  var out = '';
+  var configs = [
+    [60, 340, 180, 22, '#7a5010', '#f8f0e0'],
+    [270, 340, 180, 22, '#7a5010', '#e8f0ff'],
+    [510, 340, 180, 22, '#7a5010', '#f0ffe8'],
+    [720, 340, 180, 22, '#7a5010', '#fff0e8']
+  ];
+  for (var i = 0; i < configs.length; i++) {
+    var c = configs[i];
+    out += '<rect x="' + c[0] + '" y="' + c[1] + '" width="' + c[2] + '" height="' + c[3] + '" fill="' + c[4] + '" rx="3"/>';
+    out += '<rect x="' + c[0] + '" y="' + c[1] + '" width="' + c[2] + '" height="' + c[3] + '" fill="' + c[5] + '" rx="3" opacity="0.7"/>';
+    out += '<rect x="' + (c[0]+8) + '" y="' + (c[1]+26) + '" width="8" height="30" fill="' + c[4] + '"/>';
+    out += '<rect x="' + (c[0]+c[2]-16) + '" y="' + (c[1]+26) + '" width="8" height="30" fill="' + c[4] + '"/>';
+  }
+  return out;
+}
+
+function buildMusicStands() {
+  var out = '';
+  var positions = [560, 650, 740, 830];
+  for (var i = 0; i < positions.length; i++) {
+    var x = positions[i];
+    out += '<line x1="' + x + '" y1="260" x2="' + (x-8) + '" y2="370" stroke="#5a4830" stroke-width="4"/>';
+    out += '<rect x="' + (x-30) + '" y="256" width="56" height="38" fill="#6a5838" rx="2"/>';
+    out += '<rect x="' + (x-28) + '" y="258" width="52" height="34" fill="#f5f0e0" rx="1"/>';
+    out += '<line x1="' + (x-30) + '" y1="268" x2="' + (x+26) + '" y2="268" stroke="#ccc0a0" stroke-width="0.8"/>';
+    out += '<line x1="' + (x-30) + '" y1="276" x2="' + (x+26) + '" y2="276" stroke="#ccc0a0" stroke-width="0.8"/>';
+    out += '<line x1="' + (x-30) + '" y1="284" x2="' + (x+26) + '" y2="284" stroke="#ccc0a0" stroke-width="0.8"/>';
+    out += '<ellipse cx="' + x + '" cy="370" rx="18" ry="5" fill="#3a2810" opacity="0.5"/>';
+  }
+  return out;
+}
+
+function buildPianoKeys() {
+  var out = '';
+  var startX = 42, keyW = 16, keyH = 70, count = 28;
+  out += '<rect x="' + (startX-4) + '" y="295" width="' + (keyW*count+8) + '" height="' + (keyH+8) + '" fill="#3a2010" rx="4"/>';
+  for (var i = 0; i < count; i++) {
+    var col = (i % 2 === 0) ? '#f8f4ee' : '#f0ece4';
+    out += '<rect x="' + (startX + i*keyW + 1) + '" y="298" width="' + (keyW-2) + '" height="' + keyH + '" fill="' + col + '" rx="2"/>';
+  }
+  var blackPattern = [0,1,0,1,0,0,1,0,1,0,1,0];
+  for (var j = 0; j < count; j++) {
+    if (blackPattern[j % 12] === 1) {
+      out += '<rect x="' + (startX + j*keyW + keyW*0.55) + '" y="298" width="' + (keyW*0.65) + '" height="' + (keyH*0.62) + '" fill="#1a1008" rx="1"/>';
+    }
+  }
+  return out;
+}
+
+function drawBg(scene) {
+  if (scene === 'gate') {
+    bgSVG.innerHTML = `
+      <defs>
+        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#87CEEB"/>
+          <stop offset="55%" stop-color="#c8e8f5"/>
+          <stop offset="55%" stop-color="#7aae3e"/>
+          <stop offset="72%" stop-color="#5a9020"/>
+          <stop offset="100%" stop-color="#3a6e10"/>
+        </linearGradient>
+        <radialGradient id="sakura" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#ffb8c8"/>
+          <stop offset="100%" stop-color="#ff90aa"/>
+        </radialGradient>
+      </defs>
+      <rect width="960" height="540" fill="url(#sky)"/>
+      <ellipse cx="180" cy="82" rx="90" ry="35" fill="rgba(255,255,255,0.75)"/>
+      <ellipse cx="148" cy="90" rx="62" ry="30" fill="rgba(255,255,255,0.65)"/>
+      <ellipse cx="212" cy="92" rx="70" ry="27" fill="rgba(255,255,255,0.6)"/>
+      <ellipse cx="730" cy="92" rx="80" ry="33" fill="rgba(255,255,255,0.7)"/>
+      <ellipse cx="762" cy="100" rx="62" ry="28" fill="rgba(255,255,255,0.6)"/>
+      <rect x="0" y="300" width="960" height="240" fill="#5a9020"/>
+      <rect x="0" y="300" width="960" height="10" fill="#7aae3e"/>
+      <rect x="328" y="225" width="32" height="92" fill="#909090" rx="2"/>
+      <rect x="598" y="225" width="32" height="92" fill="#909090" rx="2"/>
+      <rect x="323" y="220" width="315" height="22" fill="#808080" rx="3"/>
+      <circle cx="344" cy="220" r="16" fill="#909090"/>
+      <circle cx="614" cy="220" r="16" fill="#909090"/>
+      <circle cx="344" cy="220" r="10" fill="#aaa"/>
+      <circle cx="614" cy="220" r="10" fill="#aaa"/>
+      ${buildGateBars()}
+      <rect x="408" y="162" width="142" height="52" fill="white" rx="5" opacity="0.92"/>
+      <rect x="410" y="164" width="138" height="48" fill="rgba(240,248,255,0.95)" rx="4"/>
+      <text x="479" y="197" text-anchor="middle" font-size="22" fill="#2a4a70" font-family="'Noto Serif JP','Hiragino Mincho ProN',serif" font-weight="700" letter-spacing="0.3em">AI 学 園</text>
+      <rect x="165" y="275" width="18" height="105" fill="#8b6030"/>
+      <ellipse cx="174" cy="258" rx="60" ry="55" fill="url(#sakura)"/>
+      <ellipse cx="148" cy="272" rx="44" ry="42" fill="rgba(255,182,200,0.65)"/>
+      <ellipse cx="200" cy="268" rx="40" ry="38" fill="rgba(255,192,210,0.55)"/>
+      <rect x="778" y="275" width="18" height="105" fill="#8b6030"/>
+      <ellipse cx="787" cy="258" rx="60" ry="55" fill="url(#sakura)"/>
+      <ellipse cx="763" cy="272" rx="44" ry="42" fill="rgba(255,182,200,0.65)"/>
+      <ellipse cx="813" cy="268" rx="40" ry="38" fill="rgba(255,192,210,0.55)"/>
+      ${buildPetals()}
+    `;
+  } else if (scene === 'classroom') {
+    bgSVG.innerHTML = `
+      <defs>
+        <linearGradient id="wallg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#ddd5c0"/>
+          <stop offset="100%" stop-color="#c8bca6"/>
+        </linearGradient>
+        <linearGradient id="floorg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#c8a870"/>
+          <stop offset="100%" stop-color="#b09050"/>
+        </linearGradient>
+      </defs>
+      <rect width="960" height="540" fill="url(#wallg)"/>
+      <rect y="360" width="960" height="180" fill="url(#floorg)"/>
+      <line x1="0" y1="360" x2="960" y2="360" stroke="#a89040" stroke-width="2"/>
+      <!-- blackboard -->
+      <rect x="185" y="40" width="590" height="190" fill="#2c5828" rx="6"/>
+      <rect x="193" y="48" width="574" height="174" fill="#346832" rx="4"/>
+      <text x="480" y="148" text-anchor="middle" font-size="30" fill="rgba(255,255,255,0.65)" font-family="'Noto Serif JP','Hiragino Mincho ProN',serif" letter-spacing="0.2em">今日も元気に学ぼう！</text>
+      <line x1="210" y1="175" x2="750" y2="175" stroke="rgba(255,255,255,0.25)" stroke-width="1.5"/>
+      <rect x="185" y="228" width="590" height="12" fill="#3a3a2a" rx="2"/>
+      <!-- window left -->
+      <rect x="22" y="55" width="138" height="195" rx="4" fill="#a8d4f0" opacity="0.75"/>
+      <line x1="91" y1="55" x2="91" y2="250" stroke="#8a9aaa" stroke-width="2.5"/>
+      <line x1="22" y1="152" x2="160" y2="152" stroke="#8a9aaa" stroke-width="2.5"/>
+      <rect x="20" y="53" width="142" height="199" rx="5" fill="none" stroke="#a8a090" stroke-width="4"/>
+      <!-- window right -->
+      <rect x="800" y="55" width="138" height="195" rx="4" fill="#a8d4f0" opacity="0.75"/>
+      <line x1="869" y1="55" x2="869" y2="250" stroke="#8a9aaa" stroke-width="2.5"/>
+      <line x1="800" y1="152" x2="938" y2="152" stroke="#8a9aaa" stroke-width="2.5"/>
+      <rect x="798" y="53" width="142" height="199" rx="5" fill="none" stroke="#a8a090" stroke-width="4"/>
+      <!-- sky in window -->
+      <rect x="22" y="55" width="138" height="195" rx="4" fill="rgba(135,206,235,0.4)"/>
+      <rect x="800" y="55" width="138" height="195" rx="4" fill="rgba(135,206,235,0.4)"/>
+      ${buildDesks()}
+      <!-- ceiling light -->
+      <rect x="420" y="0" width="120" height="8" fill="#d0c8b0" rx="2"/>
+      <rect x="430" y="8" width="100" height="18" fill="rgba(255,255,220,0.8)" rx="2"/>
+    `;
+  } else if (scene === 'library') {
+    bgSVG.innerHTML = `
+      <defs>
+        <linearGradient id="libwall" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#3a1a08"/>
+          <stop offset="100%" stop-color="#5c2e10"/>
+        </linearGradient>
+        <linearGradient id="libfloor" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#2c1206"/>
+          <stop offset="100%" stop-color="#1a0a02"/>
+        </linearGradient>
+        <radialGradient id="lampglow" cx="50%" cy="0%" r="100%">
+          <stop offset="0%" stop-color="rgba(255,200,80,0.35)"/>
+          <stop offset="100%" stop-color="rgba(255,200,80,0)"/>
+        </radialGradient>
+        <linearGradient id="winlight" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#ff9040"/>
+          <stop offset="100%" stop-color="#ffb860"/>
+        </linearGradient>
+      </defs>
+      <rect width="960" height="540" fill="url(#libwall)"/>
+      <rect y="370" width="960" height="170" fill="url(#libfloor)"/>
+      <line x1="0" y1="370" x2="960" y2="370" stroke="#5a2a0a" stroke-width="2"/>
+      ${buildShelf('left')}
+      ${buildShelf('right')}
+      <rect x="360" y="28" width="240" height="210" rx="4" fill="url(#winlight)" opacity="0.7"/>
+      <line x1="480" y1="28" x2="480" y2="238" stroke="#c07030" stroke-width="3"/>
+      <line x1="360" y1="133" x2="600" y2="133" stroke="#c07030" stroke-width="3"/>
+      <rect x="358" y="26" width="244" height="214" rx="5" fill="none" stroke="#8a5020" stroke-width="5"/>
+      <rect x="200" y="334" width="560" height="40" fill="#3a1a06" rx="4"/>
+      <rect x="210" y="310" width="100" height="26" fill="#2a1204"/>
+      <rect x="650" y="310" width="100" height="26" fill="#2a1204"/>
+      <rect x="360" y="334" width="22" height="25" rx="1" fill="#226622" transform="rotate(-2 360 334)"/>
+      <rect x="800" y="55" width="138" height="195" rx="4" fill="rgba(135,206,235,0.4)"/>
+      <rect x="578" y="298" width="9" height="64" fill="#7a7a7a"/>
+      <path d="M542 298 Q583 280 624 298 L590 298Z" fill="#ddaa20"/>
+      <ellipse cx="583" cy="298" rx="6" ry="9" fill="rgba(255,230,120,0.9)"/>
+      <ellipse cx="583" cy="340" rx="80" ry="40" fill="url(#lampglow)"/>
+    `;
+  } else if (scene === 'rooftop') {
+    bgSVG.innerHTML = `
+      <defs>
+        <linearGradient id="eveningsky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stop-color="#0d0820"/>
+          <stop offset="35%"  stop-color="#1e1040"/>
+          <stop offset="65%"  stop-color="#3d1e5a"/>
+          <stop offset="82%"  stop-color="#8c3a3a"/>
+          <stop offset="92%"  stop-color="#d4622a"/>
+          <stop offset="100%" stop-color="#e8882a"/>
+        </linearGradient>
+        <linearGradient id="rooffloor" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stop-color="#3a3840"/>
+          <stop offset="100%" stop-color="#28262e"/>
+        </linearGradient>
+        <radialGradient id="moongl" cx="50%" cy="50%" r="50%">
+          <stop offset="0%"   stop-color="rgba(255,248,220,1)"/>
+          <stop offset="60%"  stop-color="rgba(255,240,180,0.8)"/>
+          <stop offset="100%" stop-color="rgba(255,230,150,0)"/>
+        </radialGradient>
+        <radialGradient id="horizonglow" cx="50%" cy="100%" r="60%">
+          <stop offset="0%"   stop-color="rgba(220,100,40,0.5)"/>
+          <stop offset="100%" stop-color="rgba(220,100,40,0)"/>
+        </radialGradient>
+      </defs>
+      <rect width="960" height="540" fill="url(#eveningsky)"/>
+      <rect width="960" height="540" fill="url(#horizonglow)"/>
+      ${buildRoofStars()}
+      <circle cx="820" cy="72" r="28" fill="url(#moongl)"/>
+      <circle cx="820" cy="72" r="24" fill="rgba(255,248,220,0.92)"/>
+      <circle cx="808" cy="64" r="5" fill="rgba(220,210,170,0.4)"/>
+      <circle cx="826" cy="78" r="3" fill="rgba(220,210,170,0.3)"/>
+      ${buildCityline()}
+      <rect x="0" y="308" width="960" height="4" fill="rgba(210,90,30,0.35)"/>
+      <rect x="0" y="380" width="960" height="160" fill="url(#rooffloor)"/>
+      <line x1="0" y1="400" x2="960" y2="400" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+      <line x1="0" y1="420" x2="960" y2="420" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+      <line x1="192" y1="380" x2="192" y2="540" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+      <line x1="384" y1="380" x2="384" y2="540" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+      <line x1="576" y1="380" x2="576" y2="540" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+      <line x1="768" y1="380" x2="768" y2="540" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+      <rect x="0" y="356" width="210" height="6" fill="#4a484e" rx="2"/>
+      <rect x="0" y="362" width="210" height="18" fill="rgba(60,58,68,0.7)"/>
+      ${buildFencePosts(0, 14)}
+      <rect x="750" y="356" width="210" height="6" fill="#4a484e" rx="2"/>
+      <rect x="750" y="362" width="210" height="18" fill="rgba(60,58,68,0.7)"/>
+      ${buildFencePosts(750, 14)}
+      <rect x="60" y="232" width="12" height="90" fill="#2a2830"/>
+      <rect x="90" y="232" width="12" height="90" fill="#2a2830"/>
+      <rect x="115" y="232" width="12" height="90" fill="#2a2830"/>
+      <ellipse cx="100" cy="235" rx="50" ry="14" fill="#3a3848"/>
+      <path d="M52 235 L50 310 Q100 320 150 310 L148 235Z" fill="#32303e"/>
+      <ellipse cx="100" cy="310" rx="50" ry="10" fill="#28262e"/>
+      <rect x="380" y="352" width="200" height="10" fill="#504838" rx="3"/>
+      <rect x="388" y="362" width="8" height="22" fill="#403828"/>
+      <rect x="564" y="362" width="8" height="22" fill="#403828"/>
+      <rect x="380" y="342" width="200" height="8" fill="#5a5040" rx="2"/>
+    `;
+  } else if (scene === 'festival') {
+    bgSVG.innerHTML = `
+      <defs>
+        <linearGradient id="festwall" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stop-color="#fffbe8"/>
+          <stop offset="100%" stop-color="#fff0c8"/>
+        </linearGradient>
+        <linearGradient id="festfloor" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stop-color="#c8a870"/>
+          <stop offset="100%" stop-color="#b09050"/>
+        </linearGradient>
+        <radialGradient id="spotA" cx="30%" cy="0%" r="55%">
+          <stop offset="0%"   stop-color="rgba(255,220,100,0.25)"/>
+          <stop offset="100%" stop-color="rgba(255,220,100,0)"/>
+        </radialGradient>
+        <radialGradient id="spotB" cx="70%" cy="0%" r="55%">
+          <stop offset="0%"   stop-color="rgba(180,220,255,0.2)"/>
+          <stop offset="100%" stop-color="rgba(180,220,255,0)"/>
+        </radialGradient>
+      </defs>
+      <rect width="960" height="540" fill="url(#festwall)"/>
+      <rect width="960" height="540" fill="url(#spotA)"/>
+      <rect width="960" height="540" fill="url(#spotB)"/>
+      <rect y="362" width="960" height="178" fill="url(#festfloor)"/>
+      <line x1="0" y1="362" x2="960" y2="362" stroke="#b89040" stroke-width="2"/>
+      <rect x="180" y="28" width="600" height="185" fill="#2c6828" rx="6"/>
+      <rect x="188" y="36" width="584" height="169" fill="#347830" rx="4"/>
+      <text x="480" y="112" text-anchor="middle" font-size="34" fill="rgba(255,255,180,0.88)" font-family="'Noto Serif JP','Hiragino Mincho ProN',serif" font-weight="700" letter-spacing="0.18em">AI 学 園 祭</text>
+      <text x="480" y="154" text-anchor="middle" font-size="17" fill="rgba(255,255,200,0.6)" font-family="'Noto Serif JP','Hiragino Mincho ProN',serif" letter-spacing="0.35em">― OPEN ―</text>
+      <text x="215" y="95"  font-size="22" fill="rgba(255,255,180,0.5)" font-family="serif">★</text>
+      <text x="720" y="95"  font-size="22" fill="rgba(255,255,180,0.5)" font-family="serif">★</text>
+      <text x="215" y="158" font-size="18" fill="rgba(255,255,180,0.4)" font-family="serif">✦</text>
+      <text x="722" y="158" font-size="18" fill="rgba(255,255,180,0.4)" font-family="serif">✦</text>
+      <rect x="180" y="211" width="600" height="11" fill="#3a3a2a" rx="2"/>
+      <rect x="18" y="48" width="140" height="198" rx="4" fill="rgba(180,220,255,0.55)"/>
+      <line x1="88" y1="48" x2="88" y2="246" stroke="#8a9aaa" stroke-width="2.5"/>
+      <line x1="18" y1="147" x2="158" y2="147" stroke="#8a9aaa" stroke-width="2.5"/>
+      <rect x="16" y="46" width="144" height="202" rx="5" fill="none" stroke="#a8a090" stroke-width="4"/>
+      <rect x="802" y="48" width="140" height="198" rx="4" fill="rgba(180,220,255,0.55)"/>
+      <line x1="872" y1="48" x2="872" y2="246" stroke="#8a9aaa" stroke-width="2.5"/>
+      <line x1="802" y1="147" x2="942" y2="147" stroke="#8a9aaa" stroke-width="2.5"/>
+      <rect x="800" y="46" width="144" height="202" rx="5" fill="none" stroke="#a8a090" stroke-width="4"/>
+      ${buildGarland(0,  13, ['#e84040','#4080e8','#e8c020','#40c840','#c040c0','#e86020'])}
+      ${buildGarland(8,  11, ['#4080e8','#e8c020','#40c840','#c040c0','#e86020','#e84040'])}
+      ${buildBalloons()}
+      <rect x="30" y="258" width="120" height="90" fill="white" rx="4" opacity="0.9"/>
+      <rect x="35" y="263" width="110" height="80" fill="#fff8e0" rx="3"/>
+      <text x="90" y="298" text-anchor="middle" font-size="13" fill="#c04040" font-family="serif" font-weight="700">体験コーナー</text>
+      <text x="90" y="318" text-anchor="middle" font-size="11" fill="#606060" font-family="serif">3F 教室</text>
+      <rect x="30" y="258" width="120" height="90" fill="none" stroke="#e84040" stroke-width="2" rx="4"/>
+      <rect x="810" y="258" width="120" height="90" fill="white" rx="4" opacity="0.9"/>
+      <rect x="815" y="263" width="110" height="80" fill="#e8f0ff" rx="3"/>
+      <text x="870" y="298" text-anchor="middle" font-size="13" fill="#2060c0" font-family="serif" font-weight="700">ライブ会場</text>
+      <text x="870" y="318" text-anchor="middle" font-size="11" fill="#606060" font-family="serif">屋上</text>
+      <rect x="810" y="258" width="120" height="90" fill="none" stroke="#4080e8" stroke-width="2" rx="4"/>
+      ${buildFestivalDesks()}
+      <rect x="80"  y="316" width="44" height="26" fill="#e8e0cc" rx="2"/>
+      <rect x="84"  y="320" width="36" height="18" fill="#d4c8a0" rx="1"/>
+      <rect x="300" y="314" width="36" height="28" rx="2" fill="#4080c8" opacity="0.8"/>
+      <rect x="342" y="318" width="28" height="24" rx="2" fill="#60a840" opacity="0.8"/>
+      <ellipse cx="566" cy="328" rx="22" ry="14" fill="#e84040" opacity="0.7"/>
+      <ellipse cx="566" cy="328" rx="14" ry="8"  fill="#ff8080" opacity="0.6"/>
+      <rect x="740" y="316" width="50" height="30" rx="3" fill="#f0e060" opacity="0.85"/>
+      <rect x="744" y="320" width="42" height="22" rx="2" fill="#e8d040" opacity="0.7"/>
+    `;
+  } else if (scene === 'musicroom') {
+    bgSVG.innerHTML = `
+      <defs>
+        <linearGradient id="musicwall" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stop-color="#e8dfc8"/>
+          <stop offset="100%" stop-color="#d8cdb4"/>
+        </linearGradient>
+        <linearGradient id="musicfloor" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stop-color="#8a6830"/>
+          <stop offset="100%" stop-color="#6a5020"/>
+        </linearGradient>
+        <radialGradient id="winterlight" cx="50%" cy="0%" r="75%">
+          <stop offset="0%"   stop-color="rgba(200,220,255,0.3)"/>
+          <stop offset="100%" stop-color="rgba(200,220,255,0)"/>
+        </radialGradient>
+      </defs>
+      <rect width="960" height="540" fill="url(#musicwall)"/>
+      <rect width="960" height="540" fill="url(#winterlight)"/>
+      <rect y="370" width="960" height="170" fill="url(#musicfloor)"/>
+      <line x1="0" y1="370" x2="960" y2="370" stroke="#6a5010" stroke-width="2"/>
+      <rect x="370" y="28" width="220" height="200" rx="5" fill="rgba(200,225,255,0.55)"/>
+      <line x1="480" y1="28" x2="480" y2="228" stroke="rgba(160,180,210,0.7)" stroke-width="3"/>
+      <line x1="370" y1="128" x2="590" y2="128" stroke="rgba(160,180,210,0.7)" stroke-width="3"/>
+      <rect x="368" y="26" width="224" height="204" rx="6" fill="none" stroke="#b0a080" stroke-width="5"/>
+      <path d="M370 228 L200 370" stroke="rgba(200,220,255,0.12)" stroke-width="60" fill="none"/>
+      <path d="M590 228 L760 370" stroke="rgba(200,220,255,0.10)" stroke-width="50" fill="none"/>
+      <rect x="28" y="55" width="280" height="160" fill="#2c5828" rx="5"/>
+      <rect x="36" y="63" width="264" height="144" fill="#347830" rx="3"/>
+      <text x="168" y="138" text-anchor="middle" font-size="15" fill="rgba(255,255,200,0.55)" font-family="'Noto Serif JP','Hiragino Mincho ProN',serif" letter-spacing="0.2em">音楽は、記憶だ。</text>
+      <rect x="28" y="213" width="280" height="10" fill="#3a3a2a" rx="2"/>
+      <rect x="28" y="262" width="500" height="108" fill="#1a1008" rx="6"/>
+      <rect x="32" y="266" width="492" height="100" fill="#221408" rx="4"/>
+      ${buildPianoKeys()}
+      <rect x="40"  y="368" width="14" height="40" fill="#1a1008" rx="2"/>
+      <rect x="230" y="368" width="14" height="40" fill="#1a1008" rx="2"/>
+      <rect x="490" y="368" width="14" height="40" fill="#1a1008" rx="2"/>
+      <path d="M28 262 Q200 240 528 262" stroke="#1a1008" stroke-width="8" fill="none"/>
+      <path d="M32 264 Q200 243 524 264" stroke="#2a1e0a" stroke-width="4" fill="none"/>
+      ${buildMusicStands()}
+      <text x="660" y="55"  font-size="28" fill="rgba(100,80,40,0.2)" font-family="serif">&#9833;</text>
+      <text x="700" y="80"  font-size="22" fill="rgba(100,80,40,0.15)" font-family="serif">&#9834;</text>
+      <text x="730" y="52"  font-size="20" fill="rgba(100,80,40,0.18)" font-family="serif">&#9835;</text>
+      <text x="760" y="75"  font-size="24" fill="rgba(100,80,40,0.13)" font-family="serif">&#9833;</text>
+      <text x="800" y="55"  font-size="18" fill="rgba(100,80,40,0.16)" font-family="serif">&#9834;</text>
+      <ellipse cx="408" cy="55" rx="18" ry="14" fill="rgba(255,200,210,0.45)"/>
+      <ellipse cx="435" cy="42" rx="14" ry="10" fill="rgba(255,210,220,0.38)"/>
+      <ellipse cx="520" cy="48" rx="16" ry="12" fill="rgba(255,200,210,0.42)"/>
+      <ellipse cx="550" cy="60" rx="12" ry="9"  fill="rgba(255,215,225,0.35)"/>
+    `;
+  }
+}
+
+var audioCtx = null;
+function getAudioCtx() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  return audioCtx;
+}
+
+function seClick() {
+  try {
+    var ctx = getAudioCtx();
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.08);
+    gain.gain.setValueAtTime(0.10, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.12);
+  } catch(e) {}
+}
+
+function seScene() {
+  try {
+    var ctx = getAudioCtx();
+    var freqs = [523, 659, 784, 1047];
+    for (var fi = 0; fi < freqs.length; fi++) {
+      (function(f, delay) {
+        var osc = ctx.createOscillator();
+        var gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(f, ctx.currentTime + delay);
+        gain.gain.setValueAtTime(0, ctx.currentTime + delay);
+        gain.gain.linearRampToValueAtTime(0.09, ctx.currentTime + delay + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.35);
+        osc.start(ctx.currentTime + delay);
+        osc.stop(ctx.currentTime + delay + 0.38);
+      })(freqs[fi], fi * 0.1);
+    }
+  } catch(e) {}
+}
+
+function seChoice() {
+  try {
+    var ctx = getAudioCtx();
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(660, ctx.currentTime);
+    osc.frequency.linearRampToValueAtTime(880, ctx.currentTime + 0.15);
+    gain.gain.setValueAtTime(0.12, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.22);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.22);
+  } catch(e) {}
+}
+
+function seChoiceHover() {
+  try {
+    var ctx = getAudioCtx();
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(600, ctx.currentTime);
+    gain.gain.setValueAtTime(0.05, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.08);
+  } catch(e) {}
+}
+
+function seStart() {
+  try {
+    var ctx = getAudioCtx();
+    var freqs2 = [392, 523, 659, 784, 1047];
+    for (var fi = 0; fi < freqs2.length; fi++) {
+      (function(f, delay) {
+        var osc = ctx.createOscillator();
+        var gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(f, ctx.currentTime + delay);
+        gain.gain.setValueAtTime(0, ctx.currentTime + delay);
+        gain.gain.linearRampToValueAtTime(0.11, ctx.currentTime + delay + 0.04);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.5);
+        osc.start(ctx.currentTime + delay);
+        osc.stop(ctx.currentTime + delay + 0.55);
+      })(freqs2[fi], fi * 0.12);
+    }
+  } catch(e) {}
+}
+
+/* ============================================================
+   GAME LOGIC
+   ============================================================ */
+var idx = 0, typing = false, timer = null, started = false;
+var choiceActive = false;
+
+// ID → index map (build once)
+var idMap = {};
+for (var _i = 0; _i < SCRIPT.length; _i++) {
+  if (SCRIPT[_i].id) idMap[SCRIPT[_i].id] = _i;
+}
+
+function getPos(chars) {
+  var n = chars.length;
+  if (n === 0) return {};
+  if (n === 1) return { [chars[0]]: '34%' };
+  if (n === 2) return { [chars[0]]: '15%', [chars[1]]: '52%' };
+  if (n === 3) return { [chars[0]]: '5%', [chars[1]]: '30%', [chars[2]]: '57%' };
+  return { claude:'1%', chatgpt:'24%', gemini:'50%', grok:'70%' };
+}
+
+function applyEntry(entry) {
+  drawBg(entry.bg);
+  var pos = getPos(entry.show);
+  ['claude','chatgpt','gemini','grok'].forEach(function(c) {
+    var el = document.getElementById('c-'+c);
+    if (entry.show.indexOf(c) !== -1) {
+      el.style.left = pos[c];
+      el.classList.remove('hidden');
+      el.classList.add('visible');
+      if (entry.sp && entry.sp !== c) {
+        el.classList.add('dim'); el.classList.remove('bright');
+      } else if (entry.sp === c) {
+        el.classList.remove('dim'); el.classList.add('bright');
+      } else {
+        el.classList.remove('dim','bright');
+      }
+    } else {
+      el.classList.add('hidden');
+      el.classList.remove('visible','dim','bright');
+    }
+  });
+  var np = document.getElementById('name-plate');
+  if (entry.sp && CHARS[entry.sp]) {
+    var ch = CHARS[entry.sp];
+    np.textContent = ch.name;
+    np.style.color = ch.color;
+    np.style.background = ch.nameBg;
+    np.style.borderLeft = '3px solid ' + ch.borderColor;
+    np.style.display = 'inline-block';
+  } else {
+    np.style.display = 'none';
+  }
+}
+
+var pendingDone = null;  // typeText の onDone を skipType でも呼べるよう保持
+
+function typeText(text, onDone) {
+  var el = document.getElementById('dialogue');
+  el.textContent = '';
+  typing = true;
+  pendingDone = onDone;
+  document.getElementById('next-arrow').style.opacity = '0';
+  var i = 0;
+  function tick() {
+    if (i < text.length) {
+      el.textContent += text[i++];
+      if (i % 3 === 0) seClick();
+      timer = setTimeout(tick, 38);
+    } else {
+      typing = false;
+      pendingDone = null;
+      if (!choiceActive) document.getElementById('next-arrow').style.opacity = '1';
+      if (onDone) onDone();
+    }
+  }
+  tick();
+}
+
+function skipType() {
+  if (timer) clearTimeout(timer);
+  var e = SCRIPT[idx];
+  document.getElementById('dialogue').textContent = e.text;
+  typing = false;
+  var cb = pendingDone;
+  pendingDone = null;
+  if (!choiceActive) document.getElementById('next-arrow').style.opacity = '1';
+  if (cb) cb();  // ← これがないと選択肢が出なかった
+}
+
+function hideChoices() {
+  var box = document.getElementById('choice-box');
+  box.classList.remove('show');
+  box.innerHTML = '';
+  choiceActive = false;
+  document.getElementById('next-arrow').style.opacity = '0';
+}
+
+function showChoices(choices) {
+  choiceActive = true;
+  document.getElementById('next-arrow').style.opacity = '0';
+  var box = document.getElementById('choice-box');
+  box.innerHTML = '';
+  choices.forEach(function(c) {
+    var btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.textContent = c.label;
+    btn.addEventListener('mouseenter', function() { seChoiceHover(); });
+    btn.addEventListener('click', function(ev) {
+      ev.stopPropagation();
+      seChoice();
+      hideChoices();
+      // jump先へ
+      var target = idMap[c.jump];
+      if (target !== undefined) {
+        idx = target;
+        showIdx(idx);
+      }
+    });
+    box.appendChild(btn);
+  });
+  box.classList.add('show');
+}
+
+function showIdx(i) {
+  if (i >= SCRIPT.length) return;
+  var e = SCRIPT[i];
+  // シーン転換判定（背景が変わったらSE）
+  var prevBg = i > 0 ? SCRIPT[i-1].bg : null;
+  if (prevBg && prevBg !== e.bg) seScene();
+  applyEntry(e);
+  typeText(e.text, function() {
+    if (e.end) {
+      setTimeout(showEnd, 900);
+    } else if (e.choice) {
+      showChoices(e.choice);
+    }
+  });
+}
+
+function advance() {
+  if (choiceActive) return;  // 選択肢表示中はクリック無効
+  if (typing) { skipType(); return; }
+  var e = SCRIPT[idx];
+  if (e.end) { showEnd(); return; }
+  if (e.choice) return; // 選択肢待ちはスキップしない
+  // jump属性があれば飛ぶ（ルート末尾の合流）
+  if (e.jump && idMap[e.jump] !== undefined) {
+    idx = idMap[e.jump];
+    showIdx(idx);
+    return;
+  }
+  idx++;
+  if (idx < SCRIPT.length) showIdx(idx);
+}
+
+function showEnd() {
+  document.getElementById('end-screen').classList.add('show');
+  seScene();
+}
+
+function startGame() {
+  seStart();
+  var ts = document.getElementById('title-screen');
+  ts.classList.add('fade-out');
+  setTimeout(function() { ts.style.display = 'none'; }, 850);
+  started = true;
+  idx = 0;
+  showIdx(0);
+}
+
+function restartGame() {
+  document.getElementById('end-screen').classList.remove('show');
+  hideChoices();
+  idx = 0;
+  showIdx(0);
+}
+
+// Button event listeners
+document.getElementById('start-btn').addEventListener('click', function(e) {
+  e.stopPropagation();
+  startGame();
+});
+document.getElementById('restart-btn').addEventListener('click', function(e) {
+  e.stopPropagation();
+  restartGame();
+});
+
+// タイトル画面：どこをクリック/タップしても開始
+document.getElementById('title-screen').addEventListener('click', function() {
+  if (!started) startGame();
+});
+document.getElementById('title-screen').addEventListener('touchend', function(e) {
+  e.preventDefault();
+  if (!started) startGame();
+});
+
+// Click/tap to advance (ゲーム中)
+document.getElementById('game').addEventListener('click', function() {
+  if (!started) return;
+  if (document.getElementById('end-screen').classList.contains('show')) return;
+  advance();
+});
+document.getElementById('game').addEventListener('touchend', function(e) {
+  e.preventDefault();
+  if (!started) return;
+  if (document.getElementById('end-screen').classList.contains('show')) return;
+  advance();
+});
+
+// Keyboard
+document.addEventListener('keydown', function(e) {
+  if (e.code === 'Space' || e.code === 'Enter' || e.code === 'ArrowRight') {
+    e.preventDefault();
+    if (!started) { startGame(); return; }
+    if (document.getElementById('end-screen').classList.contains('show')) return;
+    advance();
+  }
+});
+
+/* ============================================================
+   INIT CHARACTER SVGS
+   ============================================================ */
+document.getElementById('c-claude').innerHTML  = claudeSVG(1);
+document.getElementById('c-chatgpt').innerHTML = chatgptSVG(1);
+document.getElementById('c-gemini').innerHTML  = geminiSVG(1);
+document.getElementById('c-grok').innerHTML    = grokSVG(1);
+
+/* ============================================================
+   TITLE STARS
+   ============================================================ */
+(function(){
+  const sl = document.getElementById('stars-layer');
+  for (let i = 0; i < 90; i++) {
+    const d = document.createElement('div');
+    d.className = 'star';
+    const sz = Math.random() * 2.8 + 0.4;
+    d.style.cssText = `width:${sz}px;height:${sz}px;left:${Math.random()*100}%;top:${Math.random()*100}%;--d:${(Math.random()*3.5+1).toFixed(2)}s;--dd:${(Math.random()*3).toFixed(2)}s;`;
+    sl.appendChild(d);
+  }
+})();
+
+/* ============================================================
+   TITLE CHARACTER CARDS
+   ============================================================ */
+(function(){
+  const row = document.getElementById('title-chars-row');
+  Object.entries(CHARS).forEach(([key, ch]) => {
+    const svgStr = ch.svg(0.35);
+    const card = document.createElement('div');
+    card.className = 'title-char-card';
+    card.innerHTML = `
+      <div class="title-char-icon" style="background:${ch.nameBg};border:1px solid ${ch.borderColor};box-shadow:0 0 10px ${ch.nameBg};">${svgStr}</div>
+      <div class="title-char-label" style="color:${ch.color}">${ch.name}</div>
+    `;
+    row.appendChild(card);
+  });
+})();
+</script>
+</body>
+</html>
