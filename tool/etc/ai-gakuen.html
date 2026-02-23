@@ -266,7 +266,7 @@ html, body {
   pointer-events: auto;
 }
 .choice-btn {
-  width: 480px;
+  width: min(480px, 88%);
   padding: 12px 28px;
   background: rgba(6,10,30,0.88);
   border: 1px solid rgba(140,175,255,0.38);
@@ -1478,6 +1478,17 @@ function showChoices(choices) {
       seChoice();
       hideChoices();
       // jump先へ
+      var target = idMap[c.jump];
+      if (target !== undefined) {
+        idx = target;
+        showIdx(idx);
+      }
+    });
+    btn.addEventListener('touchend', function(ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      seChoice();
+      hideChoices();
       var target = idMap[c.jump];
       if (target !== undefined) {
         idx = target;
