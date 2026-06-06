@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>回転もち寿司</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Mochiy+Pop+One&family=Zen+Maru+Gothic:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --wood:#ecd9b4;
+    --wood2:#e1c897;
+    --wood-edge:#cdb079;
+    --belt:#7cb3a5;
+    --belt-dk:#669a8c;
+    --belt-edge:#4f8074;
+    --ink:#4a3b2e;
+    --vermil:#e0533c;
+    --dish:#fdfbf4;
+    --mochi:#fdfdf9;
+    --mochi-sh:#e9e2d2;
+    --blush:#f4a6a0;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;}
+  body{
+    font-family:"Zen Maru Gothic",sans-serif;
+    color:var(--ink);
+    overflow:hidden;
+    -webkit-user-select:none;
+    user-select:none;
+    background:
+      radial-gradient(ellipse 90% 70% at 50% 38%, #fff6e4 0%, rgba(255,246,228,0) 70%),
+      repeating-linear-gradient(92deg, rgba(160,128,80,.05) 0 2px, transparent 2px 26px),
+      linear-gradient(160deg, var(--wood) 0%, var(--wood2) 100%);
+  }
+
+  .stage{position:relative;width:100%;height:100vh;overflow:hidden;}
+
+  /* レーン（ベルト）のSVG */
+  #belt{position:absolute;inset:0;z-index:2;pointer-events:none;}
+  .seams{
+    animation:roll 7s linear infinite;
+  }
+  @keyframes roll{ to{ stroke-dashoffset:-460; } }
+
+  /* 中央の島（薬味コーナー） */
+  .island{
+    position:absolute;z-index:4;
+    transform:translate(-50%,-50%);
+    display:flex;align-items:flex-end;justify-content:center;
+    gap:clamp(8px,1.4vw,20px);
+    pointer-events:none;
+  }
+  .teapot{position:relative;width:52px;height:46px;}
+  .teapot .body{
+    position:absolute;bottom:0;left:4px;width:44px;height:34px;
+    background:linear-gradient(160deg,#9c5a48,#7d4133);
+    border-radius:46% 46% 42% 42%/52% 52% 48% 48%;
+    box-shadow:inset -5px -4px 0 rgba(0,0,0,.12), inset 5px 3px 0 rgba(255,255,255,.16);
+  }
+  .teapot .lid{
+    position:absolute;top:4px;left:14px;width:24px;height:12px;
+    background:#7d4133;border-radius:50% 50% 30% 30%;
+  }
+  .teapot .lid:after{content:"";position:absolute;top:-5px;left:8px;width:8px;height:8px;background:#6b3528;border-radius:50%;}
+  .teapot .spout{
+    position:absolute;bottom:12px;left:-6px;width:14px;height:8px;
+    background:#7d4133;border-radius:8px;transform:rotate(-18deg);
+  }
+  .teapot .handle{
+    position:absolute;top:10px;right:-4px;width:14px;height:20px;
+    border:4px solid #7d4133;border-left:none;border-radius:0 12px 12px 0;
+  }
+  .steam{position:absolute;top:-22px;left:18px;width:18px;height:24px;}
+  .steam span{
+    position:absolute;bottom:0;width:5px;height:5px;border-radius:50%;
+    background:rgba(255,255,255,.7);
+    animation:steam 3.2s ease-in infinite;
+  }
+  .steam span:nth-child(1){left:0;animation-delay:0s;}
+  .steam span:nth-child(2){left:8px;animation-delay:1.1s;}
+  .steam span:nth-child(3){left:4px;animation-delay:2.1s;}
+  @keyframes steam{
+    0%{transform:translateY(0) scale(.6);opacity:0;}
+    25%{opacity:.8;}
+    100%{transform:translateY(-22px) scale(1.4);opacity:0;}
+  }
+  .soy{position:relative;width:22px;height:42px;}
+  .soy .glass{
+    position:absolute;bottom:0;width:22px;height:34px;
+    background:linear-gradient(160deg,#5a4636,#3a2c20);
+    border-radius:7px 7px 9px 9px;
+    box-shadow:inset 4px 0 0 rgba(255,255,255,.12);
+  }
+  .soy .cap{position:absolute;top:0;left:6px;width:10px;height:12px;background:var(--vermil);border-radius:3px 3px 2px 2px;}
+  .mound{width:30px;height:22px;border-radius:50% 50% 46% 46%/70% 70% 30% 30%;position:relative;}
+  .mound.wasabi{background:linear-gradient(160deg,#a9c84e,#88ab35);}
+  .mound.gari{background:linear-gradient(160deg,#f6d2da,#eeb6c4);}
+  .mound:after{content:"";position:absolute;inset:auto 0 -3px 0;height:6px;background:rgba(0,0,0,.06);border-radius:50%;filter:blur(1px);}
+
+  /* もち寿司一皿 */
+  .plate{
+    position:absolute;top:0;left:0;width:120px;height:150px;
+    will-change:transform;
+  }
+  .group{
+    position:absolute;left:50%;bottom:calc(50% - 12px);transform:translateX(-50%);
+    display:flex;flex-direction:column;align-items:center;
+    transition:transform .55s cubic-bezier(.3,.7,.3,1), opacity .55s ease;
+  }
+  .group.lift{transform:translateX(-50%) translateY(-52px) scale(1.05);opacity:0;}
+
+  /* ネタ */
+  .neta{
+    width:60px;height:21px;border-radius:10px 10px 9px 9px;
+    margin-bottom:-9px;z-index:3;transform:rotate(-3deg);
+    box-shadow:inset 0 -4px 0 rgba(0,0,0,.10), inset 0 3px 0 rgba(255,255,255,.22);
+    position:relative;
+  }
+  .neta.maguro{background:linear-gradient(150deg,#e0584f,#c43b3f);}
+  .neta.maguro:before{content:"";position:absolute;inset:3px 6px auto 6px;height:3px;border-radius:3px;background:rgba(255,255,255,.30);box-shadow:0 6px 0 rgba(255,255,255,.22);}
+  .neta.salmon{background:repeating-linear-gradient(102deg,#f2925c 0 9px,#f7b58a 9px 13px);}
+  .neta.tamago{background:linear-gradient(150deg,#f6cf57,#eebb38);}
+  .neta.tamago:after{content:"";position:absolute;left:50%;top:-3px;transform:translateX(-50%);width:11px;height:26px;background:#3a2f29;border-radius:3px;}
+  .neta.ebi{background:linear-gradient(150deg,#f7b9ae,#f29b93);}
+  .neta.ebi:before{content:"";position:absolute;inset:0;border-radius:inherit;background:repeating-linear-gradient(108deg,transparent 0 8px,rgba(224,83,60,.55) 8px 11px);}
+  .neta.ika{background:linear-gradient(150deg,#fbf7f0,#ece4d6);}
+  .neta.ikura{background:#3a2f29;height:24px;border-radius:7px;display:flex;align-items:center;justify-content:center;gap:2px;}
+  .neta.ikura .roe{width:7px;height:7px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffb15a,#ef7a37);box-shadow:inset -1px -1px 0 rgba(0,0,0,.2);}
+
+  /* もち本体 */
+  .mochi{
+    position:relative;width:58px;height:42px;z-index:2;
+    background:linear-gradient(165deg,var(--mochi),#f3eee2);
+    border-radius:46% 46% 50% 50%/62% 62% 42% 42%;
+    box-shadow:inset 0 -7px 0 var(--mochi-sh), 0 4px 7px rgba(120,90,50,.18);
+    animation:bob 2.6s ease-in-out infinite;
+  }
+  @keyframes bob{
+    0%,100%{transform:scale(1,1);}
+    50%{transform:scale(1.04,.95);}
+  }
+  .mochi.sq{animation:squash .55s ease;}
+  @keyframes squash{
+    0%{transform:scale(1,1);}
+    30%{transform:scale(1.22,.74) rotate(-2deg);}
+    60%{transform:scale(.92,1.1);}
+    100%{transform:scale(1,1);}
+  }
+  .face{position:absolute;inset:0;}
+  .eye{position:absolute;top:18px;width:6px;height:8px;background:#42352b;border-radius:50%;}
+  .eye.l{left:16px;} .eye.r{right:16px;}
+  .eye:after{content:"";position:absolute;top:1px;left:1px;width:2px;height:2px;background:#fff;border-radius:50%;}
+  .blush{position:absolute;top:25px;width:9px;height:6px;background:var(--blush);border-radius:50%;opacity:.75;}
+  .blush.l{left:8px;} .blush.r{right:8px;}
+  .mouth{position:absolute;top:27px;left:50%;transform:translateX(-50%);width:7px;height:4px;border:1.6px solid #42352b;border-top:none;border-radius:0 0 8px 8px;}
+
+  /* 皿 */
+  .dish{
+    width:88px;height:24px;border-radius:50%;
+    background:radial-gradient(ellipse at 50% 35%,#ffffff,var(--dish) 70%);
+    margin-top:-4px;z-index:1;position:relative;
+    box-shadow:0 5px 8px rgba(110,80,45,.22);
+  }
+  .dish:before{content:"";position:absolute;inset:0;border-radius:50%;border:4px solid var(--rim,#ddd);}
+
+  /* 吹き出し */
+  .bubble{
+    position:absolute;left:50%;bottom:144px;transform:translate(-50%,6px) scale(.6);
+    background:#fffdf7;color:var(--ink);
+    font-family:"Mochiy Pop One",sans-serif;
+    font-size:13px;line-height:1;white-space:nowrap;
+    padding:7px 11px;border-radius:13px;
+    box-shadow:0 3px 7px rgba(110,80,45,.22);
+    border:2px solid #f0e6cf;
+    opacity:0;pointer-events:none;
+    transition:opacity .22s ease, transform .22s cubic-bezier(.3,1.4,.5,1);
+    z-index:5;
+  }
+  .bubble:after{content:"";position:absolute;left:50%;bottom:-7px;transform:translateX(-50%);
+    border:6px solid transparent;border-top-color:#fffdf7;}
+  .bubble.show{opacity:1;transform:translate(-50%,0) scale(1);}
+  .bubble.tsun{color:var(--vermil);border-color:#f3c7bd;}
+
+  /* わさびパフ */
+  .puff{
+    position:absolute;left:50%;bottom:102px;transform:translateX(-50%);
+    width:8px;height:8px;border-radius:50%;background:#a9c84e;opacity:0;z-index:4;
+  }
+  .puff.go{animation:puff .8s ease-out;}
+  @keyframes puff{
+    0%{opacity:.9;transform:translate(-50%,0) scale(.5);}
+    100%{opacity:0;transform:translate(-50%,-26px) scale(1.6);}
+  }
+
+  /* 箸 */
+  .chopsticks{
+    position:absolute;top:0;left:0;width:14px;height:140px;z-index:999;
+    transform:translate(-50%,-160px);opacity:0;
+    transition:transform .5s cubic-bezier(.3,.7,.3,1), opacity .25s ease;
+    pointer-events:none;
+  }
+  .chopsticks i{
+    position:absolute;top:0;width:5px;height:130px;border-radius:3px;
+    background:linear-gradient(180deg,#c98b52,#a9703c);
+    box-shadow:1px 0 0 rgba(0,0,0,.08);transform-origin:top center;
+  }
+  .chopsticks i.a{left:1px;transform:rotate(5deg);}
+  .chopsticks i.b{right:1px;transform:rotate(-5deg);}
+  .chopsticks.down{transform:translate(-50%,0);opacity:1;}
+  .chopsticks.up{transform:translate(-50%,-170px);opacity:0;}
+
+  /* のれん & タイトル */
+  .noren{
+    position:absolute;top:0;left:0;right:0;height:46px;z-index:20;
+    background:var(--vermil);pointer-events:none;
+    box-shadow:0 3px 8px rgba(120,40,30,.2);
+    -webkit-mask:linear-gradient(#000 0 0) padding-box;
+  }
+  .noren:after{
+    content:"";position:absolute;left:0;right:0;bottom:-16px;height:18px;
+    background:
+      radial-gradient(circle at 18px -2px, var(--vermil) 13px, transparent 14px) repeat-x;
+    background-size:36px 18px;
+  }
+  .noren .ja{
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    gap:30px;color:#fff;font-family:"Mochiy Pop One",sans-serif;
+    font-size:18px;letter-spacing:.3em;text-shadow:0 1px 0 rgba(0,0,0,.12);
+  }
+  .title{
+    position:absolute;top:58px;left:20px;z-index:20;pointer-events:none;
+    font-family:"Mochiy Pop One",sans-serif;color:var(--ink);
+    font-size:clamp(15px,2.3vw,21px);
+    text-shadow:0 2px 0 rgba(255,255,255,.5);
+  }
+  .title small{display:block;font-family:"Zen Maru Gothic";font-weight:700;font-size:11px;letter-spacing:.18em;color:#8a755a;margin-top:2px;}
+
+  @media (max-height:520px){ .noren .ja{font-size:14px;gap:18px;} .title{font-size:14px;} }
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+  <svg id="belt"></svg>
+  <div class="island" id="island">
+    <div class="mound gari"></div>
+    <div class="soy"><div class="cap"></div><div class="glass"></div></div>
+    <div class="teapot">
+      <div class="steam"><span></span><span></span><span></span></div>
+      <div class="spout"></div><div class="handle"></div>
+      <div class="body"></div><div class="lid"></div>
+    </div>
+    <div class="mound wasabi"></div>
+  </div>
+  <div class="noren"><div class="ja">回 転 も ち 寿 司</div></div>
+  <div class="title">回転もち寿司<small>OPEN ・ ぐるぐる流れています</small></div>
+  <div class="chopsticks" id="chop"><i class="a"></i><i class="b"></i></div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var TAU = Math.PI*2;
+  var stage = document.getElementById('stage');
+  var belt  = document.getElementById('belt');
+  var island= document.getElementById('island');
+  var chop  = document.getElementById('chop');
+
+  var COUNT = 9;          // 皿の数
+  var SPEED = 0.0052;     // 1フレームあたりの角速度（ゆっくり）
+  var lane = {cx:0, cy:0, rx:0, ry:0, bw:0};
+
+  var TOPPINGS = ['maguro','salmon','tamago','ebi','ika','ikura'];
+  var RIMS = ['#ffffff','#d94b3d','#3f86c4','#e8b84b','#6faa6f','#e08bb0'];
+  var CURVE_WORDS = ['ぐえっ','おっとっと','ぐらぐら','とと…','ふぅ…','まわるー'];
+  var LONELY_WORDS= ['また通った…','何周目だろう','だれか〜','つかれた〜','まだいる…'];
+  var TAKE_WORDS  = ['えらばれた！','やった〜','いってきます','またね〜','ぐっばい'];
+
+  function rnd(a,b){ return a + Math.random()*(b-a); }
+  function pick(arr){ return arr[(Math.random()*arr.length)|0]; }
+
+  function netaHTML(type){
+    if(type==='ikura'){
+      return '<div class="neta ikura"><span class="roe"></span><span class="roe"></span><span class="roe"></span></div>';
+    }
+    return '<div class="neta '+type+'"></div>';
+  }
+  function groupHTML(type){
+    return netaHTML(type) +
+      '<div class="mochi"><div class="face">'+
+        '<span class="eye l"></span><span class="eye r"></span>'+
+        '<span class="blush l"></span><span class="blush r"></span>'+
+        '<span class="mouth"></span></div></div>'+
+      '<div class="dish"></div>';
+  }
+
+  var plates = [];
+  function makePlate(i){
+    var el = document.createElement('div');
+    el.className = 'plate';
+    var topping = pick(TOPPINGS);
+    var rim = pick(RIMS);
+    el.innerHTML =
+      '<div class="bubble"></div>'+
+      '<div class="puff"></div>'+
+      '<div class="group">'+groupHTML(topping)+'</div>';
+    stage.appendChild(el);
+    var p = {
+      el:el,
+      bubble:el.querySelector('.bubble'),
+      puff:el.querySelector('.puff'),
+      group:el.querySelector('.group'),
+      theta: i*(TAU/COUNT),
+      lap: 0,
+      inCurve:false,
+      busy:false,
+      opacity:1,
+      bubbleUntil:0,
+      bubbleTimer:0
+    };
+    setRim(p, rim);
+    plates.push(p);
+    return p;
+  }
+  function setRim(p, rim){ p.group.querySelector('.dish').style.setProperty('--rim', rim); }
+  function setMochi(p){ p.mochi = p.group.querySelector('.mochi'); }
+
+  function say(p, text, cls){
+    var now = performance.now();
+    if(now < p.bubbleUntil) return;       // 吹き出しが重ならないように
+    p.bubbleUntil = now + 2200;
+    p.bubble.textContent = text;
+    p.bubble.className = 'bubble' + (cls?(' '+cls):'');
+    // reflow して show
+    void p.bubble.offsetWidth;
+    p.bubble.classList.add('show');
+    if(p.bubbleTimer) clearTimeout(p.bubbleTimer);
+    p.bubbleTimer = setTimeout(function(){ p.bubble.classList.remove('show'); }, 1900);
+  }
+  function clearBubble(p){
+    if(p.bubbleTimer){ clearTimeout(p.bubbleTimer); p.bubbleTimer=0; }
+    p.bubble.classList.remove('show');
+    p.bubble.textContent='';
+    p.bubbleUntil=0;
+  }
+  function squish(p){
+    var m = p.group.querySelector('.mochi');
+    m.classList.remove('sq'); void m.offsetWidth; m.classList.add('sq');
+  }
+
+  function onCurve(p){
+    if(Math.random() < 0.42) squish(p);
+    if(Math.random() < 0.16) say(p, pick(CURVE_WORDS));
+  }
+  function onLap(p){
+    if(p.lap>=3 && !p.busy && Math.random()<0.5) say(p, pick(LONELY_WORDS));
+    // たまに、わさびで「つーん」
+    if(!p.busy && Math.random()<0.12){
+      say(p, 'つーん！', 'tsun');
+      p.puff.classList.remove('go'); void p.puff.offsetWidth; p.puff.classList.add('go');
+    }
+  }
+
+  /* 箸でとられる演出 */
+  function doTake(){
+    // 手前・中央寄りの皿を選ぶ
+    var best=null, bestScore=-1;
+    for(var i=0;i<plates.length;i++){
+      var p=plates[i]; if(p.busy||p.opacity<0.9) continue;
+      var theta=p.theta%TAU; if(theta<0)theta+=TAU;
+      var y=lane.cy+lane.ry*Math.sin(theta);
+      var x=lane.cx+lane.rx*Math.cos(theta);
+      var centerness = 1 - Math.min(1, Math.abs(x-lane.cx)/(lane.rx*0.6));
+      var score = (y) + centerness*120;        // 手前(yが大)＆中央を優先
+      if(centerness>0.15 && score>bestScore){ bestScore=score; best=p; }
+    }
+    if(!best) return;
+    var p=best; p.busy=true;
+    var theta=p.theta%TAU; if(theta<0)theta+=TAU;
+    var x=lane.cx+lane.rx*Math.cos(theta);
+    var y=lane.cy+lane.ry*Math.sin(theta);
+    p.el.style.zIndex = 998;
+
+    chop.style.left = x+'px';
+    chop.style.top  = (y-118)+'px';
+    chop.classList.remove('up');
+    void chop.offsetWidth;
+    chop.classList.add('down');
+
+    setTimeout(function(){ p.group.classList.add('lift'); say(p, pick(TAKE_WORDS)); }, 540);
+    setTimeout(function(){ chop.classList.remove('down'); chop.classList.add('up'); }, 900);
+    setTimeout(function(){
+      // リサイクル：スロットはそのまま、新しいネタでふわっと再登場（ワープしない）
+      p.opacity = 0; p.el.style.opacity = 0;
+      clearBubble(p);
+      p.puff.classList.remove('go');
+      var t = pick(TOPPINGS), rim = pick(RIMS);
+      p.group.innerHTML = groupHTML(t);
+      setRim(p, rim);
+      p.group.classList.remove('lift');
+      p.lap = Math.floor(p.theta/TAU);
+      p.inCurve = false;
+      p.busy = false;
+    }, 1150);
+    setTimeout(function(){
+      p.opacity = 1; p.el.style.opacity = 1; // ふわっと登場
+      chop.classList.remove('up');
+    }, 1320);
+  }
+  function scheduleTake(){
+    setTimeout(function(){ doTake(); scheduleTake(); }, rnd(6000,12000));
+  }
+
+  /* レイアウト：ベルトSVGと島の配置 */
+  function layout(){
+    var w = stage.clientWidth, h = stage.clientHeight;
+    lane.cx = w/2;
+    lane.cy = h*0.56;
+    lane.rx = Math.min(w*0.40, 520);
+    lane.ry = Math.max(Math.min(lane.rx*0.42, h*0.30), 70);
+    lane.bw = Math.max(48, Math.min(lane.ry*0.95, 76));   // ベルト幅
+
+    belt.setAttribute('viewBox','0 0 '+w+' '+h);
+    belt.setAttribute('width', w); belt.setAttribute('height', h);
+    var cx=lane.cx, cy=lane.cy, rx=lane.rx, ry=lane.ry, bw=lane.bw;
+    var ns='http://www.w3.org/2000/svg';
+    function ell(opts){
+      var e=document.createElementNS(ns,'ellipse');
+      e.setAttribute('cx',cx); e.setAttribute('cy',cy);
+      e.setAttribute('rx',opts.rx); e.setAttribute('ry',opts.ry);
+      e.setAttribute('fill', opts.fill||'none');
+      if(opts.stroke){ e.setAttribute('stroke',opts.stroke); e.setAttribute('stroke-width',opts.sw); }
+      if(opts.dash){ e.setAttribute('stroke-dasharray',opts.dash); e.setAttribute('class','seams'); }
+      return e;
+    }
+    belt.innerHTML='';
+    // ベルト本体（バンド）
+    belt.appendChild(ell({rx:rx,ry:ry,stroke:'var(--belt)',sw:bw}));
+    // パネル（流れる継ぎ目）
+    belt.appendChild(ell({rx:rx,ry:ry,stroke:'var(--belt-dk)',sw:bw,dash:'13 33'}));
+    // 内外のフチ
+    belt.appendChild(ell({rx:rx+bw/2,ry:ry+bw/2,stroke:'var(--belt-edge)',sw:3}));
+    belt.appendChild(ell({rx:rx-bw/2,ry:ry-bw/2,stroke:'var(--belt-edge)',sw:3}));
+    belt.appendChild(ell({rx:rx+bw/2-2,ry:ry+bw/2-2,stroke:'rgba(255,255,255,.25)',sw:2}));
+
+    island.style.left = cx+'px';
+    island.style.top  = cy+'px';
+  }
+
+  /* メインループ */
+  function frame(){
+    for(var i=0;i<plates.length;i++){
+      var p=plates[i];
+      if(!p.busy){
+        p.theta += SPEED;
+        var theta = p.theta % TAU;
+        var x = lane.cx + lane.rx*Math.cos(theta);
+        var y = lane.cy + lane.ry*Math.sin(theta);
+        var depth = (y-(lane.cy-lane.ry))/(2*lane.ry);   // 0:奥 〜 1:手前
+        var scale = 0.64 + 0.52*depth;
+        var rot   = -Math.sin(theta)*7;                  // カーブで少し傾く
+        p.el.style.transform = 'translate('+x+'px,'+y+'px) translate(-50%,-50%) scale('+scale.toFixed(3)+') rotate('+rot.toFixed(1)+'deg)';
+        p.el.style.zIndex = Math.round(y);
+
+        var inCurve = Math.abs(Math.cos(theta)) > 0.86;
+        if(inCurve && !p.inCurve) onCurve(p);
+        p.inCurve = inCurve;
+
+        var lap = Math.floor(p.theta/TAU);
+        if(lap > p.lap){ p.lap = lap; onLap(p); }
+      } else {
+        p.theta += SPEED;   // とられている間もスロットだけ前進させ、等間隔を保つ
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  // 初期化
+  layout();
+  for(var i=0;i<COUNT;i++) makePlate(i);
+  window.addEventListener('resize', layout);
+  requestAnimationFrame(frame);
+  scheduleTake();
+})();
+</script>
+</body>
+</html>
