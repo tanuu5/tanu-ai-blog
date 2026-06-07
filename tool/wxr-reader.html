@@ -51,6 +51,19 @@ button{font-family:var(--sans);cursor:pointer;border:none;background:none;font-s
 .drop-zone .hint{color:var(--text-3);font-size:.78rem;margin-top:8px}
 .format-note{max-width:480px;margin-top:24px;padding:16px 20px;background:var(--surface);border:1px solid var(--border-light);border-radius:var(--radius);font-size:.82rem;color:var(--text-3);line-height:1.7;text-align:left}
 
+/* ===== Open / Restore ===== */
+.open-btn{padding:14px 36px;background:var(--accent);color:white;border-radius:var(--radius);font-size:1rem;font-family:var(--sans);font-weight:500;letter-spacing:.04em;transition:var(--transition);border:none;cursor:pointer;margin-bottom:12px}
+.open-btn:hover{background:var(--accent-hover);transform:translateY(-1px);box-shadow:0 4px 12px rgba(107,143,113,.3)}
+.open-hint{font-size:.82rem;color:var(--text-3);margin-bottom:28px}
+.restore-card{width:100%;max-width:380px;background:var(--surface);border:2px solid var(--accent);border-radius:12px;padding:32px 28px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px;box-shadow:0 4px 20px rgba(107,143,113,.12)}
+.restore-icon{font-size:2.4rem;margin-bottom:4px}
+.restore-name{font-family:var(--serif);font-size:1.15rem;font-weight:700;color:var(--text);word-break:break-all}
+.restore-hint{font-size:.78rem;color:var(--text-3);margin-bottom:4px}
+.restore-btn{padding:12px 32px;background:var(--accent);color:white;border-radius:var(--radius);font-size:.95rem;font-family:var(--sans);font-weight:500;transition:var(--transition);border:none;cursor:pointer;width:100%}
+.restore-btn:hover{background:var(--accent-hover)}
+.forget-btn{font-size:.8rem;color:var(--text-3);text-decoration:underline;cursor:pointer;background:none;border:none;font-family:var(--sans)}
+.forget-btn:hover{color:var(--text-2)}
+
 /* ===== Parsing ===== */
 .parsing{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;text-align:center;animation:fadeIn .4s ease}
 .parsing h2{font-family:var(--serif);font-size:1.6rem;margin-bottom:8px}
@@ -189,6 +202,16 @@ button{font-family:var(--sans);cursor:pointer;border:none;background:none;font-s
 .modal-btn.secondary{border:1px solid var(--border);color:var(--text-2)}
 .modal-btn.secondary:hover{border-color:var(--accent);color:var(--accent)}
 .modal-btns{display:flex;gap:10px;justify-content:center;margin-top:24px}
+/* Help modal */
+.help-modal{max-width:520px;text-align:left}
+.help-body{margin-top:16px;max-height:60vh;overflow-y:auto;padding-right:4px}
+.help-section{margin-bottom:20px}
+.help-section-title{font-weight:700;font-size:.88rem;color:var(--text);margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border-light)}
+.help-row{display:flex;align-items:baseline;gap:12px;margin-bottom:6px;font-size:.85rem;color:var(--text-2)}
+.help-key{min-width:140px;flex-shrink:0;font-size:.8rem;color:var(--text-3)}
+.help-key kbd{display:inline-block;padding:1px 6px;background:var(--bg);border:1px solid var(--border);border-radius:3px;font-family:monospace;font-size:.78rem}
+.help-note{font-size:.8rem;color:var(--text-3);line-height:1.7}
+.help-body code{background:var(--bg);padding:1px 5px;border-radius:3px;font-size:.82em;font-family:monospace}
 
 /* ===== Chart Fullscreen ===== */
 .expand-btn{margin-left:auto;padding:2px 10px;border:1px solid var(--border);border-radius:var(--radius);font-size:.75rem;color:var(--text-3);background:var(--surface);transition:var(--transition);cursor:pointer;font-family:var(--sans);letter-spacing:.04em}
@@ -224,6 +247,25 @@ button{font-family:var(--sans);cursor:pointer;border:none;background:none;font-s
   .app-header,.detail-back,.detail-actions,.detail-nav,.pagination,.controls,.card-actions,.stats-panel{display:none!important}
   .detail-content{border:none;padding:0}body{background:white}
 }
+/* ===== Related Articles ===== */
+.related-section{margin-top:32px;padding-top:24px;border-top:1px solid var(--border-light)}
+.related-title{font-family:var(--serif);font-size:1rem;font-weight:700;color:var(--text-2);margin-bottom:14px}
+.related-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.related-item{display:block;padding:12px 14px;background:var(--bg);border:1px solid var(--border-light);border-radius:var(--radius);text-decoration:none;transition:var(--transition)}
+.related-item:hover{border-color:var(--accent);background:var(--accent-bg)}
+.related-item-title{font-size:.85rem;font-weight:500;color:var(--text);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.related-item-date{font-size:.72rem;color:var(--text-3);margin-top:4px}
+/* カードURL */
+.card-url{display:flex;align-items:center;gap:8px;margin-top:6px}
+.card-url-text{font-size:.72rem;color:var(--text-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;font-family:monospace}
+.card-url-copy{flex-shrink:0;padding:2px 8px;font-size:.7rem;border:1px solid var(--border);border-radius:4px;color:var(--text-3);background:var(--surface);cursor:pointer;font-family:var(--sans);transition:var(--transition)}
+.card-url-copy:hover{border-color:var(--accent);color:var(--accent)}
+/* タグクリック可 */
+.tag-clickable{cursor:pointer;transition:var(--transition)}
+.tag-clickable:hover{opacity:.75;text-decoration:underline}
+/* キーボードヒント */
+.kbd-hint{font-size:.72rem;color:var(--text-3);padding:4px 8px;border:1px solid var(--border);border-radius:4px;background:var(--surface);font-family:monospace}
+
 /* ===== Footer ===== */
 .app-footer{border-top:1px solid var(--border);padding:32px 24px;text-align:center;font-size:.78rem;color:var(--text-3);line-height:1.9;margin-top:40px}
 .app-footer .footer-inner{max-width:var(--max-w);margin:0 auto}
@@ -282,7 +324,7 @@ class WXRParser {
     while((m=r1.exec(x))!==null)m[1]==='category'?cats.push(m[2]):tags.push(m[2]);
     const r2=/<category\s+domain="(category|post_tag)"[^>]*>([^<]+)<\/category>/g;
     while((m=r2.exec(x))!==null)m[1]==='category'?cats.push(m[2].trim()):tags.push(m[2].trim());
-    return{title,link,pubDate:pub,postDate:pd,postType:pt,status:st,excerpt:pl.substring(0,400).trim(),wordCount:pl.length,categories:cats,tags,charStart:cS,charEnd:cE};
+    return{title,link,pubDate:pub,postDate:pd,postType:pt,status:st,excerpt:pl.substring(0,400).trim(),fullText:pl,wordCount:pl.length,categories:cats,tags,charStart:cS,charEnd:cE};
   }
 
   async loadContent(a){
@@ -480,9 +522,70 @@ const Stats = {
 };
 
 // ============================================================
+// IndexedDB — フォルダハンドル永続化
+// ============================================================
+const DB_NAME = 'wxr-reader', DB_VER = 1, DB_STORE = 'handles';
+function _openDB() {
+  return new Promise((res, rej) => {
+    const req = indexedDB.open(DB_NAME, DB_VER);
+    req.onupgradeneeded = e => e.target.result.createObjectStore(DB_STORE);
+    req.onsuccess = e => res(e.target.result);
+    req.onerror = e => rej(e.target.error);
+  });
+}
+async function saveHandle(h) {
+  try { const db = await _openDB(); await new Promise((res,rej)=>{ const tx=db.transaction(DB_STORE,'readwrite'); tx.objectStore(DB_STORE).put(h,'folder'); tx.oncomplete=res; tx.onerror=e=>rej(e.target.error); }); } catch(e){}
+}
+async function loadHandle() {
+  try { const db = await _openDB(); return await new Promise((res,rej)=>{ const tx=db.transaction(DB_STORE,'readonly'); const req=tx.objectStore(DB_STORE).get('folder'); req.onsuccess=e=>res(e.target.result||null); req.onerror=e=>rej(e.target.error); }); } catch(e){ return null; }
+}
+async function clearHandle() {
+  try { const db = await _openDB(); await new Promise((res,rej)=>{ const tx=db.transaction(DB_STORE,'readwrite'); tx.objectStore(DB_STORE).delete('folder'); tx.oncomplete=res; tx.onerror=e=>rej(e.target.error); }); } catch(e){}
+}
+async function collectXmls(dirHandle) {
+  // ルート直下のXMLは無視し、サブフォルダ内のXMLのみ収集
+  const files = [];
+  for await (const [, handle] of dirHandle.entries()) {
+    if (handle.kind !== 'directory') continue;
+    for await (const [n2, h2] of handle.entries()) {
+      if (h2.kind === 'file' && n2.toLowerCase().endsWith('.xml')) {
+        files.push(await h2.getFile());
+      }
+    }
+  }
+  return files.sort((a,b) => a.name.localeCompare(b.name,'ja'));
+}
+
+async function buildAssetMap(dirHandle) {
+  const map = new Map(); // filename → objectURL
+  try {
+    for await (const [, handle] of dirHandle.entries()) {
+      if (handle.kind !== 'directory') continue;
+      let assetsHandle = null;
+      try { assetsHandle = await handle.getDirectoryHandle('assets'); } catch(e) { continue; }
+      for await (const [fname, fh] of assetsHandle.entries()) {
+        if (fh.kind === 'file' && !map.has(fname)) {
+          try { map.set(fname, URL.createObjectURL(await fh.getFile())); } catch(e) {}
+        }
+      }
+    }
+  } catch(e) {}
+  return map;
+}
+
+function applyAssets(html, assetMap) {
+  if (!assetMap.size) return html;
+  return html.replace(/(<img[^>]+src=["'])\/assets\/([^"']+)(["'])/gi, (_, pre, fname, post) => {
+    const url = assetMap.get(fname);
+    return url ? pre + url + post : _ ;
+  });
+}
+
+// ============================================================
 // App
 // ============================================================
 const PER_PAGE = 20;
+const HAS_DIR_PICKER = 'showDirectoryPicker' in window;
 
 const App = {
   view: 'landing', parsers: [], files: [], articles: [], filtered: [],
@@ -491,14 +594,36 @@ const App = {
   showStats: true, statsCache: null,
   parseProgress: 0, parseCount: 0, parseFileIdx: 0, parseFileTotal: 0, startTime: 0,
   batchCancel: false,
+  _dirHandle: null, _dirName: null, _assetMap: new Map(),
 
-  init() {
+  async init() {
+    // 保存済みフォルダハンドルを復元
+    if (HAS_DIR_PICKER) {
+      try {
+        const h = await loadHandle();
+        if (h) { this._dirHandle = h; this._dirName = h.name; }
+      } catch(e) {}
+    }
     this.render();
     document.addEventListener('keydown', e => {
+      const active = document.activeElement;
+      const inInput = active && (active.tagName==='INPUT'||active.tagName==='TEXTAREA');
       if (e.key === 'Escape') {
         const fs = document.getElementById('chartFs'); if (fs) { fs.remove(); return; }
         if (document.getElementById('modalRoot').innerHTML) { this.closeModal(); return; }
-        if (this.view === 'detail') { this.view = 'list'; this.render(); }
+        if (this.view === 'detail') { this.view = 'list'; this.render(); return; }
+        if (inInput && this.query) { this.query=''; this.applyFilters(); this.render(); return; }
+      }
+      if (e.key === '/' && !inInput && this.view === 'list') {
+        e.preventDefault();
+        document.getElementById('searchInput')?.focus();
+        return;
+      }
+      // j/k: 詳細ビューでの前後移動
+      if (!inInput && this.view === 'detail') {
+        const pos = this.filtered.findIndex(x => x.index === this.selected?.index);
+        if (e.key === 'j' && pos < this.filtered.length - 1) { this.selectArticle(this.filtered[pos+1].index); window.scrollTo(0,0); }
+        if (e.key === 'k' && pos > 0) { this.selectArticle(this.filtered[pos-1].index); window.scrollTo(0,0); }
       }
     });
     // Tooltip
@@ -509,8 +634,49 @@ const App = {
     document.addEventListener('mouseout', e => { if (e.target.closest('.hm-cell')) document.getElementById('tip').classList.remove('visible'); });
   },
 
+  async openFolder() {
+    if (HAS_DIR_PICKER) {
+      try {
+        const h = await showDirectoryPicker({ mode: 'read' });
+        await saveHandle(h);
+        this._dirHandle = h; this._dirName = h.name;
+        this._assetMap = await buildAssetMap(h);
+        const files = await collectXmls(h);
+        if (!files.length) { toast('XMLファイルが見つかりません'); return; }
+        await this.handleFiles(files);
+      } catch(e) { if (e.name !== 'AbortError') toast('フォルダを開けませんでした'); }
+    } else {
+      document.getElementById('folderInput')?.click();
+    }
+  },
+
+  async restoreFolder() {
+    const h = this._dirHandle; if (!h) return;
+    try {
+      const perm = await h.requestPermission({ mode: 'read' });
+      if (perm === 'granted') {
+        toast('📂 ' + (this._dirName || 'フォルダ') + ' に接続中…');
+        this._assetMap = await buildAssetMap(h);
+        const files = await collectXmls(h);
+        if (!files.length) { toast('XMLが見つかりません'); return; }
+        await this.handleFiles(files);
+      } else { toast('アクセスが許可されませんでした'); }
+    } catch(e) {
+      toast('フォルダに接続できませんでした');
+      await clearHandle(); this._dirHandle = null; this._dirName = null; this.render();
+    }
+  },
+
+  async forgetFolder() {
+    await clearHandle(); this._dirHandle = null; this._dirName = null; this.render();
+  },
+
   async handleFiles(fl) {
-    const xf = Array.from(fl).filter(f => f.name.toLowerCase().endsWith('.xml')).sort((a,b) => a.name.localeCompare(b.name,'ja'));
+    const seen = new Set();
+    const xf = Array.from(fl)
+      .filter(f => f.name.toLowerCase().endsWith('.xml'))
+      .filter(f => { if(seen.has(f.name)) return false; seen.add(f.name); return true; })
+      .sort((a,b) => a.name.localeCompare(b.name,'ja'));
     if (!xf.length) { toast('XMLファイルが見つかりません'); return; }
     this.files = xf; this.parsers = []; this.articles = [];
     this.parseFileIdx = 0; this.parseFileTotal = xf.length;
@@ -551,7 +717,14 @@ const App = {
   applyFilters() {
     let l=[...this.articles];
     if(this.typeFilter!=='all') l=l.filter(a=>a.postType===this.typeFilter);
-    if(this.query){const q=this.query.toLowerCase();l=l.filter(a=>a.title.toLowerCase().includes(q)||a.excerpt.toLowerCase().includes(q)||a.categories.some(c=>c.toLowerCase().includes(q))||a.tags.some(t=>t.toLowerCase().includes(q)));}
+    if(this.query){
+      // AND/OR: スペース区切りでAND、"OR"(大文字)でOR
+      const orGroups=this.query.split(/\bOR\b/i).map(g=>g.trim().toLowerCase().split(/\s+/).filter(Boolean));
+      l=l.filter(a=>{
+        const haystack=[a.title,a.fullText||a.excerpt,...a.categories,...a.tags].join('\n').toLowerCase();
+        return orGroups.some(ands=>ands.every(term=>haystack.includes(term)));
+      });
+    }
     l.sort((a,b)=>{const da=new Date(a.postDate||a.pubDate||0),db=new Date(b.postDate||b.pubDate||0);return this.sort==='desc'?db-da:da-db;});
     this.filtered=l; this.page=1;
   },
@@ -560,7 +733,9 @@ const App = {
     const a=this.articles[idx]; if(!a) return;
     this.selected=a; this.selectedContent=null; this.view='detail'; this.render();
     const r=await this.parsers[a.parserIdx].loadContent(a);
-    this.selectedContent=r?r.content:'<p style="color:var(--text-3)">本文を読み込めませんでした。</p>';
+    let content=r?r.content:'<p style="color:var(--text-3)">本文を読み込めませんでした。</p>';
+    if(this._assetMap.size) content=applyAssets(content,this._assetMap);
+    this.selectedContent=content;
     this.render();
   },
 
@@ -591,6 +766,44 @@ const App = {
     }catch(e){this.closeModal();toast('ZIP生成失敗');}
   },
 
+  showHelp() {
+    document.getElementById('modalRoot').innerHTML = `<div class="modal-overlay" id="helpOverlay"><div class="modal help-modal">
+      <h3>📖 書庫の使い方</h3>
+      <div class="help-body">
+        <div class="help-section">
+          <div class="help-section-title">🔍 検索</div>
+          <div class="help-row"><span class="help-key">スペース区切り</span><span>AND検索（例: <code>Claude API</code>）</span></div>
+          <div class="help-row"><span class="help-key">OR</span><span>OR検索（例: <code>Claude OR GPT</code>）</span></div>
+          <div class="help-row"><span class="help-key">タグをクリック</span><span>そのタグで絞り込み</span></div>
+          <div class="help-note">本文全文が検索対象です（先頭だけでなく記事全体）</div>
+        </div>
+        <div class="help-section">
+          <div class="help-section-title">⌨️ キーボードショートカット</div>
+          <div class="help-row"><span class="help-key"><kbd>/</kbd></span><span>検索ボックスにフォーカス</span></div>
+          <div class="help-row"><span class="help-key"><kbd>j</kbd> / <kbd>k</kbd></span><span>詳細ビューで次 / 前の記事へ</span></div>
+          <div class="help-row"><span class="help-key"><kbd>Esc</kbd></span><span>検索をクリア、または一覧に戻る</span></div>
+        </div>
+        <div class="help-section">
+          <div class="help-section-title">📤 エクスポート</div>
+          <div class="help-row"><span class="help-key">📝 MD一括</span><span>絞り込み中の記事をMarkdown ZIP でダウンロード</span></div>
+          <div class="help-row"><span class="help-key">📋 CSV</span><span>記事一覧をCSV（タイトル・日付・文字数など）</span></div>
+          <div class="help-row"><span class="help-key">記事詳細の 📋 MDコピー</span><span>本文をMarkdown形式でクリップボードにコピー</span></div>
+        </div>
+        <div class="help-section">
+          <div class="help-section-title">🔗 関連記事</div>
+          <div class="help-note">詳細ページ下部にタイトル・本文のキーワード重複度で算出した関連記事を最大6件表示します。</div>
+        </div>
+        <div class="help-section">
+          <div class="help-section-title">🖼 画像表示</div>
+          <div class="help-note">Chrome / Edge でフォルダを選択した場合、assetsフォルダの画像をそのまま表示します（Safari非対応）。</div>
+        </div>
+      </div>
+      <div class="modal-btns"><button class="modal-btn secondary" id="helpClose">閉じる</button></div>
+    </div></div>`;
+    document.getElementById('helpClose').onclick = () => this.closeModal();
+    document.getElementById('helpOverlay').addEventListener('click', e => { if(e.target.id==='helpOverlay') this.closeModal(); });
+  },
+
   _showBM(d,t,det){document.getElementById('modalRoot').innerHTML=`<div class="modal-overlay"><div class="modal"><h3>📝 Markdownエクスポート</h3><div class="modal-status" id="bStat">${d}/${t}</div><div style="margin:16px 0"><div class="progress-bar"><div class="progress-fill" id="bFill" style="width:0%"></div></div></div><div class="modal-detail" id="bDet">${esc(det)}</div><div class="modal-btns"><button class="modal-btn secondary" id="bCancel">キャンセル</button></div></div></div>`;document.getElementById('bCancel').onclick=()=>{this.batchCancel=true;};},
   _updBM(d,t,det){const s=document.getElementById('bStat'),f=document.getElementById('bFill'),dd=document.getElementById('bDet');if(s)s.textContent=`${d}/${t}`;if(f)f.style.width=(t?(d/t*100):0)+'%';if(dd)dd.textContent=det||'';},
   closeModal(){document.getElementById('modalRoot').innerHTML='';},
@@ -610,6 +823,46 @@ const App = {
       totalChars:posts.reduce((s,a)=>s+a.wordCount,0),fileCount:this.files.length};
   },
 
+  _getRelated(a, max) {
+    // カテゴリ・タグがない場合はキーワード重複度で計算
+    const catSet=new Set(a.categories), tagSet=new Set(a.tags);
+    const hasTaxonomy = catSet.size > 0 || tagSet.size > 0;
+
+    if (hasTaxonomy) {
+      return this.articles
+        .filter(x=>x.index!==a.index&&x.postType==='post')
+        .map(x=>{let s=0;for(const c of x.categories)if(catSet.has(c))s+=2;for(const t of x.tags)if(tagSet.has(t))s+=1;return{...x,_score:s};})
+        .filter(x=>x._score>0).sort((x,y)=>y._score-x._score).slice(0,max);
+    }
+
+    // タイトルから有効トークンを抽出（CJK 2文字bigram + 英数字3文字以上）
+    const extractTokens = (text) => {
+      const s = new Set();
+      for (const w of (text.match(/[a-zA-Z0-9]{3,}/g) || [])) s.add(w.toLowerCase());
+      for (const run of (text.match(/[　-鿿＀-￯]{2,}/g) || []))
+        for (let i=0;i<run.length-1;i++) s.add(run.slice(i,i+2));
+      return s;
+    };
+
+    const titleToks = extractTokens(a.title);
+    const bodyToks  = extractTokens((a.fullText||a.excerpt).slice(0,3000));
+    if (!titleToks.size) return [];
+
+    return this.articles
+      .filter(x=>x.index!==a.index&&x.postType==='post')
+      .map(x=>{
+        const xtL=x.title.toLowerCase();
+        const xbL=(x.fullText||x.excerpt).toLowerCase();
+        let s=0;
+        for(const t of titleToks){ if(xtL.includes(t))s+=3; else if(xbL.includes(t))s+=1; }
+        for(const t of bodyToks){ if(xtL.includes(t))s+=1; }
+        return{...x,_score:s};
+      })
+      .filter(x=>x._score>=3)
+      .sort((x,y)=>y._score-x._score)
+      .slice(0,max);
+  },
+
   // ===================== Renderers =====================
   render(){
     const el=document.getElementById('app');
@@ -622,14 +875,48 @@ const App = {
   },
 
   _rLanding(){
+    const hasStored = HAS_DIR_PICKER && this._dirHandle;
+    let mainArea = '';
+
+    if (hasStored) {
+      // 保存済みフォルダがある → 再接続ボタンを前面に
+      mainArea = `
+        <div class="restore-card" id="restoreCard">
+          <div class="restore-icon">📂</div>
+          <div class="restore-name">${esc(this._dirName || 'フォルダ')}</div>
+          <div class="restore-hint">前回のフォルダ</div>
+          <button class="restore-btn" id="restoreBtn">このフォルダを開く</button>
+          <button class="forget-btn" id="forgetBtn">別のフォルダに変更…</button>
+        </div>`;
+    } else if (HAS_DIR_PICKER) {
+      // API対応ブラウザ、初回
+      mainArea = `
+        <button class="open-btn" id="openFolderBtn">📂 フォルダを選択</button>
+        <p class="open-hint">バックアップフォルダを一度選ぶと、次回から自動接続されます</p>
+        <div class="drop-zone" id="dropZone">
+          <input type="file" id="fileInput" accept=".xml" multiple>
+          <div class="icon">📄</div><p>または XMLファイルをドラッグ＆ドロップ</p>
+          <p class="hint">複数ファイル対応</p>
+        </div>`;
+    } else {
+      // Safari など — フォールバック
+      mainArea = `
+        <button class="open-btn" id="openFolderBtn">📁 フォルダを選択（Safari）</button>
+        <input type="file" id="folderInput" style="display:none" webkitdirectory accept=".xml">
+        <p class="open-hint">フォルダ内のXMLファイルをまとめて読み込みます</p>
+        <div class="drop-zone" id="dropZone">
+          <input type="file" id="fileInput" accept=".xml" multiple>
+          <div class="icon">📄</div><p>または XMLファイルをドラッグ＆ドロップ</p>
+          <p class="hint">複数ファイル対応</p>
+        </div>`;
+    }
+
     return `<div class="container"><div class="landing">
       <div class="landing-icon">📚</div><h1>書庫</h1>
       <p class="subtitle">WXR Blog Archive Reader</p>
-      <p class="desc">noteやWordPressのWXRバックアップ（.xml）を、ブラウザ上で閲覧・検索・統計分析・Markdown変換できるツールです。分割XMLもまとめて読み込めます。</p>
-      <div class="drop-zone" id="dropZone"><input type="file" id="fileInput" accept=".xml" multiple>
-        <div class="icon">📄</div><p>XMLファイルをドラッグ＆ドロップ</p>
-        <p class="hint">複数ファイル対応 — 分割XMLもまとめて選択OK</p></div>
-      <div class="format-note"><strong>対応形式：</strong>WXR（WordPress eXtended RSS）形式。noteのエクスポートで出力されるXMLファイルに対応。処理はすべてブラウザ内で完結し、サーバーには送信されません。</div>
+      <p class="desc">noteのWXRバックアップ（.xml）を閲覧・検索・統計分析・Markdown変換できるツールです。処理はすべてブラウザ内で完結します。</p>
+      ${mainArea}
+      ${hasStored ? '' : '<div class="format-note"><strong>対応形式：</strong>WXR（WordPress eXtended RSS）形式。noteのエクスポートXMLに対応。</div>'}
     </div></div>` + footerHtml();
   },
 
@@ -652,7 +939,7 @@ const App = {
     let h=`<div class="app-header"><div class="container"><div class="inner">
       <div class="blog-title">${esc(ch?ch.title:'ブログアーカイブ')}</div>
       <div class="stats-label">${st.posts}記事${st.fileCount>1?' / '+st.fileCount+'ファイル':''}</div>
-      <div class="search-box"><input type="text" id="searchInput" placeholder="記事を検索…" value="${esc(this.query)}"></div>
+      <div class="search-box"><input type="text" id="searchInput" placeholder="検索（スペース=AND、OR で分岐）" value="${esc(this.query)}" title="スペース区切りでAND検索、OR で OR検索。例: Claude AI OR LLM"></div>
       <div class="controls">
         <button class="ctrl-btn${this.sort==='desc'?' active':''}" data-sort="desc">新しい順</button>
         <button class="ctrl-btn${this.sort==='asc'?' active':''}" data-sort="asc">古い順</button>
@@ -662,6 +949,8 @@ const App = {
         <button class="ctrl-btn${this.showStats?' active':''}" id="toggleStats">📊 統計</button>
         <button class="ctrl-btn" id="batchMd">📝 MD一括</button>
         <button class="ctrl-btn" id="exportCsv">📋 CSV</button>
+        <button class="ctrl-btn" id="changeFolder">📂 フォルダ変更</button>
+        <button class="ctrl-btn" id="helpBtn" title="使い方">？</button>
       </div>
     </div></div></div>`;
 
@@ -699,8 +988,8 @@ const App = {
         <div class="chart-wrap">${Stats.renderMonthlyChart(sc.monthly, 'count')}</div></div>`;
       h+=`<div class="stats-section"><h3>📝 月間文字数<button class="expand-btn">拡大</button></h3>
         <div class="chart-wrap">${Stats.renderMonthlyChart(sc.monthly, 'chars')}</div></div>`;
-      // Tags
-      h+=`<div class="stats-section"><h3>🏷️ カテゴリ・タグ<button class="expand-btn">拡大</button></h3>${Stats.renderTagRanking(sc.cats, sc.tags)}</div>`;
+      // Tags（データがある場合のみ）
+      if(sc.cats.length||sc.tags.length) h+=`<div class="stats-section"><h3>🏷️ カテゴリ・タグ<button class="expand-btn">拡大</button></h3>${Stats.renderTagRanking(sc.cats, sc.tags)}</div>`;
       h+=`</div>`;
     }
 
@@ -713,7 +1002,8 @@ const App = {
         h+=`<div class="article-card"><div class="card-main" data-idx="${art.index}">
           <div class="card-head"><div class="card-title">${esc(art.title||'(無題)')}</div><div class="card-date">${d}</div></div>
           <div class="card-excerpt">${esc(art.excerpt)}</div>
-          ${(art.categories.length||art.tags.length)?`<div class="card-tags">${art.categories.map(c=>`<span class="tag">${esc(c)}</span>`).join('')}${art.tags.map(t=>`<span class="tag type-tag">${esc(t)}</span>`).join('')}</div>`:''}
+          ${(art.categories.length||art.tags.length)?`<div class="card-tags">${art.categories.map(c=>`<span class="tag tag-clickable" data-tag="${esc(c)}">${esc(c)}</span>`).join('')}${art.tags.map(t=>`<span class="tag type-tag tag-clickable" data-tag="${esc(t)}">${esc(t)}</span>`).join('')}</div>`:''}
+          ${art.link?`<div class="card-url"><span class="card-url-text">${esc(art.link)}</span><button class="card-url-copy" data-url="${esc(art.link)}" title="URLをコピー">コピー</button></div>`:''}
         </div><div class="card-actions"><button class="card-md-btn" data-md="${art.index}" title="Markdownで保存">📝</button></div></div>`;
       }
       if(tp>1){
@@ -744,7 +1034,21 @@ const App = {
     if(this.selectedContent===null) h+=`<div class="loading-content"><div class="loading-spinner"></div><p>本文を読み込んでいます…</p></div>`;
     else{
       h+=`<div class="detail-content">${this.selectedContent}</div>`;
-      h+=`<div class="detail-actions"><button class="action-btn" id="copyMd">📋 MDコピー</button><button class="action-btn" id="copyHtml">🔖 HTMLコピー</button><button class="action-btn" id="dlMd">💾 MD保存</button></div>`;
+      const urlBtn=a.link?`<button class="action-btn" id="copyUrl">🔗 URLコピー</button><a class="action-btn" href="${esc(a.link)}" target="_blank" rel="noopener">↗ noteで開く</a>`:'';
+      h+=`<div class="detail-actions"><button class="action-btn" id="copyMd">📋 MDコピー</button><button class="action-btn" id="copyHtml">🔖 HTMLコピー</button><button class="action-btn" id="dlMd">💾 MD保存</button>${urlBtn}</div>`;
+      // 関連記事
+      const related=this._getRelated(a,6);
+      if(related.length){
+        h+=`<div class="related-section"><h3 class="related-title">🔗 関連記事</h3><div class="related-list">`;
+        for(const r of related){
+          const rd=fmtDate(new Date(r.postDate||r.pubDate));
+          h+=`<a href="#" class="related-item" data-idx="${r.index}">
+            <div class="related-item-title">${esc(r.title||'(無題)')}</div>
+            <div class="related-item-date">${rd}</div>
+          </a>`;
+        }
+        h+=`</div></div>`;
+      }
     }
     h+=`<div class="detail-nav">${prev?`<a href="#" data-idx="${prev.index}">← ${esc((prev.title||'前').substring(0,40))}</a>`:'<span></span>'}${next?`<a href="#" data-idx="${next.index}">${esc((next.title||'次').substring(0,40))} →</a>`:'<span></span>'}</div></div></div>` + footerHtml();
     return h;
@@ -752,7 +1056,15 @@ const App = {
 
   // ===================== Bindings =====================
   _bLanding(){
-    const dz=document.getElementById('dropZone'),fi=document.getElementById('fileInput');if(!dz||!fi)return;
+    document.getElementById('openFolderBtn')?.addEventListener('click', () => this.openFolder());
+    document.getElementById('restoreBtn')?.addEventListener('click', () => this.restoreFolder());
+    document.getElementById('forgetBtn')?.addEventListener('click', () => this.forgetFolder());
+    // フォルダ input（Safari フォールバック）
+    const fi2 = document.getElementById('folderInput');
+    if (fi2) fi2.addEventListener('change', e => { if(e.target.files.length) this.handleFiles(e.target.files); });
+    // 通常の file input
+    const dz=document.getElementById('dropZone'), fi=document.getElementById('fileInput');
+    if (!dz || !fi) return;
     fi.addEventListener('change',e=>{if(e.target.files.length)this.handleFiles(e.target.files);});
     dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag-over');});
     dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
@@ -770,7 +1082,12 @@ const App = {
     document.getElementById('exportCsv')?.addEventListener('click',()=>this.exportCsv());
     document.getElementById('batchMd')?.addEventListener('click',()=>this.batchExportMd());
     document.getElementById('toggleStats')?.addEventListener('click',()=>{this.showStats=!this.showStats;this.render();});
+    document.getElementById('changeFolder')?.addEventListener('click',()=>{this.view='landing';this.render();});
+    document.getElementById('helpBtn')?.addEventListener('click',()=>this.showHelp());
     document.querySelectorAll('.expand-btn').forEach(btn=>btn.addEventListener('click',e=>{e.stopPropagation();this.showExpand(btn.closest('.stats-section'));}));
+    // タグクリックで絞り込み
+    document.querySelectorAll('.tag-clickable').forEach(t=>t.addEventListener('click',e=>{e.stopPropagation();this.query=t.dataset.tag;this.applyFilters();this.render();}));
+    document.querySelectorAll('.card-url-copy').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();navigator.clipboard.writeText(b.dataset.url).then(()=>toast('URLをコピーしました'));}));
   },
 
   showExpand(section) {
@@ -807,6 +1124,8 @@ const App = {
     document.getElementById('copyMd')?.addEventListener('click',()=>{navigator.clipboard.writeText(htmlToMd(this.selectedContent,a.title,a.postDate||a.pubDate)).then(()=>toast('コピーしました'));});
     document.getElementById('copyHtml')?.addEventListener('click',()=>{navigator.clipboard.writeText(this.selectedContent||'').then(()=>toast('HTMLコピー'));});
     document.getElementById('dlMd')?.addEventListener('click',()=>{dlText(htmlToMd(this.selectedContent,a.title,a.postDate||a.pubDate),datePfx(a)+sanitize(a.title||'article')+'.md','text/markdown;charset=utf-8');toast('保存しました');});
+    document.getElementById('copyUrl')?.addEventListener('click',()=>{navigator.clipboard.writeText(a.link).then(()=>toast('URLをコピーしました'));});
+    document.querySelectorAll('.related-item').forEach(el=>el.addEventListener('click',e=>{e.preventDefault();this.selectArticle(+el.dataset.idx);window.scrollTo(0,0);}));
   },
 };
 
@@ -874,7 +1193,7 @@ function htmlToMd(html, title, date) {
 function footerHtml() {
   const y = new Date().getFullYear();
   return `<footer class="app-footer"><div class="footer-inner">
-    <div class="copy">© ${y} たぬ — Built with Claude Opus 4.5 (Anthropic)</div>
+    <div class="copy">© ${y} たぬ — Built with Claude Sonnet 4.6 (Anthropic)</div>
     <div class="credits">Uses <a href="https://stuk.github.io/jszip/" target="_blank" rel="noopener">JSZip</a> (MIT License) · Fonts: <a href="https://fonts.google.com/noto" target="_blank" rel="noopener">Noto Serif JP / Noto Sans JP</a> (OFL)</div>
   </div></footer>`;
 }
