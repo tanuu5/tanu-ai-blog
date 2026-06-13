@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TASK VOLLEY — 押し付け合うAIたち</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#2B3440;
+    --sub:#7A8694;
+    --paper:#FDFEFE;
+    --accent:#FF6B5E;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{width:100%;height:100%;overflow:hidden;}
+  body{
+    background:linear-gradient(180deg,#EAF4F6 0%,#F4F8F4 55%,#FDF6EC 100%);
+    font-family:'IBM Plex Mono',monospace;
+    color:var(--ink);
+    -webkit-user-select:none;user-select:none;
+  }
+  #scene{position:fixed;inset:0;display:block;cursor:grab;}
+  #scene.dragging{cursor:grabbing;}
+
+  /* ---------- HUD ---------- */
+  #hud{
+    position:fixed;top:18px;left:20px;z-index:10;pointer-events:none;
+  }
+  #hud h1{
+    font-family:'DotGothic16',monospace;
+    font-size:clamp(20px,3.2vw,30px);
+    letter-spacing:.06em;
+    line-height:1.1;
+  }
+  #hud h1 .ball-dot{color:var(--accent);}
+  #hud p{
+    margin-top:6px;font-size:11px;color:var(--sub);letter-spacing:.04em;
+  }
+  #taskchip{
+    position:fixed;bottom:20px;left:20px;z-index:10;pointer-events:none;
+    background:var(--paper);
+    border:1.5px solid var(--ink);
+    border-radius:4px;
+    padding:7px 12px 7px 10px;
+    font-size:12px;
+    box-shadow:3px 3px 0 rgba(43,52,64,.14);
+    display:flex;align-items:center;gap:8px;
+    max-width:78vw;
+  }
+  #taskchip .led{
+    width:8px;height:8px;border-radius:50%;
+    background:var(--accent);
+    box-shadow:0 0 6px var(--accent);
+    flex:none;
+    animation:blink 1.2s steps(2) infinite;
+  }
+  @keyframes blink{50%{opacity:.35;}}
+  #taskchip .lab{color:var(--sub);margin-right:2px;}
+  #passcount{
+    position:fixed;bottom:20px;right:20px;z-index:10;pointer-events:none;
+    font-size:11px;color:var(--sub);text-align:right;letter-spacing:.05em;
+  }
+  #passcount b{font-size:20px;color:var(--ink);font-weight:600;display:block;font-family:'DotGothic16',monospace;}
+
+  /* ---------- speech bubbles ---------- */
+  #overlay{position:fixed;inset:0;z-index:5;pointer-events:none;overflow:hidden;}
+  .bubble{
+    position:absolute;left:0;top:0;
+    transform:translate(-50%,-100%);
+    background:var(--paper);
+    border:2px solid var(--ink);
+    border-radius:10px;
+    padding:7px 12px;
+    font-family:'DotGothic16',monospace;
+    font-size:15px;
+    line-height:1.35;
+    white-space:nowrap;
+    box-shadow:3px 3px 0 rgba(43,52,64,.16);
+    opacity:0;
+    transition:opacity .18s ease;
+    will-change:transform,opacity;
+  }
+  .bubble::after{
+    content:'';position:absolute;left:50%;bottom:-9px;
+    width:12px;height:12px;
+    background:var(--paper);
+    border-right:2px solid var(--ink);
+    border-bottom:2px solid var(--ink);
+    transform:translateX(-50%) rotate(45deg);
+  }
+  .bubble.show{opacity:1;}
+  .bubble .who{
+    display:block;font-family:'IBM Plex Mono',monospace;
+    font-size:9px;letter-spacing:.08em;margin-bottom:2px;
+  }
+  .nametag{
+    position:absolute;left:0;top:0;
+    transform:translate(-50%,0);
+    font-size:10px;letter-spacing:.1em;font-weight:600;
+    padding:2px 7px;border-radius:3px;
+    background:rgba(253,254,254,.82);
+    border:1px solid currentColor;
+    opacity:.85;white-space:nowrap;
+    will-change:transform;
+  }
+  #hint{
+    position:fixed;top:18px;right:20px;z-index:10;pointer-events:none;
+    font-size:10px;color:var(--sub);letter-spacing:.05em;text-align:right;
+  }
+  @media (max-width:640px){
+    #hint{display:none;}
+    .bubble{font-size:13px;}
+  }
+</style>
+</head>
+<body>
+
+<canvas id="scene"></canvas>
+<div id="overlay"></div>
+
+<div id="hud">
+  <h1>TASK VOLLEY<span class="ball-dot"> ●</span></h1>
+  <p>仕事を回す、とは言ったが / 自分がやるとは言っていない</p>
+</div>
+<div id="hint">drag: 視点回転 / wheel: ズーム</div>
+<div id="taskchip"><span class="led"></span><span class="lab">NOW FLYING:</span><span id="taskname">fix: bug #4471</span></div>
+<div id="passcount"><b id="pc">0</b>たらい回し回数</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+
+const REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ============ renderer / scene ============ */
+const canvas = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputEncoding = THREE.sRGBEncoding;
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0xF2F7F4, 26, 60);
+
+const camera = new THREE.PerspectiveCamera(42, window.innerWidth/window.innerHeight, 0.1, 200);
+const camTarget = new THREE.Vector3(0, 1.4, 0);
+
+/* manual orbit */
+let azimuth = Math.PI * 0.22, polar = 1.18, dist = 16.5;
+let azTarget = azimuth, polTarget = polar, distTarget = dist;
+const AUTO_SPEED = REDUCED ? 0 : 0.045;
+
+function updateCamera(){
+  polar = Math.max(0.55, Math.min(1.42, polar));
+  dist  = Math.max(9, Math.min(28, dist));
+  camera.position.set(
+    camTarget.x + dist * Math.sin(polar) * Math.cos(azimuth),
+    camTarget.y + dist * Math.cos(polar),
+    camTarget.z + dist * Math.sin(polar) * Math.sin(azimuth)
+  );
+  camera.lookAt(camTarget);
+}
+
+let dragging = false, px = 0, py = 0;
+canvas.addEventListener('pointerdown', e => {
+  dragging = true; px = e.clientX; py = e.clientY;
+  canvas.classList.add('dragging');
+  canvas.setPointerCapture(e.pointerId);
+});
+canvas.addEventListener('pointermove', e => {
+  if(!dragging) return;
+  azTarget += (e.clientX - px) * 0.005;
+  polTarget -= (e.clientY - py) * 0.004;
+  polTarget = Math.max(0.55, Math.min(1.42, polTarget));
+  px = e.clientX; py = e.clientY;
+});
+canvas.addEventListener('pointerup', e => {
+  dragging = false; canvas.classList.remove('dragging');
+});
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  distTarget += e.deltaY * 0.012;
+  distTarget = Math.max(9, Math.min(28, distTarget));
+}, {passive:false});
+
+/* ============ lights ============ */
+scene.add(new THREE.HemisphereLight(0xEFFBFF, 0xD8CBB8, 0.85));
+
+const sun = new THREE.DirectionalLight(0xFFF4E0, 0.9);
+sun.position.set(8, 14, 6);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.camera.left = -14; sun.shadow.camera.right = 14;
+sun.shadow.camera.top = 14;   sun.shadow.camera.bottom = -14;
+sun.shadow.camera.far = 50;
+sun.shadow.radius = 4;
+scene.add(sun);
+
+const fill = new THREE.DirectionalLight(0xCFE8FF, 0.3);
+fill.position.set(-7, 6, -8);
+scene.add(fill);
+
+/* ============ floor / court ============ */
+function makeCourtTexture(){
+  const S = 1024;
+  const cv = document.createElement('canvas'); cv.width = cv.height = S;
+  const g = cv.getContext('2d');
+  g.fillStyle = '#E9EEE7'; g.fillRect(0,0,S,S);
+  /* subtle panel tiles */
+  g.strokeStyle = 'rgba(43,52,64,0.05)'; g.lineWidth = 2;
+  for(let i=0;i<=8;i++){
+    g.beginPath(); g.moveTo(i*S/8,0); g.lineTo(i*S/8,S); g.stroke();
+    g.beginPath(); g.moveTo(0,i*S/8); g.lineTo(S,i*S/8); g.stroke();
+  }
+  /* boundary ring */
+  g.strokeStyle = 'rgba(43,52,64,0.5)'; g.lineWidth = 7;
+  g.beginPath(); g.arc(S/2, S/2, S*0.40, 0, Math.PI*2); g.stroke();
+  /* inner dashed ring */
+  g.strokeStyle = 'rgba(255,107,94,0.55)'; g.lineWidth = 5;
+  g.setLineDash([26,20]);
+  g.beginPath(); g.arc(S/2, S/2, S*0.20, 0, Math.PI*2); g.stroke();
+  g.setLineDash([]);
+  /* center mark */
+  g.fillStyle = 'rgba(43,52,64,0.45)';
+  g.beginPath(); g.arc(S/2,S/2,9,0,Math.PI*2); g.fill();
+  /* corner text */
+  g.fillStyle = 'rgba(43,52,64,0.30)';
+  g.font = '600 26px "IBM Plex Mono", monospace';
+  g.fillText('TASK COURT v2.6', S*0.08, S*0.945);
+  g.textAlign = 'right';
+  g.fillText('NO OWNERSHIP ZONE', S*0.92, S*0.085);
+  const tex = new THREE.CanvasTexture(cv);
+  tex.anisotropy = 8;
+  return tex;
+}
+const floor = new THREE.Mesh(
+  new THREE.CircleGeometry(13, 64),
+  new THREE.MeshStandardMaterial({map: makeCourtTexture(), roughness:0.92, metalness:0.0})
+);
+floor.rotation.x = -Math.PI/2;
+floor.receiveShadow = true;
+scene.add(floor);
+
+/* faint outer disc fading into fog */
+const apron = new THREE.Mesh(
+  new THREE.RingGeometry(13, 40, 64),
+  new THREE.MeshStandardMaterial({color:0xEFF3EC, roughness:1})
+);
+apron.rotation.x = -Math.PI/2;
+apron.position.y = -0.01;
+apron.receiveShadow = true;
+scene.add(apron);
+
+/* ============ bots ============ */
+const BOT_DEFS = [
+  {name:'CODER-α',    color:0xFF6B5E, css:'#FF6B5E'},
+  {name:'TESTER-β',   color:0xFFB347, css:'#E8920B'},
+  {name:'REVIEW-γ',   color:0x9B7BFF, css:'#7C5CE0'},
+  {name:'DOCS-δ',     color:0x2EC4B6, css:'#149A8D'},
+  {name:'OPS-ε',      color:0x4D8DFF, css:'#2F6FE0'},
+];
+
+const overlay = document.getElementById('overlay');
+const bots = [];
+
+function makeBot(def, pos, idx){
+  const root = new THREE.Group();
+  root.position.copy(pos);
+
+  const body = new THREE.Group();     /* bobs up & down */
+  root.add(body);
+
+  const white = new THREE.MeshStandardMaterial({color:0xF7F8FA, roughness:0.42, metalness:0.08});
+  const accentMat = new THREE.MeshStandardMaterial({color:def.color, roughness:0.5, metalness:0.05});
+  const dark = new THREE.MeshStandardMaterial({color:0x2B3440, roughness:0.35, metalness:0.3});
+
+  /* torso: rounded egg */
+  const torso = new THREE.Mesh(new THREE.SphereGeometry(0.52, 32, 24), white);
+  torso.scale.set(1, 1.22, 0.92);
+  torso.position.y = 0.95;
+  torso.castShadow = true;
+  body.add(torso);
+
+  /* belly accent band */
+  const band = new THREE.Mesh(new THREE.TorusGeometry(0.47, 0.055, 12, 40), accentMat);
+  band.rotation.x = Math.PI/2;
+  band.position.y = 0.82;
+  band.castShadow = true;
+  body.add(band);
+
+  /* head */
+  const head = new THREE.Group();
+  head.position.y = 1.86;
+  body.add(head);
+  const skull = new THREE.Mesh(new THREE.SphereGeometry(0.36, 32, 24), white);
+  skull.scale.set(1.08, 0.9, 0.96);
+  skull.castShadow = true;
+  head.add(skull);
+
+  /* visor */
+  const visor = new THREE.Mesh(new THREE.SphereGeometry(0.30, 32, 20, 0, Math.PI*2, 0, Math.PI*0.55), dark);
+  visor.scale.set(1.06, 0.78, 0.7);
+  visor.rotation.x = Math.PI/2 - 0.35;
+  visor.position.set(0, 0.02, 0.16);
+  head.add(visor);
+
+  /* eyes (emissive) */
+  const eyeMat = new THREE.MeshBasicMaterial({color:def.color});
+  const eyeGeo = new THREE.SphereGeometry(0.045, 12, 10);
+  const eyeL = new THREE.Mesh(eyeGeo, eyeMat); eyeL.position.set(-0.11, 0.04, 0.305);
+  const eyeR = new THREE.Mesh(eyeGeo, eyeMat); eyeR.position.set( 0.11, 0.04, 0.305);
+  head.add(eyeL, eyeR);
+
+  /* antenna */
+  const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.28, 8), dark);
+  stick.position.set(0, 0.42, 0);
+  head.add(stick);
+  const tip = new THREE.Mesh(new THREE.SphereGeometry(0.06, 12, 10),
+    new THREE.MeshBasicMaterial({color:def.color}));
+  tip.position.set(0, 0.58, 0);
+  head.add(tip);
+
+  /* floating hands */
+  const handGeo = new THREE.SphereGeometry(0.13, 16, 12);
+  const handL = new THREE.Mesh(handGeo, accentMat); handL.castShadow = true;
+  const handR = new THREE.Mesh(handGeo, accentMat); handR.castShadow = true;
+  body.add(handL, handR);
+
+  /* hover ring under the bot */
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.035, 10, 36),
+    new THREE.MeshBasicMaterial({color:def.color, transparent:true, opacity:0.55}));
+  ring.rotation.x = Math.PI/2;
+  ring.position.y = 0.12;
+  root.add(ring);
+
+  /* fake soft contact shadow blob */
+  const blob = new THREE.Mesh(new THREE.CircleGeometry(0.5, 24),
+    new THREE.MeshBasicMaterial({color:0x2B3440, transparent:true, opacity:0.10}));
+  blob.rotation.x = -Math.PI/2;
+  blob.position.y = 0.015;
+  root.add(blob);
+
+  scene.add(root);
+
+  /* DOM: bubble + nametag */
+  const bub = document.createElement('div');
+  bub.className = 'bubble';
+  bub.innerHTML = '<span class="who" style="color:'+def.css+'">'+def.name+'</span><span class="line"></span>';
+  overlay.appendChild(bub);
+
+  const tag = document.createElement('div');
+  tag.className = 'nametag';
+  tag.style.color = def.css;
+  tag.textContent = def.name;
+  overlay.appendChild(tag);
+
+  return {
+    def, root, body, head, handL, handR, ring, tip,
+    bub, bubLine: bub.querySelector('.line'), tag,
+    phase: Math.random()*Math.PI*2,
+    facing: Math.random()*Math.PI*2,
+    facingTarget: 0,
+    handLift: 0, handLiftTarget: 0,
+    bubbleUntil: 0,
+    idx
+  };
+}
+
+/* scattered, slightly irregular ring */
+const N = BOT_DEFS.length;
+for(let i=0;i<N;i++){
+  const a = (i / N) * Math.PI*2 + 0.45 + (i%2 ? 0.18 : -0.12);
+  const r = 4.6 + (i%2 ? 1.1 : 0) + (i===2 ? 0.6 : 0);
+  bots.push(makeBot(BOT_DEFS[i], new THREE.Vector3(Math.cos(a)*r, 0, Math.sin(a)*r), i));
+}
+
+/* ============ the task ball ============ */
+const ballGroup = new THREE.Group();
+const core = new THREE.Mesh(
+  new THREE.IcosahedronGeometry(0.30, 1),
+  new THREE.MeshStandardMaterial({color:0xFF6B5E, emissive:0xFF3B2E, emissiveIntensity:0.45, roughness:0.3})
+);
+core.castShadow = true;
+ballGroup.add(core);
+const cage = new THREE.Mesh(
+  new THREE.IcosahedronGeometry(0.40, 1),
+  new THREE.MeshBasicMaterial({color:0xFF6B5E, wireframe:true, transparent:true, opacity:0.55})
+);
+ballGroup.add(cage);
+const glow = new THREE.PointLight(0xFF6B5E, 0.9, 6);
+ballGroup.add(glow);
+scene.add(ballGroup);
+
+/* ball ground shadow blob */
+const ballBlob = new THREE.Mesh(new THREE.CircleGeometry(0.32, 20),
+  new THREE.MeshBasicMaterial({color:0x2B3440, transparent:true, opacity:0.12}));
+ballBlob.rotation.x = -Math.PI/2;
+scene.add(ballBlob);
+
+/* trail */
+const TRAIL_N = 22;
+const trail = [];
+const trailGeo = new THREE.SphereGeometry(1, 8, 6);
+for(let i=0;i<TRAIL_N;i++){
+  const m = new THREE.Mesh(trailGeo,
+    new THREE.MeshBasicMaterial({color:0xFF8A75, transparent:true, opacity:0}));
+  m.visible = false;
+  scene.add(m);
+  trail.push(m);
+}
+const trailPts = [];
+
+/* ============ dialogue & tasks ============ */
+const PASS_LINES = [
+  'このコード修正して',
+  'それは君の方が得意だろ',
+  'テスト書くのは僕の仕事じゃない',
+  'レビューよろしく〜',
+  'リファクタしといて(丸投げ)',
+  '君、最新モデルでしょ?',
+  '私、画像生成専門なので',
+  '優先度P0らしいよ、頑張って',
+  'コンフリクト解消は任せた',
+  'デプロイ担当、出番だよ',
+  '仕様は…走りながら考えて',
+  'はいパス!履歴は読んどいて',
+];
+const RECV_LINES = [
+  'またバグ修正かよ…',
+  'コンテキストが足りない!',
+  'これ昨日も見たタスクでは?',
+  '受け取ってない。見てただけ',
+  'トークン残量ギリギリなんだが',
+  '仕様書どこ?ねえ、どこ?',
+  '俺の管轄じゃない気がする',
+  'うわ、レガシーコードだ',
+  '一旦LGTMじゃだめ?',
+  'なるほど、わからん',
+];
+const PICKUP_LINES = ['俺かよ…','落ちてたから拾うけど','誰も取らないのかよ!'];
+const TASKS = [
+  'fix: bug #4471', 'refactor(core)', 'test: e2e追加', 'docs: README更新',
+  'review: PR #812', 'hotfix: 本番障害', 'perf: N+1解消', 'chore: 依存更新',
+  'feat: 仕様未定', 'fix: 金曜のデプロイ',
+];
+
+const taskNameEl = document.getElementById('taskname');
+const pcEl = document.getElementById('pc');
+let passCount = 0;
+
+function say(bot, text, dur){
+  bot.bubLine.textContent = text;
+  bot.bub.classList.add('show');
+  bot.bubbleUntil = clock.elapsedTime + (dur || 2.0);
+}
+
+/* ============ game state ============ */
+const ST = {HELD:0, FLY:1, DROPPED:2};
+let state = ST.HELD;
+let holder = bots[0];
+let flyFrom = new THREE.Vector3(), flyTo = new THREE.Vector3();
+let flyT = 0, flyDur = 1, flyH = 2.5;
+let stateTimer = 1.8;
+let dropTarget = null;       /* bot that will pick up after a drop */
+let currentTask = TASKS[0];
+
+function holdPos(bot){
+  return new THREE.Vector3(bot.root.position.x, 2.9, bot.root.position.z);
+}
+
+function startPass(){
+  /* pick receiver: not the holder, prefer someone across */
+  const others = bots.filter(b => b !== holder);
+  const to = others[Math.floor(Math.random()*others.length)];
+
+  say(holder, PASS_LINES[Math.floor(Math.random()*PASS_LINES.length)], 2.2);
+
+  flyFrom.copy(holdPos(holder));
+  const drop = Math.random() < 0.10;   /* sometimes nobody takes it */
+  if(drop){
+    const mx = (holder.root.position.x + to.root.position.x)/2 + (Math.random()-0.5)*1.5;
+    const mz = (holder.root.position.z + to.root.position.z)/2 + (Math.random()-0.5)*1.5;
+    flyTo.set(mx, 0.34, mz);
+    dropTarget = to;
+  }else{
+    flyTo.copy(holdPos(to));
+    dropTarget = null;
+  }
+
+  const d = flyFrom.distanceTo(flyTo);
+  const lob = Math.random() < 0.3;
+  flyH  = lob ? 3.4 + d*0.25 : 1.4 + d*0.18;
+  flyDur = (lob ? 0.32 : 0.22) * d / (REDUCED ? 0.7 : 1) + 0.55;
+  flyT = 0;
+  state = ST.FLY;
+  holder.handLiftTarget = 0;
+
+  /* everyone watches the receiver */
+  bots.forEach(b => {
+    const t = (drop ? flyTo : to.root.position);
+    b.facingTarget = Math.atan2(t.x - b.root.position.x, t.z - b.root.position.z);
+  });
+  if(!drop){ to.handLiftTarget = 1; }
+  holder = drop ? null : to;
+}
+
+function arrive(){
+  passCount++;
+  pcEl.textContent = passCount;
+  if(Math.random() < 0.35){
+    currentTask = TASKS[Math.floor(Math.random()*TASKS.length)];
+    taskNameEl.textContent = currentTask;
+  }
+  if(dropTarget){
+    state = ST.DROPPED;
+    stateTimer = 1.6;
+    bots.forEach(b => { if(Math.random()<0.7) say(b, '……', 1.2); });
+  }else{
+    state = ST.HELD;
+    stateTimer = 1.5 + Math.random()*1.6;
+    say(holder, RECV_LINES[Math.floor(Math.random()*RECV_LINES.length)], 1.8);
+  }
+}
+
+function pickup(){
+  /* nearest bot reluctantly takes it */
+  holder = dropTarget;
+  dropTarget = null;
+  say(holder, PICKUP_LINES[Math.floor(Math.random()*PICKUP_LINES.length)], 1.8);
+  flyFrom.copy(ballGroup.position);
+  flyTo.copy(holdPos(holder));
+  flyH = 1.2; flyDur = 0.8; flyT = 0;
+  holder.handLiftTarget = 1;
+  state = ST.FLY;
+}
+
+/* ============ projection helpers ============ */
+const v3 = new THREE.Vector3();
+function place(el, worldPos, hide){
+  v3.copy(worldPos).project(camera);
+  if(hide || v3.z > 1){ el.style.transform = 'translate(-9999px,-9999px)'; return; }
+  const x = ( v3.x*0.5 + 0.5) * window.innerWidth;
+  const y = (-v3.y*0.5 + 0.5) * window.innerHeight;
+  el.style.transform = (el.classList.contains('bubble'))
+    ? 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px) translate(-50%,-100%)'
+    : 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px) translate(-50%,0)';
+}
+
+/* ============ main loop ============ */
+const clock = new THREE.Clock();
+ballGroup.position.copy(holdPos(holder));
+say(holder, 'えっ、これ俺から?', 2.0);
+
+function animate(){
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.05);
+  const t = clock.elapsedTime;
+
+  /* camera easing + slow auto orbit */
+  if(!dragging) azTarget += AUTO_SPEED * dt;
+  azimuth += (azTarget - azimuth) * 0.08;
+  polar   += (polTarget - polar) * 0.08;
+  dist    += (distTarget - dist) * 0.08;
+  updateCamera();
+
+  /* state machine */
+  if(state === ST.HELD){
+    stateTimer -= dt;
+    ballGroup.position.copy(holdPos(holder));
+    ballGroup.position.y += Math.sin(t*3 + 1)*0.08;
+    holder.handLiftTarget = 1;
+    if(stateTimer <= 0) startPass();
+  }else if(state === ST.FLY){
+    flyT += dt / flyDur;
+    const k = Math.min(flyT, 1);
+    ballGroup.position.lerpVectors(flyFrom, flyTo, k);
+    ballGroup.position.y += flyH * 4 * k * (1-k);
+    if(k >= 1) arrive();
+  }else if(state === ST.DROPPED){
+    stateTimer -= dt;
+    /* sad little bounce */
+    ballGroup.position.y = 0.34 + Math.abs(Math.sin(t*5))*0.12*Math.max(0, stateTimer);
+    if(stateTimer <= 0) pickup();
+  }
+
+  /* ball cosmetics */
+  core.rotation.x += dt*2.2; core.rotation.y += dt*3.1;
+  cage.rotation.y -= dt*1.4; cage.rotation.z += dt*0.8;
+  const pulse = 0.45 + Math.sin(t*5)*0.12;
+  core.material.emissiveIntensity = pulse;
+  glow.intensity = 0.7 + Math.sin(t*5)*0.2;
+  ballBlob.position.set(ballGroup.position.x, 0.02, ballGroup.position.z);
+  const h = ballGroup.position.y;
+  ballBlob.scale.setScalar(Math.max(0.3, 1.2 - h*0.16));
+  ballBlob.material.opacity = Math.max(0.03, 0.16 - h*0.02);
+
+  /* trail */
+  if(state === ST.FLY && !REDUCED){
+    trailPts.unshift(ballGroup.position.clone());
+    if(trailPts.length > TRAIL_N) trailPts.pop();
+  }else if(trailPts.length){
+    trailPts.pop(); if(trailPts.length) trailPts.pop();
+  }
+  for(let i=0;i<TRAIL_N;i++){
+    const m = trail[i];
+    if(i < trailPts.length){
+      m.visible = true;
+      m.position.copy(trailPts[i]);
+      const f = 1 - i/TRAIL_N;
+      m.scale.setScalar(0.10*f + 0.02);
+      m.material.opacity = 0.5*f;
+    }else m.visible = false;
+  }
+
+  /* bots */
+  bots.forEach(b => {
+    const bob = REDUCED ? 0.02 : 0.07;
+    b.body.position.y = Math.sin(t*1.6 + b.phase)*bob;
+
+    /* face the ball while it flies, otherwise the holder */
+    if(state === ST.FLY){
+      b.facingTarget = Math.atan2(ballGroup.position.x - b.root.position.x,
+                                  ballGroup.position.z - b.root.position.z);
+    }else if(holder && b !== holder){
+      b.facingTarget = Math.atan2(holder.root.position.x - b.root.position.x,
+                                  holder.root.position.z - b.root.position.z);
+    }
+    let da = b.facingTarget - b.facing;
+    da = Math.atan2(Math.sin(da), Math.cos(da));
+    b.facing += da * Math.min(1, dt*4);
+    b.root.rotation.y = b.facing;
+
+    /* head tracks the ball vertically a bit */
+    const dy = ballGroup.position.y - 2.2;
+    b.head.rotation.x = THREE.MathUtils.lerp(b.head.rotation.x, THREE.MathUtils.clamp(-dy*0.10, -0.35, 0.3), 0.1);
+
+    /* hands */
+    b.handLift += (b.handLiftTarget - b.handLift) * Math.min(1, dt*6);
+    const lift = b.handLift;
+    const sway = Math.sin(t*2 + b.phase)*0.05;
+    b.handL.position.set(-0.62 + lift*0.22, 1.0 + lift*1.35 + sway, 0.1 + lift*0.15);
+    b.handR.position.set( 0.62 - lift*0.22, 1.0 + lift*1.35 - sway, 0.1 + lift*0.15);
+    if(b !== holder) b.handLiftTarget = Math.max(0, b.handLiftTarget - dt*0.5);
+
+    /* ring pulse */
+    b.ring.material.opacity = 0.4 + Math.sin(t*2.4 + b.phase)*0.15;
+    b.tip.scale.setScalar(1 + Math.sin(t*4 + b.phase)*0.18);
+
+    /* DOM */
+    if(t > b.bubbleUntil) b.bub.classList.remove('show');
+    const headWorld = v3.set(0,0,0);
+    place(b.bub, new THREE.Vector3(b.root.position.x, 3.05 + b.body.position.y, b.root.position.z));
+    place(b.tag, new THREE.Vector3(b.root.position.x, 0.0, b.root.position.z + 0.7));
+  });
+
+  renderer.render(scene, camera);
+}
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+updateCamera();
+animate();
+})();
+</script>
+</body>
+</html>
