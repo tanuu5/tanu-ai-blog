@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>変拍子スケッチ — 2+2+3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F0F2EE;
+    --ink: #232B33;
+    --ink-soft: #5A6670;
+    --indigo: #3A4A9F;
+    --amber: #E8A13C;
+    --paper: #FAFBF8;
+    --line: #D4D9D2;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    background-image: radial-gradient(circle at 85% 12%, rgba(58,74,159,0.06) 0, transparent 40%),
+                      radial-gradient(circle at 10% 90%, rgba(232,161,60,0.07) 0, transparent 45%);
+    color: var(--ink);
+    font-family: 'Zen Kaku Gothic New', 'Hiragino Kaku Gothic ProN', sans-serif;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 32px 20px 48px;
+  }
+  header { text-align: center; margin-bottom: 8px; }
+  h1 {
+    font-family: 'Shippori Mincho', 'Hiragino Mincho ProN', serif;
+    font-weight: 700; font-size: clamp(26px, 5vw, 38px);
+    letter-spacing: 0.12em;
+  }
+  h1 .accent { color: var(--indigo); }
+  .subtitle {
+    color: var(--ink-soft); font-size: 13px; letter-spacing: 0.22em;
+    margin-top: 6px;
+  }
+  .wheel-wrap {
+    position: relative; margin: 28px 0 10px;
+    width: min(340px, 82vw); aspect-ratio: 1;
+  }
+  .wheel-center {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; pointer-events: none;
+  }
+  .meter-label {
+    font-family: 'Shippori Mincho', serif; font-weight: 700;
+    font-size: clamp(40px, 9vw, 56px); line-height: 1; color: var(--ink);
+  }
+  .grouping-label {
+    margin-top: 6px; font-size: 15px; letter-spacing: 0.3em;
+    color: var(--indigo); font-weight: 500;
+  }
+  .bar-label { margin-top: 4px; font-size: 11px; color: var(--ink-soft); letter-spacing: 0.15em; }
+  .controls {
+    background: var(--paper); border: 1px solid var(--line);
+    border-radius: 14px; padding: 20px 22px;
+    width: min(480px, 92vw);
+    box-shadow: 0 4px 18px rgba(35,43,51,0.06);
+    display: flex; flex-direction: column; gap: 16px;
+  }
+  .row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  button {
+    font-family: inherit; font-size: 14px; font-weight: 500;
+    border: 1px solid var(--line); background: #fff; color: var(--ink);
+    border-radius: 8px; padding: 9px 16px; cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+  }
+  button:hover { border-color: var(--indigo); }
+  button:focus-visible { outline: 2px solid var(--indigo); outline-offset: 2px; }
+  #playBtn {
+    background: var(--indigo); color: #fff; border-color: var(--indigo);
+    font-size: 15px; padding: 11px 26px; letter-spacing: 0.08em; min-width: 118px;
+  }
+  #playBtn:hover { background: #2E3C86; }
+  .meter-btn.active {
+    background: var(--ink); color: #fff; border-color: var(--ink);
+  }
+  #regenBtn { border-color: var(--amber); color: #9A6516; }
+  #regenBtn:hover { background: #FBF1DF; }
+  .tempo-row label { font-size: 13px; color: var(--ink-soft); min-width: 5.5em; }
+  input[type="range"] { flex: 1; accent-color: var(--indigo); min-width: 120px; }
+  #bpmVal { font-variant-numeric: tabular-nums; font-weight: 700; min-width: 3em; text-align: right; }
+  .note {
+    max-width: 480px; margin-top: 22px; font-size: 13px; line-height: 1.9;
+    color: var(--ink-soft);
+  }
+  .note b { color: var(--ink); }
+  /* --- stage & clawd --- */
+  .stage { display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; }
+  .crab-wrap { width: min(210px, 56vw); }
+  #crab { width: 100%; height: auto; overflow: visible; }
+  #crabAll { transform-box: fill-box; transform-origin: center; transition: transform 0.09s ease-out; }
+  #armL { transform-box: fill-box; transform-origin: 100% 50%; transition: transform 0.1s ease-out; }
+  #armR { transform-box: fill-box; transform-origin: 0% 50%; transition: transform 0.1s ease-out; }
+  #legs rect { transform-box: fill-box; transform-origin: center; transition: transform 0.08s ease-out; }
+  #eyes rect { transform-box: fill-box; transform-origin: center; transition: transform 0.25s; }
+  /* --- polymeter --- */
+  #polyBtn.active, #deepBtn.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+  /* --- pomodoro --- */
+  .pomo {
+    border-top: 1px dashed var(--line); padding-top: 14px;
+    display: flex; flex-direction: column; gap: 10px; align-items: center;
+  }
+  .pomo-time {
+    font-family: 'Shippori Mincho', serif; font-size: 36px; font-weight: 700;
+    font-variant-numeric: tabular-nums; letter-spacing: 0.05em; line-height: 1;
+  }
+  .pomo-time.break { color: var(--indigo); }
+  #pomoStatus { font-size: 12px; color: var(--ink-soft); }
+  .pomo .cfg label { font-size: 13px; color: var(--ink-soft); display: flex; align-items: center; gap: 5px; }
+  .pomo input[type="number"] {
+    width: 4.4em; font: inherit; font-size: 14px; padding: 6px 8px;
+    border: 1px solid var(--line); border-radius: 8px; background: #fff;
+    color: var(--ink); text-align: right;
+  }
+  .pomo input[type="number"]:focus-visible { outline: 2px solid var(--indigo); outline-offset: 1px; }
+  button:disabled { opacity: 0.45; cursor: default; }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>変拍子<span class="accent">スケッチ</span></h1>
+  <div class="subtitle">ODD METER GENERATIVE SKETCH</div>
+</header>
+
+<div class="stage">
+<div class="crab-wrap" aria-hidden="true">
+  <svg id="crab" viewBox="0 0 150 110" xmlns="http://www.w3.org/2000/svg">
+    <g id="crabAll">
+      <g id="armL"><rect x="12" y="35" width="24" height="22" fill="#C67D5F"/></g>
+      <g id="armR"><rect x="114" y="35" width="24" height="22" fill="#C67D5F"/></g>
+      <rect x="32" y="8" width="86" height="66" fill="#C67D5F"/>
+      <g id="legs">
+        <rect class="legA" x="44" y="74" width="9" height="22" fill="#C67D5F"/>
+        <rect class="legB" x="60" y="74" width="9" height="22" fill="#C67D5F"/>
+        <rect class="legA" x="82" y="74" width="9" height="22" fill="#C67D5F"/>
+        <rect class="legB" x="98" y="74" width="9" height="22" fill="#C67D5F"/>
+      </g>
+      <g id="eyes">
+        <rect id="eyeL" x="50" y="22" width="13" height="13" fill="#141414"/>
+        <rect id="eyeR" x="88" y="22" width="13" height="13" fill="#141414"/>
+      </g>
+      <text id="zzz" x="118" y="14" font-size="13" fill="#8A96C9" opacity="0">z z z</text>
+    </g>
+  </svg>
+</div>
+<div class="wheel-wrap">
+  <svg id="wheel" viewBox="0 0 340 340" width="100%" height="100%" role="img" aria-label="拍子の円環図"></svg>
+  <div class="wheel-center">
+    <div class="meter-label" id="meterLabel">7/8</div>
+    <div class="grouping-label" id="groupingLabel">2 + 2 + 3</div>
+    <div class="bar-label" id="barLabel">BAR — / 4</div>
+  </div>
+</div>
+</div>
+
+<div class="controls">
+  <div class="row" style="justify-content:center;">
+    <button id="playBtn">▶ 再生</button>
+    <button id="regenBtn">✦ フレーズを変える</button>
+  </div>
+  <div class="row" style="justify-content:center;">
+    <button class="meter-btn" data-meter="5/8">5/8</button>
+    <button class="meter-btn active" data-meter="7/8">7/8</button>
+    <button class="meter-btn" data-meter="11/8">11/8</button>
+  </div>
+  <div class="row tempo-row">
+    <label for="bpm">テンポ</label>
+    <input type="range" id="bpm" min="96" max="176" value="138" step="1">
+    <span id="bpmVal">138</span>
+  </div>
+  <div class="row" style="justify-content:center;">
+    <button id="polyBtn">◎ ポリメーター：OFF</button>
+    <button id="deepBtn">〜 深みレイヤー：OFF</button>
+  </div>
+  <div class="pomo">
+    <div class="pomo-time" id="pomoTime">25:00</div>
+    <div class="row cfg" style="justify-content:center;">
+      <label>作業 <input type="number" id="workMin" min="1" max="120" value="25"> 分</label>
+      <label>休憩 <input type="number" id="breakMin" min="1" max="60" value="5"> 分</label>
+    </div>
+    <div class="row" style="justify-content:center;">
+      <button id="pomoBtn">🍅 作業開始</button>
+      <button id="pomoReset">リセット</button>
+    </div>
+    <span id="pomoStatus"></span>
+  </div>
+</div>
+
+<p class="note">
+  円の弧が拍のグループを表しています。<b>7/8 は「2 + 2 + 3」</b>——均等に割り切れない一拍が、
+  歩幅の違う散歩のような推進力を生みます。ドラムとベースはグループの頭を叩き、
+  メロディはシード値から生成されるので「フレーズを変える」を押すたび別の景色になります。
+  Dドリアンの上を回る 4 小節ループです。
+  <b>ポリメーター</b>をONにすると、4/8周期のベルが主拍子に対して少しずつ位相をずらしながら鳴り、
+  内側の点線軌道を回ります（7/8なら28拍で一巡して元に戻ります）。
+  🍅ボタンでポモドーロ（25分作業＋5分休憩）が始まり、作業中はBGMが流れ、
+  休憩中はカニも一緒にひと休みします。
+  <b>深みレイヤー</b>をONにすると、1オクターブ下のサブベース、タムとシェイカー、
+  そして2小節ごとに90年代コンソール風のブレスフルートが「ファー」と重なります。
+</p>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+<script>
+(() => {
+  const METERS = {
+    '5/8':  [3, 2],
+    '7/8':  [2, 2, 3],
+    '11/8': [3, 3, 3, 2],
+  };
+  // D dorian / 4小節コード進行: Dm7 - FM7 - Cadd9 - G6
+  const CHORDS = [
+    { root: 'D2', fifth: 'A2', tones: ['D4','F4','A4','C5'], pad: ['D3','A3','C4','F4'] },
+    { root: 'F2', fifth: 'C3', tones: ['F4','A4','C5','E5'], pad: ['F3','C4','E4','A4'] },
+    { root: 'C2', fifth: 'G2', tones: ['C4','E4','G4','D5'], pad: ['C3','G3','D4','E4'] },
+    { root: 'G2', fifth: 'D3', tones: ['G4','B4','D5','E5'], pad: ['G2','D3','B3','E4'] },
+  ];
+  const SCALE = ['D4','E4','F4','G4','A4','B4','C5','D5','E5','F5','G5','A5'];
+
+  let meter = '7/8';
+  let seed = 20260704;
+  let playing = false;
+  let stepCounter = 0;
+  let lastStepTime = 0;
+  let stepDur = 0.2;
+  let melody = [];
+  let loop = null;
+  let polyOn = false;
+  const POLY_LEN = 4; // 4/8サイクルを主拍子に重ねる
+  let deepOn = false; // 深みレイヤー（サブベース・タム・シェイカー・ブレスフルート）
+
+  const groupings = () => METERS[meter];
+  const barLen = () => groupings().reduce((a,b)=>a+b,0);
+  const groupStarts = () => {
+    const s = [0]; let acc = 0;
+    for (let i = 0; i < groupings().length - 1; i++) { acc += groupings()[i]; s.push(acc); }
+    return s;
+  };
+
+  // --- seeded RNG (mulberry32) ---
+  function mulberry32(a) {
+    return function() {
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      let t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+
+  // --- melody generation: 4小節ぶん ---
+  function generateMelody() {
+    const rng = mulberry32(seed);
+    const L = barLen();
+    const starts = groupStarts();
+    melody = [];
+    let idx = 4 + Math.floor(rng() * 4); // scale index random walk
+    for (let bar = 0; bar < 4; bar++) {
+      const barNotes = new Array(L).fill(null);
+      const chord = CHORDS[bar];
+      for (let step = 0; step < L; step++) {
+        const isStart = starts.includes(step);
+        const p = isStart ? 0.8 : 0.34;
+        if (rng() < p) {
+          if (isStart && rng() < 0.7) {
+            // コードトーンにスナップ
+            const tone = chord.tones[Math.floor(rng() * chord.tones.length)];
+            const ti = SCALE.indexOf(tone);
+            if (ti >= 0) idx = ti;
+          } else {
+            const move = [-2,-1,-1,1,1,2][Math.floor(rng()*6)];
+            idx = Math.max(0, Math.min(SCALE.length - 1, idx + move));
+          }
+          const durSteps = (isStart && rng() < 0.4) ? 2 : 1;
+          barNotes[step] = { note: SCALE[idx], durSteps };
+        }
+      }
+      melody.push(barNotes);
+    }
+  }
+
+  // --- audio graph ---
+  let synths = null;
+  function buildAudio() {
+    const limiter = new Tone.Limiter(-1).toDestination();
+    const reverb = new Tone.Reverb({ decay: 2.6, wet: 0.22 }).connect(limiter);
+    const dry = new Tone.Gain(1).connect(limiter);
+
+    const bass = new Tone.MonoSynth({
+      oscillator: { type: 'square' },
+      filter: { Q: 2, type: 'lowpass' },
+      envelope: { attack: 0.005, decay: 0.22, sustain: 0.25, release: 0.2 },
+      filterEnvelope: { attack: 0.005, decay: 0.15, sustain: 0.3, baseFrequency: 90, octaves: 2.6 },
+      volume: -9,
+    }).connect(dry);
+
+    const arpDelay = new Tone.PingPongDelay({ delayTime: 0.28, feedback: 0.22, wet: 0.18 }).connect(reverb);
+    const arp = new Tone.Synth({
+      oscillator: { type: 'triangle' },
+      envelope: { attack: 0.004, decay: 0.14, sustain: 0.05, release: 0.12 },
+      volume: -16,
+    }).connect(arpDelay);
+
+    const lead = new Tone.FMSynth({
+      harmonicity: 2, modulationIndex: 6,
+      oscillator: { type: 'sine' },
+      envelope: { attack: 0.01, decay: 0.25, sustain: 0.45, release: 0.4 },
+      modulation: { type: 'sine' },
+      modulationEnvelope: { attack: 0.02, decay: 0.3, sustain: 0.2, release: 0.3 },
+      volume: -11,
+    }).connect(reverb);
+
+    const pad = new Tone.PolySynth(Tone.Synth, {
+      oscillator: { type: 'sawtooth' },
+      envelope: { attack: 0.6, decay: 0.5, sustain: 0.5, release: 1.4 },
+      volume: -26,
+    });
+    const padFilter = new Tone.Filter(900, 'lowpass').connect(reverb);
+    pad.connect(padFilter);
+
+    const kick = new Tone.MembraneSynth({
+      pitchDecay: 0.04, octaves: 7,
+      envelope: { attack: 0.001, decay: 0.32, sustain: 0 },
+      volume: -6,
+    }).connect(dry);
+
+    const hatFilter = new Tone.Filter(8000, 'highpass').connect(dry);
+    const hat = new Tone.NoiseSynth({
+      noise: { type: 'white' },
+      envelope: { attack: 0.001, decay: 0.04, sustain: 0 },
+      volume: -22,
+    }).connect(hatFilter);
+
+    const snFilter = new Tone.Filter(1800, 'bandpass').connect(reverb);
+    const snare = new Tone.NoiseSynth({
+      noise: { type: 'pink' },
+      envelope: { attack: 0.001, decay: 0.16, sustain: 0 },
+      volume: -13,
+    }).connect(snFilter);
+
+    const bell = new Tone.Synth({
+      oscillator: { type: 'sine' },
+      envelope: { attack: 0.002, decay: 0.45, sustain: 0, release: 0.3 },
+      volume: -13,
+    }).connect(reverb);
+
+    // --- deep layer ---
+    const sub = new Tone.Synth({
+      oscillator: { type: 'sine' },
+      envelope: { attack: 0.02, decay: 0.3, sustain: 0.8, release: 0.5 },
+      volume: -11,
+    }).connect(dry);
+
+    const tom = new Tone.MembraneSynth({
+      pitchDecay: 0.08, octaves: 3,
+      envelope: { attack: 0.001, decay: 0.4, sustain: 0 },
+      volume: -13,
+    }).connect(reverb);
+
+    const shFilter = new Tone.Filter(6500, 'highpass').connect(dry);
+    const shaker = new Tone.NoiseSynth({
+      noise: { type: 'pink' },
+      envelope: { attack: 0.02, decay: 0.07, sustain: 0 },
+      volume: -24,
+    }).connect(shFilter);
+
+    // 90年代N64風のブレスフルート：三角波＋ビブラート＋コーラス＋ブレスノイズ
+    const fluteFx = new Tone.Chorus(2.4, 3.5, 0.5).start().connect(reverb);
+    const fluteVib = new Tone.Vibrato(4.6, 0.12).connect(fluteFx);
+    const flute = new Tone.Synth({
+      oscillator: { type: 'triangle' },
+      envelope: { attack: 0.5, decay: 0.4, sustain: 0.7, release: 1.6 },
+      volume: -15,
+    }).connect(fluteVib);
+
+    const brFilter = new Tone.Filter(2400, 'bandpass').connect(reverb);
+    const breath = new Tone.NoiseSynth({
+      noise: { type: 'pink' },
+      envelope: { attack: 0.4, decay: 0.8, sustain: 0, release: 0.5 },
+      volume: -30,
+    }).connect(brFilter);
+
+    synths = { bass, arp, lead, pad, kick, hat, snare, bell, sub, tom, shaker, flute, breath };
+  }
+
+  // --- sequencer ---
+  function buildLoop() {
+    if (loop) { loop.dispose(); loop = null; }
+    loop = new Tone.Loop((time) => {
+      const L = barLen();
+      const starts = groupStarts();
+      const total = stepCounter;
+      const bar = Math.floor(total / L) % 4;
+      const step = total % L;
+      const chord = CHORDS[bar];
+      const stepInBar = step;
+
+      // drums
+      if (starts.includes(stepInBar)) {
+        synths.kick.triggerAttackRelease('C1', '16n', time, stepInBar === 0 ? 1 : 0.7);
+      }
+      const lastGroupStart = starts[starts.length - 1];
+      if (stepInBar === lastGroupStart) {
+        synths.snare.triggerAttackRelease('16n', time, 0.8);
+      }
+      synths.hat.triggerAttackRelease('32n', time, starts.includes(stepInBar) ? 0.9 : 0.4);
+
+      // bass
+      if (starts.includes(stepInBar)) {
+        const gi = starts.indexOf(stepInBar);
+        const note = (gi === starts.length - 1 && bar % 2 === 1) ? chord.fifth : chord.root;
+        synths.bass.triggerAttackRelease(note, '8n', time, 0.9);
+      }
+
+      // pad (bar head)
+      if (stepInBar === 0) {
+        synths.pad.triggerAttackRelease(chord.pad, Tone.Time('8n').toSeconds() * L * 0.95, time, 0.6);
+      }
+
+      // arp
+      const arpNote = chord.tones[stepInBar % chord.tones.length];
+      synths.arp.triggerAttackRelease(arpNote, '16n', time, starts.includes(stepInBar) ? 0.8 : 0.5);
+
+      // melody
+      const m = melody[bar] && melody[bar][stepInBar];
+      if (m) {
+        const d = Tone.Time('8n').toSeconds() * m.durSteps * 0.9;
+        synths.lead.triggerAttackRelease(m.note, d, time, 0.85);
+      }
+
+      // polymeter: 4/8サイクルが主拍子に対して位相をずらしながら鳴る
+      if (polyOn && total % POLY_LEN === 0) {
+        const pn = chord.tones[Math.floor(total / POLY_LEN) % chord.tones.length];
+        synths.bell.triggerAttackRelease(Tone.Frequency(pn).transpose(12), '8n', time, 0.7);
+      }
+
+      // deep layer（オプション）
+      if (deepOn) {
+        const eighth = Tone.Time('8n').toSeconds();
+        // サブベース：小節頭で1オクターブ下を支える
+        if (stepInBar === 0) {
+          synths.sub.triggerAttackRelease(Tone.Frequency(chord.root).transpose(-12), eighth * L * 0.9, time, 0.8);
+        }
+        // タム：小節終わりのピックアップと後半のシンコペーション
+        if (stepInBar === L - 1) synths.tom.triggerAttackRelease('G2', '8n', time, 0.6);
+        if (stepInBar === lastGroupStart + 1) synths.tom.triggerAttackRelease('C3', '8n', time, 0.5);
+        // シェイカー：裏拍を埋める
+        if (!starts.includes(stepInBar)) synths.shaker.triggerAttackRelease('32n', time, 0.25);
+        // ブレスフルート：2小節ごとに「ファー」と swell
+        if (stepInBar === 0 && bar % 2 === 0) {
+          const fn = Tone.Frequency(chord.tones[2]).transpose(12);
+          synths.flute.triggerAttackRelease(fn, eighth * L * 1.6, time, 0.55);
+          synths.breath.triggerAttackRelease(eighth * L * 0.5, time, 0.5);
+        }
+      }
+
+      // visual sync
+      Tone.Draw.schedule(() => {
+        lastStepTime = performance.now();
+        stepDur = Tone.Time('8n').toSeconds();
+        currentStep = stepInBar;
+        currentBar = bar;
+        currentTotal = total;
+        crabDance(stepInBar, starts.includes(stepInBar), stepInBar === lastGroupStart);
+      }, time);
+
+      stepCounter++;
+    }, '8n');
+    loop.start(0);
+  }
+
+  // --- wheel drawing ---
+  const svg = document.getElementById('wheel');
+  const NS = 'http://www.w3.org/2000/svg';
+  let currentStep = 0, currentBar = 0, currentTotal = 0;
+  let arcEls = [], dotEls = [];
+
+  function polar(cx, cy, r, deg) {
+    const rad = (deg - 90) * Math.PI / 180;
+    return [cx + r * Math.cos(rad), cy + r * Math.sin(rad)];
+  }
+  function arcPath(cx, cy, r, a0, a1) {
+    const [x0, y0] = polar(cx, cy, r, a0);
+    const [x1, y1] = polar(cx, cy, r, a1);
+    const large = (a1 - a0) > 180 ? 1 : 0;
+    return `M ${x0} ${y0} A ${r} ${r} 0 ${large} 1 ${x1} ${y1}`;
+  }
+
+  function drawWheel() {
+    svg.innerHTML = '';
+    arcEls = []; dotEls = [];
+    const cx = 170, cy = 170, r = 138;
+    const L = barLen();
+    const g = groupings();
+    const gap = 4; // degrees between arcs
+    let angle = 0;
+    // group arcs
+    g.forEach((len, i) => {
+      const span = len / L * 360;
+      const p = document.createElementNS(NS, 'path');
+      p.setAttribute('d', arcPath(cx, cy, r, angle + gap/2, angle + span - gap/2));
+      p.setAttribute('fill', 'none');
+      p.setAttribute('stroke', i % 2 === 0 ? '#3A4A9F' : '#8A96C9');
+      p.setAttribute('stroke-width', '10');
+      p.setAttribute('stroke-linecap', 'round');
+      p.setAttribute('opacity', '0.45');
+      svg.appendChild(p);
+      arcEls.push({ el: p, start: angle, span });
+      angle += span;
+    });
+    // eighth-note dots
+    for (let s = 0; s < L; s++) {
+      const a = s / L * 360;
+      const [x, y] = polar(cx, cy, r - 24, a);
+      const c = document.createElementNS(NS, 'circle');
+      c.setAttribute('cx', x); c.setAttribute('cy', y);
+      const isStart = groupStarts().includes(s);
+      c.setAttribute('r', isStart ? 6 : 3.5);
+      c.setAttribute('fill', isStart ? '#232B33' : '#B8BFC6');
+      svg.appendChild(c);
+      dotEls.push(c);
+    }
+    // needle
+    const needle = document.createElementNS(NS, 'line');
+    needle.setAttribute('id', 'needle');
+    needle.setAttribute('x1', cx); needle.setAttribute('y1', cy);
+    needle.setAttribute('x2', cx); needle.setAttribute('y2', cy - r + 8);
+    needle.setAttribute('stroke', '#E8A13C');
+    needle.setAttribute('stroke-width', '3');
+    needle.setAttribute('stroke-linecap', 'round');
+    needle.setAttribute('opacity', '0');
+    svg.appendChild(needle);
+    // polymeter orbit（内側の点線円 + 周回ドット）
+    const orbit = document.createElementNS(NS, 'circle');
+    orbit.setAttribute('id', 'polyOrbit');
+    orbit.setAttribute('cx', cx); orbit.setAttribute('cy', cy);
+    orbit.setAttribute('r', 88);
+    orbit.setAttribute('fill', 'none');
+    orbit.setAttribute('stroke', '#C4CBC4');
+    orbit.setAttribute('stroke-dasharray', '3 6');
+    orbit.setAttribute('opacity', polyOn ? '1' : '0');
+    svg.appendChild(orbit);
+    const pdot = document.createElementNS(NS, 'circle');
+    pdot.setAttribute('id', 'polyDot');
+    pdot.setAttribute('cx', cx); pdot.setAttribute('cy', cy - 88);
+    pdot.setAttribute('r', 7);
+    pdot.setAttribute('fill', '#C67D5F');
+    pdot.setAttribute('opacity', polyOn ? '1' : '0');
+    svg.appendChild(pdot);
+  }
+
+  function animate() {
+    const needle = document.getElementById('needle');
+    if (playing && needle) {
+      const L = barLen();
+      const frac = Math.min(1, (performance.now() - lastStepTime) / (stepDur * 1000));
+      const pos = (currentStep + frac) / L;
+      needle.setAttribute('transform', `rotate(${pos * 360} 170 170)`);
+      needle.setAttribute('opacity', '1');
+      // highlight active group & dot
+      let acc = 0;
+      arcEls.forEach((a, i) => {
+        const glen = groupings()[i];
+        const active = currentStep >= acc && currentStep < acc + glen;
+        a.el.setAttribute('opacity', active ? '1' : '0.4');
+        a.el.setAttribute('stroke-width', active ? '13' : '10');
+        acc += glen;
+      });
+      dotEls.forEach((d, s) => {
+        const isStart = groupStarts().includes(s);
+        d.setAttribute('fill', s === currentStep ? '#E8A13C' : (isStart ? '#232B33' : '#B8BFC6'));
+      });
+      document.getElementById('barLabel').textContent = `BAR ${currentBar + 1} / 4`;
+      const pdot = document.getElementById('polyDot');
+      if (pdot && polyOn) {
+        const pfrac = ((currentTotal % POLY_LEN) + frac) / POLY_LEN;
+        pdot.setAttribute('transform', `rotate(${pfrac * 360} 170 170)`);
+      }
+    }
+    requestAnimationFrame(animate);
+  }
+
+  // --- UI ---
+  const playBtn = document.getElementById('playBtn');
+  const regenBtn = document.getElementById('regenBtn');
+  const bpmSlider = document.getElementById('bpm');
+  const bpmVal = document.getElementById('bpmVal');
+
+  async function ensureAudio() {
+    if (!synths) {
+      await Tone.start();
+      buildAudio();
+      Tone.Transport.bpm.value = Number(bpmSlider.value);
+      generateMelody();
+      buildLoop();
+    }
+  }
+  function startMusic() {
+    Tone.Transport.start('+0.05');
+    playing = true;
+    playBtn.textContent = '⏸ 停止';
+  }
+  function pauseMusic() {
+    Tone.Transport.pause();
+    playing = false;
+    playBtn.textContent = '▶ 再生';
+  }
+
+  playBtn.addEventListener('click', async () => {
+    await ensureAudio();
+    if (!playing) startMusic(); else pauseMusic();
+  });
+
+  regenBtn.addEventListener('click', () => {
+    seed = (seed * 1664525 + 1013904223) >>> 0;
+    generateMelody();
+  });
+
+  bpmSlider.addEventListener('input', () => {
+    bpmVal.textContent = bpmSlider.value;
+    if (Tone.Transport) Tone.Transport.bpm.value = Number(bpmSlider.value);
+  });
+
+  document.querySelectorAll('.meter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.meter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      meter = btn.dataset.meter;
+      document.getElementById('meterLabel').textContent = meter;
+      document.getElementById('groupingLabel').textContent = METERS[meter].join(' + ');
+      stepCounter = 0; currentStep = 0; currentBar = 0;
+      drawWheel();
+      generateMelody();
+      if (synths) buildLoop();
+    });
+  });
+
+  // --- clawd dance ---
+  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const crabAll = document.getElementById('crabAll');
+  const armL = document.getElementById('armL');
+  const armR = document.getElementById('armR');
+  const eyeL = document.getElementById('eyeL');
+  const eyeR = document.getElementById('eyeR');
+  const zzz = document.getElementById('zzz');
+  let crabSleeping = false;
+  let sideFlip = 1;
+
+  function crabDance(step, isStart, isSnare) {
+    if (prefersReduced || crabSleeping) return;
+    if (isSnare) sideFlip *= -1; // スネアで横ステップの向きを反転
+    if (isStart) {
+      crabAll.style.transform = `translate(${sideFlip * 4}px, -7px)`;
+      armL.style.transform = 'rotate(16deg)';
+      armR.style.transform = 'rotate(-16deg)';
+    } else {
+      crabAll.style.transform = `translate(${sideFlip * 2}px, 0)`;
+      armL.style.transform = '';
+      armR.style.transform = '';
+    }
+    const up = step % 2 === 0 ? '.legA' : '.legB';
+    const down = step % 2 === 0 ? '.legB' : '.legA';
+    document.querySelectorAll(up).forEach(l => l.style.transform = 'translateY(-4px)');
+    document.querySelectorAll(down).forEach(l => l.style.transform = '');
+  }
+
+  function setCrabSleep(on) {
+    crabSleeping = on;
+    eyeL.style.transform = on ? 'scaleY(0.18)' : '';
+    eyeR.style.transform = on ? 'scaleY(0.18)' : '';
+    zzz.setAttribute('opacity', on ? '1' : '0');
+    crabAll.style.transform = '';
+    armL.style.transform = '';
+    armR.style.transform = '';
+    document.querySelectorAll('#legs rect').forEach(l => l.style.transform = '');
+  }
+
+  // --- polymeter toggle ---
+  const polyBtn = document.getElementById('polyBtn');
+  polyBtn.addEventListener('click', () => {
+    polyOn = !polyOn;
+    polyBtn.textContent = polyOn ? '◎ ポリメーター：ON（4/8）' : '◎ ポリメーター：OFF';
+    polyBtn.classList.toggle('active', polyOn);
+    const o = document.getElementById('polyOrbit');
+    const d = document.getElementById('polyDot');
+    if (o) o.setAttribute('opacity', polyOn ? '1' : '0');
+    if (d) d.setAttribute('opacity', polyOn ? '1' : '0');
+  });
+
+  // --- deep layer toggle ---
+  const deepBtn = document.getElementById('deepBtn');
+  deepBtn.addEventListener('click', () => {
+    deepOn = !deepOn;
+    deepBtn.textContent = deepOn ? '〜 深みレイヤー：ON' : '〜 深みレイヤー：OFF';
+    deepBtn.classList.toggle('active', deepOn);
+  });
+
+  // --- pomodoro ---
+  const pomoTime = document.getElementById('pomoTime');
+  const pomoBtn = document.getElementById('pomoBtn');
+  const pomoReset = document.getElementById('pomoReset');
+  const pomoStatus = document.getElementById('pomoStatus');
+  const workMinInput = document.getElementById('workMin');
+  const breakMinInput = document.getElementById('breakMin');
+  const workSec = () => Math.min(120, Math.max(1, Math.floor(Number(workMinInput.value) || 25))) * 60;
+  const breakSec = () => Math.min(60, Math.max(1, Math.floor(Number(breakMinInput.value) || 5))) * 60;
+  let pomoState = 'idle', pomoEndAt = 0, pomoTick = null, sessions = 0;
+
+  workMinInput.addEventListener('input', () => {
+    if (pomoState === 'idle') pomoTime.textContent = fmt(workSec());
+  });
+
+  function fmt(s) {
+    const m = Math.floor(s / 60), r = s % 60;
+    return `${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`;
+  }
+
+  function chime(kind) {
+    if (!synths) return;
+    const now = Tone.now();
+    if (kind === 'break') {
+      synths.bell.triggerAttackRelease('E6', '8n', now, 0.9);
+      synths.bell.triggerAttackRelease('A5', '4n', now + 0.2, 0.9);
+    } else {
+      synths.bell.triggerAttackRelease('A5', '8n', now, 0.9);
+      synths.bell.triggerAttackRelease('E6', '4n', now + 0.2, 0.9);
+    }
+  }
+
+  function updatePomo() {
+    const remain = Math.max(0, Math.ceil((pomoEndAt - Date.now()) / 1000));
+    pomoTime.textContent = fmt(remain);
+    if (remain > 0) return;
+    if (pomoState === 'work') {
+      sessions++;
+      pomoState = 'break';
+      pomoEndAt = Date.now() + breakSec() * 1000;
+      pomoTime.classList.add('break');
+      pomoStatus.textContent = `休憩中 ☕（${sessions}セッション完了）`;
+      chime('break');
+      if (playing) pauseMusic();
+      setCrabSleep(true);
+    } else if (pomoState === 'break') {
+      pomoState = 'work';
+      pomoEndAt = Date.now() + workSec() * 1000;
+      pomoTime.classList.remove('break');
+      pomoStatus.textContent = '作業中 🍅';
+      chime('work');
+      setCrabSleep(false);
+      if (!playing) startMusic();
+    }
+  }
+
+  pomoBtn.addEventListener('click', async () => {
+    if (pomoState !== 'idle') return;
+    await ensureAudio();
+    pomoState = 'work';
+    pomoEndAt = Date.now() + workSec() * 1000;
+    pomoStatus.textContent = '作業中 🍅';
+    pomoBtn.disabled = true;
+    setCrabSleep(false);
+    if (!playing) startMusic();
+    pomoTick = setInterval(updatePomo, 300);
+  });
+
+  pomoReset.addEventListener('click', () => {
+    clearInterval(pomoTick);
+    pomoTick = null;
+    pomoState = 'idle';
+    pomoBtn.disabled = false;
+    pomoTime.textContent = fmt(workSec());
+    pomoTime.classList.remove('break');
+    pomoStatus.textContent = '';
+    setCrabSleep(false);
+  });
+
+  drawWheel();
+  requestAnimationFrame(animate);
+})();
+</script>
+</body>
+</html>
