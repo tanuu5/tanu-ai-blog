@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>CLAWD BEAT! — カニと踊るリズムゲーム</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --sand: #F6E8D3;
+    --sand-deep: #EAD6B8;
+    --sea: #2E7D82;
+    --sea-light: #9CCFCB;
+    --terracotta: #C67D5F;
+    --ink: #3A2E28;
+    --gold: #E8C13C;
+    --coral: #E06A5A;
+    --paper: #FFF8EE;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: 'DotGothic16', 'MS Gothic', monospace;
+    background:
+      repeating-linear-gradient(0deg, var(--sand) 0 6px, var(--sand-deep) 6px 7px),
+      var(--sand);
+    color: var(--ink);
+    overflow: hidden;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  #stage {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 10px 12px;
+  }
+
+  /* ===== header ===== */
+  #hud {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding: 4px 2px 8px;
+    flex: 0 0 auto;
+  }
+  #hud .score-label { font-size: 11px; color: var(--sea); letter-spacing: 2px; }
+  #hud #score { font-size: 26px; line-height: 1; }
+  #hud #comboBox { text-align: right; }
+  #hud #combo { font-size: 26px; line-height: 1; color: var(--terracotta); }
+  #hud #combo.hot { color: var(--coral); }
+
+  #progressWrap {
+    width: 100%; height: 8px;
+    background: var(--paper);
+    border: 2px solid var(--ink);
+    margin-bottom: 8px;
+    flex: 0 0 auto;
+  }
+  #progress { height: 100%; width: 0%; background: var(--sea); }
+
+  /* ===== main field ===== */
+  #field {
+    flex: 1 1 auto;
+    width: 100%;
+    display: flex;
+    gap: 14px;
+    min-height: 0;
+  }
+
+  /* Clawd side stage */
+  #clawdStage {
+    flex: 0 0 190px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    position: relative;
+    padding-bottom: 18px;
+  }
+  #clawdStage .beach {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 54px;
+    background:
+      repeating-linear-gradient(90deg, var(--sea-light) 0 10px, transparent 10px 20px),
+      linear-gradient(var(--sand-deep), var(--sand-deep));
+    border: 2px solid var(--ink);
+  }
+  .crab-wrap { width: 170px; position: relative; z-index: 2; margin-bottom: 22px; }
+  #crab { width: 100%; height: auto; overflow: visible; }
+  #crabAll { transform-box: fill-box; transform-origin: center; transition: transform 0.09s ease-out; }
+  #armL { transform-box: fill-box; transform-origin: 100% 50%; transition: transform 0.1s ease-out; }
+  #armR { transform-box: fill-box; transform-origin: 0% 50%; transition: transform 0.1s ease-out; }
+  #legs rect { transform-box: fill-box; transform-origin: center; transition: transform 0.08s ease-out; }
+  #eyes rect { transform-box: fill-box; transform-origin: center; transition: transform 0.25s; }
+  .sparkle { position: absolute; width: 10px; height: 10px; background: var(--gold); opacity: 0; z-index: 3; }
+  @keyframes sparklePop {
+    0% { opacity: 0; transform: translateY(0) scale(0.4); }
+    30% { opacity: 1; transform: translateY(-14px) scale(1); }
+    100% { opacity: 0; transform: translateY(-30px) scale(0.6); }
+  }
+  #speech {
+    position: absolute;
+    bottom: calc(100% + 4px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--paper);
+    border: 2px solid var(--ink);
+    padding: 4px 10px;
+    font-size: 13px;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.2s;
+    z-index: 4;
+  }
+  #speech.show { opacity: 1; }
+
+  /* lanes */
+  #laneArea {
+    flex: 1 1 auto;
+    position: relative;
+    background: var(--paper);
+    border: 3px solid var(--ink);
+    box-shadow: 6px 6px 0 rgba(58,46,40,0.25);
+    overflow: hidden;
+    display: flex;
+    min-width: 0;
+  }
+  .lane {
+    flex: 1;
+    position: relative;
+    border-right: 2px dashed rgba(58,46,40,0.18);
+    cursor: pointer;
+  }
+  .lane:last-child { border-right: none; }
+  .lane .flash {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(232,193,60,0.35), transparent 60%);
+    opacity: 0;
+  }
+  .lane .flash.on { opacity: 1; transition: none; }
+  .lane .flash.off { opacity: 0; transition: opacity 0.25s; }
+
+  #judgeLine {
+    position: absolute;
+    left: 0; right: 0;
+    height: 0;
+    border-top: 3px solid var(--ink);
+    z-index: 2;
+    pointer-events: none;
+  }
+  .receptor {
+    position: absolute;
+    width: 44px; height: 16px;
+    border: 2px solid var(--ink);
+    background: var(--sand);
+    transform: translate(-50%, -50%);
+    z-index: 3;
+    pointer-events: none;
+  }
+  .receptor.hit { background: var(--gold); }
+
+  .note {
+    position: absolute;
+    width: 44px; height: 18px;
+    margin-left: -22px;
+    border: 2px solid var(--ink);
+    z-index: 1;
+    will-change: transform;
+  }
+  .note.l0 { background: var(--terracotta); }
+  .note.l1 { background: var(--sea); }
+  .note.l2 { background: var(--gold); }
+  .note.l3 { background: var(--coral); }
+
+  .judgePop {
+    position: absolute;
+    transform: translate(-50%, -100%);
+    font-size: 15px;
+    z-index: 5;
+    pointer-events: none;
+    animation: popUp 0.45s ease-out forwards;
+  }
+  @keyframes popUp {
+    0% { opacity: 1; margin-top: 0; }
+    100% { opacity: 0; margin-top: -26px; }
+  }
+  .jp-perfect { color: var(--gold); text-shadow: 1px 1px 0 var(--ink); }
+  .jp-good { color: var(--sea); }
+  .jp-miss { color: #A0938A; }
+
+  .keyHint {
+    position: absolute;
+    bottom: 6px;
+    transform: translateX(-50%);
+    font-size: 12px;
+    color: rgba(58,46,40,0.5);
+    z-index: 3;
+    pointer-events: none;
+  }
+
+  /* ===== overlays ===== */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(246,232,211,0.94);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 14px;
+    z-index: 20;
+    text-align: center;
+    padding: 20px;
+  }
+  .overlay.hidden { display: none; }
+  h1 {
+    font-size: clamp(34px, 8vw, 56px);
+    color: var(--terracotta);
+    text-shadow: 3px 3px 0 var(--ink);
+    letter-spacing: 2px;
+  }
+  .subtitle { font-size: 15px; color: var(--sea); }
+  .howto {
+    background: var(--paper);
+    border: 2px solid var(--ink);
+    padding: 10px 16px;
+    font-size: 13px;
+    line-height: 2;
+    max-width: 420px;
+  }
+  .btn {
+    font-family: inherit;
+    font-size: 20px;
+    padding: 12px 36px;
+    background: var(--sea);
+    color: var(--paper);
+    border: 3px solid var(--ink);
+    box-shadow: 4px 4px 0 var(--ink);
+    cursor: pointer;
+  }
+  .btn:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--ink); }
+  .btn-alt { background: var(--terracotta); }
+  .btnRow { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+  #songList {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: min(360px, 88vw);
+  }
+  .songCard {
+    font-family: inherit;
+    text-align: left;
+    background: var(--paper);
+    border: 3px solid var(--ink);
+    box-shadow: 4px 4px 0 var(--ink);
+    padding: 10px 16px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .songCard:hover { background: #FFFDF7; }
+  .songCard:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--ink); }
+  .songCard .songName { font-size: 19px; color: var(--terracotta); }
+  .songCard .songMeta { font-size: 13px; color: var(--sea); }
+  .songCard .stars { color: var(--gold); text-shadow: 1px 1px 0 var(--ink); }
+  .songCard .songDesc { font-size: 12px; color: rgba(58,46,40,0.6); }
+  #rank { font-size: 72px; color: var(--gold); text-shadow: 3px 3px 0 var(--ink); line-height: 1; }
+  .resultRow { font-size: 16px; line-height: 1.9; }
+  .resultRow b { color: var(--terracotta); }
+
+  /* narrow screens: Clawd above lanes */
+  @media (max-width: 560px) {
+    #field { flex-direction: column; gap: 8px; }
+    #clawdStage { flex: 0 0 120px; padding-bottom: 8px; }
+    .crab-wrap { width: 104px; margin-bottom: 14px; }
+    #clawdStage .beach { height: 34px; }
+    .keyHint { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <div id="hud">
+    <div>
+      <div class="score-label">SCORE</div>
+      <div id="score">0</div>
+    </div>
+    <div id="comboBox">
+      <div class="score-label">COMBO</div>
+      <div id="combo">0</div>
+    </div>
+  </div>
+  <div id="progressWrap"><div id="progress"></div></div>
+
+  <div id="field">
+    <div id="clawdStage">
+      <div class="crab-wrap">
+        <div id="speech">いくぞ〜!</div>
+        <svg id="crab" viewBox="0 0 150 110" xmlns="http://www.w3.org/2000/svg">
+          <g id="crabAll">
+            <g id="armL"><rect x="12" y="35" width="24" height="22" fill="#C67D5F"/></g>
+            <g id="armR"><rect x="114" y="35" width="24" height="22" fill="#C67D5F"/></g>
+            <rect x="32" y="8" width="86" height="66" fill="#C67D5F"/>
+            <g id="legs">
+              <rect class="legA" x="44" y="74" width="9" height="22" fill="#C67D5F"/>
+              <rect class="legB" x="60" y="74" width="9" height="22" fill="#C67D5F"/>
+              <rect class="legA" x="82" y="74" width="9" height="22" fill="#C67D5F"/>
+              <rect class="legB" x="98" y="74" width="9" height="22" fill="#C67D5F"/>
+            </g>
+            <g id="eyes">
+              <rect id="eyeL" x="50" y="22" width="13" height="13" fill="#141414"/>
+              <rect id="eyeR" x="88" y="22" width="13" height="13" fill="#141414"/>
+            </g>
+            <text id="zzz" x="118" y="14" font-size="13" fill="#8A96C9" opacity="0">z z z</text>
+          </g>
+        </svg>
+      </div>
+      <div class="beach"></div>
+    </div>
+
+    <div id="laneArea">
+      <div class="lane" data-lane="0"><div class="flash"></div></div>
+      <div class="lane" data-lane="1"><div class="flash"></div></div>
+      <div class="lane" data-lane="2"><div class="flash"></div></div>
+      <div class="lane" data-lane="3"><div class="flash"></div></div>
+      <div id="judgeLine"></div>
+    </div>
+  </div>
+</div>
+
+<!-- title -->
+<div class="overlay" id="titleOverlay">
+  <h1>CLAWD BEAT!</h1>
+  <div class="subtitle">カニと踊るリズムゲーム</div>
+  <div class="howto">
+    ノーツがラインに重なった瞬間にタイミングよく!<br>
+    キーボード: <b>D / F / J / K</b> / タッチ: レーンをタップ<br>
+    Clawdはビートに合わせて踊ります
+  </div>
+  <div id="songList">
+    <button class="songCard" data-song="0">
+      <span class="songName">バブルダイブ</span>
+      <span class="songMeta">100 BPM ・ <span class="stars">★☆☆</span></span>
+      <span class="songDesc">ゆったり泳ぐ入門譜面</span>
+    </button>
+    <button class="songCard" data-song="1">
+      <span class="songName">サンセットビーチ</span>
+      <span class="songMeta">124 BPM ・ <span class="stars">★★☆</span></span>
+      <span class="songDesc">夕暮れの浜辺でノリノリ</span>
+    </button>
+    <button class="songCard" data-song="2">
+      <span class="songName">クラブ・ラッシュ</span>
+      <span class="songMeta">150 BPM ・ <span class="stars">★★★</span></span>
+      <span class="songDesc">横歩き全開の高速譜面</span>
+    </button>
+  </div>
+</div>
+
+<!-- result -->
+<div class="overlay hidden" id="resultOverlay">
+  <div id="rank">S</div>
+  <div class="resultRow">
+    SCORE <b id="rScore">0</b><br>
+    MAX COMBO <b id="rCombo">0</b><br>
+    PERFECT <b id="rPerfect">0</b> / GOOD <b id="rGood">0</b> / MISS <b id="rMiss">0</b>
+  </div>
+  <div class="btnRow">
+    <button class="btn" id="retryBtn">もう一回</button>
+    <button class="btn btn-alt" id="selectBtn">曲をえらぶ</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ======================================================
+     音楽・チャート定義（チップチューン / 124 BPM）
+     ====================================================== */
+  var BPM, BEAT, EIGHTH, SIXTEENTH, BARS; // setSongで曲ごとに確定
+  var APPROACH = 1.5;           // ノーツ落下時間(秒)
+  var PERFECT_WIN = 0.085;
+  var GOOD_WIN = 0.17;
+
+  /* ---- 曲データ ----
+     melody: 8小節メロディ(8分刻み, MIDI番号, 0=休符)。本編で3回ループ。
+     chart: 1小節=16文字。数字=レーン, X=0&3同時, Y=1&2同時, .=なし */
+
+  // 曲: サンセットビーチ (124 BPM / ふつう)
+  var MELODY_SUNSET = [
+    [64,0,67,0,69,0,67,0],
+    [62,0,67,0,71,0,67,64],
+    [69,0,67,0,64,0,62,0],
+    [65,0,64,0,62,0,60,0],
+    [64,0,67,0,69,0,72,0],
+    [71,0,67,0,62,0,67,69],
+    [69,67,64,0,62,64,65,67],
+    [64,0,62,0,60,0,0,0]
+  ];
+  // コードのルート(1小節ごと): C2 G2 A2 F2
+  var ROOTS_SUNSET = [36, 43, 45, 41];
+
+  var CHART_SUNSET = [
+    // intro (2小節)
+    '................',
+    '................',
+    // A: やさしめ (8小節)
+    '0...1...2...3...',
+    '3...2...1...0...',
+    '0...2...1...3...',
+    '1...3...2...0...',
+    '0...1...2...3...',
+    '2...0...3...1...',
+    '1...2...0...3...',
+    '3...0...........',
+    // B: 8分が混ざる (8小節)
+    '0...1...2...3.2.',
+    '1...0...3...2.3.',
+    '0.1.2...3.2.1...',
+    '3...1.0.2...0...',
+    '2...3...1...0.1.',
+    '0...2.3.1...3...',
+    '1.0.2...3.1.2...',
+    'X...............',
+    // C: にぎやか (8小節)
+    '0.1.2.3.2.1.0...',
+    'X...1.2.Y...2.1.',
+    '0.2.1.3.0.2.1.3.',
+    '3...Y...0...X...',
+    '1.2.3.2.1.0.1...',
+    'Y...0.3.X...3.0.',
+    '0.1.2.3.3.2.1.0.',
+    '2...1...........',
+    // outro (2小節)
+    'X...............',
+    '................'
+  ];
+
+  // 曲: バブルダイブ (100 BPM / やさしい, Aマイナー, トライアングルリード)
+  var MELODY_BUBBLE = [
+    [69,0,0,72,0,71,69,0],
+    [67,0,69,0,65,0,64,0],
+    [64,0,67,0,72,0,71,0],
+    [67,0,64,0,62,0,0,0],
+    [69,0,72,0,76,0,74,72],
+    [72,0,69,0,67,0,65,64],
+    [64,65,67,0,69,0,72,0],
+    [71,0,67,0,64,0,0,0]
+  ];
+  var CHART_BUBBLE = [
+    '................',
+    '................',
+    '0.......2.......',
+    '1.......3.......',
+    '0.......1.......',
+    '2.......3.......',
+    '0...2...........',
+    '3...1...........',
+    '0.......2.......',
+    '1...............',
+    '0...1...2...3...',
+    '3...2...1...0...',
+    '0...2...0...2...',
+    '1...3...1...3...',
+    '0...1...2...3...',
+    '3...1...2...0...',
+    '0...2...1...3...',
+    '2...............',
+    '0...1...2...3.2.',
+    '1...0...3...2...',
+    '0...2...1...3.1.',
+    '2...3...0...1...',
+    '0...1...2...3...',
+    '3...2...1...0.1.',
+    '0...2...3...1...',
+    'X...............',
+    'X...............',
+    '................'
+  ];
+
+  // 曲: クラブ・ラッシュ (150 BPM / むずかしい, Eマイナー)
+  var MELODY_RUSH = [
+    [76,0,74,76,79,0,76,74],
+    [72,0,71,72,76,0,72,71],
+    [67,71,74,0,71,0,67,0],
+    [69,0,66,0,62,0,66,69],
+    [76,0,79,0,83,0,79,76],
+    [72,76,79,0,76,0,72,0],
+    [74,0,71,0,67,0,71,74],
+    [76,0,74,0,71,0,69,66]
+  ];
+  var CHART_RUSH = [
+    '................',
+    '................',
+    '0.1.2.3.0.1.2.3.',
+    '3.2.1.0.3.2.1.0.',
+    '0.2.1.3.2.0.3.1.',
+    'X...2.1.Y...1.2.',
+    '0.1.2.3.2.1.0.1.',
+    '2.3.0.1.0.3.2.3.',
+    '0.1.0.2.0.3.0.1.',
+    'X.......Y.......',
+    '0.1.2.3.3.2.1.0.',
+    '0123....2.1.0...',
+    '3210....1.2.3...',
+    'X...Y...X...Y...',
+    '0.2.0.2.1.3.1.3.',
+    '0123....3210....',
+    '0.1.2.3.X.......',
+    'Y...2.1.0.......',
+    '0.1.2.3.0.1.2.3.',
+    'X.1.2.Y.X.2.1.Y.',
+    '0123....0123....',
+    '3.1.0.2.3.1.0.2.',
+    'X...3210Y...0123',
+    '0.3.1.2.0.3.1.2.',
+    '01..23..X...Y...',
+    '2...1...0.......',
+    'X...............',
+    '................'
+  ];
+
+  var SONGS = [
+    { name: 'バブルダイブ', bpm: 100, stars: '★☆☆',
+      leadWave: 'triangle', hat: 2,
+      bassPat: [0, 0, 0, 12, 0, 0, 12, 0],
+      finalChord: [45, 64, 69, 72],
+      melody: MELODY_BUBBLE, roots: [33, 29, 36, 31], chart: CHART_BUBBLE },
+    { name: 'サンセットビーチ', bpm: 124, stars: '★★☆',
+      leadWave: 'square', hat: 2,
+      bassPat: [0, 0, 12, 0, 0, 12, 0, 12],
+      finalChord: [48, 64, 67, 72],
+      melody: MELODY_SUNSET, roots: ROOTS_SUNSET, chart: CHART_SUNSET },
+    { name: 'クラブ・ラッシュ', bpm: 150, stars: '★★★',
+      leadWave: 'square', hat: 1,
+      bassPat: [0, 12, 0, 12, 0, 12, 0, 12],
+      finalChord: [40, 64, 67, 71],
+      melody: MELODY_RUSH, roots: [40, 36, 43, 38], chart: CHART_RUSH }
+  ];
+
+  var MELODY, ROOTS, CHART_BARS, curSong = null;
+  function setSong(i) {
+    curSong = SONGS[i];
+    BPM = curSong.bpm;
+    BEAT = 60 / BPM;
+    EIGHTH = BEAT / 2;
+    SIXTEENTH = BEAT / 4;
+    BARS = curSong.chart.length;
+    totalTicks = BARS * 16;
+    MELODY = curSong.melody;
+    ROOTS = curSong.roots;
+    CHART_BARS = curSong.chart;
+  }
+
+  function midiToFreq(m) { return 440 * Math.pow(2, (m - 69) / 12); }
+
+  /* ======================================================
+     Web Audio セットアップ（Safari対応: webkit fallback）
+     ====================================================== */
+  var AC = window.AudioContext || window.webkitAudioContext;
+  var ctx = null;
+  var masterGain, musicGain, sfxGain, noiseBuffer;
+
+  function initAudio() {
+    if (ctx) return;
+    ctx = new AC();
+    masterGain = ctx.createGain(); masterGain.gain.value = 0.55;
+    masterGain.connect(ctx.destination);
+    musicGain = ctx.createGain(); musicGain.gain.value = 0.8;
+    musicGain.connect(masterGain);
+    sfxGain = ctx.createGain(); sfxGain.gain.value = 0.9;
+    sfxGain.connect(masterGain);
+    // ノイズバッファ(ハイハット/スネア用)
+    var len = Math.floor(ctx.sampleRate * 0.3);
+    noiseBuffer = ctx.createBuffer(1, len, ctx.sampleRate);
+    var data = noiseBuffer.getChannelData(0);
+    for (var i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+  }
+
+  function playOsc(type, freq, t, dur, vol, dest) {
+    var o = ctx.createOscillator();
+    var g = ctx.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(freq, t);
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    o.connect(g); g.connect(dest);
+    o.start(t); o.stop(t + dur + 0.02);
+  }
+
+  function playKick(t) {
+    var o = ctx.createOscillator();
+    var g = ctx.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(150, t);
+    o.frequency.exponentialRampToValueAtTime(45, t + 0.1);
+    g.gain.setValueAtTime(0.9, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.13);
+    o.connect(g); g.connect(musicGain);
+    o.start(t); o.stop(t + 0.15);
+  }
+
+  function playNoise(t, dur, vol, hp) {
+    var src = ctx.createBufferSource();
+    src.buffer = noiseBuffer;
+    var f = ctx.createBiquadFilter();
+    f.type = 'highpass';
+    f.frequency.value = hp;
+    var g = ctx.createGain();
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    src.connect(f); f.connect(g); g.connect(musicGain);
+    src.start(t); src.stop(t + dur + 0.02);
+  }
+
+  // 効果音
+  function sfxHit(perfect) {
+    var t = ctx.currentTime;
+    playOsc('square', perfect ? 1318.5 : 880, t, 0.07, perfect ? 0.22 : 0.16, sfxGain);
+    if (perfect) playOsc('square', 1975.5, t + 0.03, 0.06, 0.12, sfxGain);
+  }
+  function sfxMiss() {
+    var t = ctx.currentTime;
+    playOsc('triangle', 130, t, 0.14, 0.25, sfxGain);
+  }
+
+  /* ======================================================
+     シーケンサ（lookahead方式）
+     ====================================================== */
+  var songStart = 0;
+  var totalTicks = 0;              // setSongで確定(16分単位)
+  var schedTick = 0;
+  var schedTimer = null;
+
+  function scheduleTick(tick, t) {
+    var bar = Math.floor(tick / 16);
+    var s16 = tick % 16;
+    var inIntro = bar < 2;
+    var inOutro = bar >= BARS - 2;
+    var mainBar = bar - 2;
+
+    // ドラム
+    if (s16 % curSong.hat === 0) playNoise(t, 0.03, inIntro ? 0.10 : 0.07, 7000); // hihat
+    if (!inIntro) {
+      if (s16 === 0 || s16 === 8) playKick(t);
+      if (s16 === 4 || s16 === 12) playNoise(t, 0.09, 0.20, 1800);      // snare
+    } else if (s16 === 0 || s16 === 8) {
+      playKick(t); // イントロはキックとハットだけでカウントイン
+    }
+
+    if (inIntro) return;
+
+    if (inOutro) {
+      // 最後の1発: Cメジャーをジャーン
+      if (bar === BARS - 2 && s16 === 0) {
+        for (var fc = 0; fc < curSong.finalChord.length; fc++) {
+          playOsc(curSong.leadWave, midiToFreq(curSong.finalChord[fc]), t, 1.6, fc === 0 ? 0.20 : 0.13, musicGain);
+        }
+      }
+      return;
+    }
+
+    var loopBar = mainBar % 8;
+    // ベース(8分): ルート弾み
+    if (s16 % 2 === 0) {
+      var e8 = s16 / 2;
+      var root = ROOTS[Math.floor(loopBar % 4)];
+      if (loopBar >= 4) root = ROOTS[loopBar - 4]; // 後半4小節も同進行
+      playOsc('square', midiToFreq(root + curSong.bassPat[e8]), t, EIGHTH * 0.85, 0.16, musicGain);
+    }
+    // リード(8分)
+    if (s16 % 2 === 0) {
+      var idx = s16 / 2;
+      var m = MELODY[loopBar][idx];
+      if (m > 0) playOsc(curSong.leadWave, midiToFreq(m), t, EIGHTH * 0.9, 0.13, musicGain);
+    }
+  }
+
+  function schedulerLoop() {
+    var horizon = ctx.currentTime + 0.12;
+    while (schedTick < totalTicks) {
+      var t = songStart + schedTick * SIXTEENTH;
+      if (t > horizon) break;
+      scheduleTick(schedTick, t);
+      // ビート頭でClawdのダンスを予約
+      if (schedTick % 4 === 0) {
+        var beatNo = schedTick / 4;
+        var delay = Math.max(0, (t - ctx.currentTime) * 1000);
+        (function (b) {
+          setTimeout(function () { if (playing) crabDance(b, b % 2 === 0, b % 4 === 2); }, delay);
+        })(beatNo);
+      }
+      schedTick++;
+    }
+  }
+
+  /* ======================================================
+     Clawd アニメーション（skillのcrabDanceを流用）
+     ====================================================== */
+  var prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var crabAll = document.getElementById('crabAll');
+  var armL = document.getElementById('armL');
+  var armR = document.getElementById('armR');
+  var eyeL = document.getElementById('eyeL');
+  var eyeR = document.getElementById('eyeR');
+  var sideFlip = 1;
+  var crabStunned = false;
+
+  function crabDance(step, isStart, isSnare) {
+    if (prefersReduced || crabStunned) return;
+    if (isSnare) sideFlip *= -1;
+    if (isStart) {
+      crabAll.style.transform = 'translate(' + (sideFlip * 4) + 'px, -7px)';
+      armL.style.transform = 'rotate(16deg)';   // 左腕: プラスで先端が上がる
+      armR.style.transform = 'rotate(-16deg)';  // 右腕: マイナスで先端が上がる
+    } else {
+      crabAll.style.transform = 'translate(' + (sideFlip * 2) + 'px, 0)';
+      armL.style.transform = '';
+      armR.style.transform = '';
+    }
+    var up = step % 2 === 0 ? '.legA' : '.legB';
+    var down = step % 2 === 0 ? '.legB' : '.legA';
+    var i, els;
+    els = document.querySelectorAll(up);
+    for (i = 0; i < els.length; i++) els[i].style.transform = 'translateY(-4px)';
+    els = document.querySelectorAll(down);
+    for (i = 0; i < els.length; i++) els[i].style.transform = '';
+  }
+
+  function crabBanzai() { // 両腕を上げる: armL +32 / armR -32
+    crabAll.style.transform = 'translateY(-10px)';
+    armL.style.transform = 'rotate(32deg)';
+    armR.style.transform = 'rotate(-32deg)';
+  }
+
+  function crabOuch() { // ミス時: 一瞬しょんぼり
+    crabStunned = true;
+    crabAll.style.transform = 'translateY(5px)';
+    armL.style.transform = 'rotate(-14deg)';
+    armR.style.transform = 'rotate(14deg)';
+    eyeL.style.transform = 'scaleY(0.3)';
+    eyeR.style.transform = 'scaleY(0.3)';
+    setTimeout(function () {
+      eyeL.style.transform = '';
+      eyeR.style.transform = '';
+      crabStunned = false;
+    }, 260);
+  }
+
+  var speechEl = document.getElementById('speech');
+  var speechTimer = null;
+  function crabSay(text, ms) {
+    speechEl.textContent = text;
+    speechEl.classList.add('show');
+    if (speechTimer) clearTimeout(speechTimer);
+    speechTimer = setTimeout(function () { speechEl.classList.remove('show'); }, ms || 1200);
+  }
+
+  var crabWrap = document.querySelector('.crab-wrap');
+  function burstSparkles(count) {
+    var n = count || 3;
+    for (var i = 0; i < n; i++) {
+      var s = document.createElement('div');
+      s.className = 'sparkle';
+      s.style.left = (5 + Math.random() * 90) + '%';
+      s.style.top = (-14 + Math.random() * 26) + 'px'; // Clawdの頭上あたり
+      s.style.animation = 'sparklePop 0.8s ease-out ' + (i * 0.09) + 's forwards';
+      crabWrap.appendChild(s);
+      (function (el) { setTimeout(function () { el.parentNode && el.parentNode.removeChild(el); }, 1600); })(s);
+    }
+  }
+
+  /* ======================================================
+     ノーツ / ゲーム状態
+     ====================================================== */
+  var laneArea = document.getElementById('laneArea');
+  var lanes = laneArea.querySelectorAll('.lane');
+  var judgeLine = document.getElementById('judgeLine');
+  var scoreEl = document.getElementById('score');
+  var comboEl = document.getElementById('combo');
+  var progressEl = document.getElementById('progress');
+
+  var notes = [];       // {hitTime, lane, el, judged}
+  var playing = false;
+  var rafId = null;
+  var score = 0, combo = 0, maxCombo = 0;
+  var cntPerfect = 0, cntGood = 0, cntMiss = 0;
+  var receptors = [];
+  var judgeY = 0;
+
+  function buildChart() {
+    notes = [];
+    for (var bar = 0; bar < CHART_BARS.length; bar++) {
+      var pat = CHART_BARS[bar];
+      for (var s = 0; s < 16; s++) {
+        var c = pat.charAt(s);
+        if (c !== 'X' && c !== 'Y' && !(c >= '0' && c <= '3')) continue;
+        var hitTime = songStart + (bar * 16 + s) * SIXTEENTH;
+        if (c === 'X') { addNote(hitTime, 0); addNote(hitTime, 3); }
+        else if (c === 'Y') { addNote(hitTime, 1); addNote(hitTime, 2); }
+        else addNote(hitTime, parseInt(c, 10));
+      }
+    }
+    notes.sort(function (a, b) { return a.hitTime - b.hitTime; });
+  }
+  function addNote(hitTime, lane) {
+    notes.push({ hitTime: hitTime, lane: lane, el: null, judged: false });
+  }
+
+  function layoutField() {
+    var h = laneArea.clientHeight;
+    judgeY = h - 64;
+    judgeLine.style.top = judgeY + 'px';
+    // レセプタとキーヒント
+    var keys = ['D', 'F', 'J', 'K'];
+    for (var i = 0; i < 4; i++) {
+      var cx = laneCenterX(i);
+      if (!receptors[i]) {
+        var r = document.createElement('div');
+        r.className = 'receptor';
+        laneArea.appendChild(r);
+        receptors[i] = r;
+        var kh = document.createElement('div');
+        kh.className = 'keyHint';
+        kh.textContent = keys[i];
+        kh.style.left = cx + 'px';
+        laneArea.appendChild(kh);
+      }
+      receptors[i].style.left = cx + 'px';
+      receptors[i].style.top = judgeY + 'px';
+    }
+  }
+  function laneCenterX(lane) {
+    var w = laneArea.clientWidth;
+    return w / 4 * lane + w / 8;
+  }
+
+  function frame() {
+    if (!playing) return;
+    var now = ctx.currentTime;
+
+    // 進行バー
+    var prog = (now - songStart) / (totalTicks * SIXTEENTH);
+    progressEl.style.width = Math.min(100, Math.max(0, prog * 100)) + '%';
+
+    for (var i = 0; i < notes.length; i++) {
+      var n = notes[i];
+      if (n.judged) continue;
+      var dt = n.hitTime - now;
+      if (dt > APPROACH) break; // ソート済みなので以降も未来
+      if (!n.el) {
+        var el = document.createElement('div');
+        el.className = 'note l' + n.lane;
+        el.style.left = laneCenterX(n.lane) + 'px';
+        laneArea.appendChild(el);
+        n.el = el;
+      }
+      if (dt < -GOOD_WIN) { // 通り過ぎ → ミス
+        judge(n, 'miss');
+        continue;
+      }
+      var y = judgeY * (1 - dt / APPROACH);
+      n.el.style.transform = 'translateY(' + (y - 9) + 'px)';
+    }
+
+    // 曲終了
+    if (now > songStart + totalTicks * SIXTEENTH + 0.8) {
+      endGame();
+      return;
+    }
+    rafId = requestAnimationFrame(frame);
+  }
+
+  function judge(n, type) {
+    n.judged = true;
+    if (n.el) {
+      n.el.parentNode && n.el.parentNode.removeChild(n.el);
+      n.el = null;
+    }
+    var popText, popClass;
+    if (type === 'perfect') {
+      score += 100; combo++;
+      cntPerfect++; popText = 'PERFECT!'; popClass = 'jp-perfect';
+      sfxHit(true);
+    } else if (type === 'good') {
+      score += 60; combo++;
+      cntGood++; popText = 'GOOD'; popClass = 'jp-good';
+      sfxHit(false);
+    } else {
+      combo = 0;
+      cntMiss++; popText = 'MISS'; popClass = 'jp-miss';
+      sfxMiss();
+      crabOuch();
+    }
+    if (combo > maxCombo) maxCombo = combo;
+    if (combo > 0 && combo % 10 === 0) {
+      burstSparkles(combo % 50 === 0 ? 7 : 3);
+      if (combo % 50 === 0) crabSay(combo + 'コンボ!!', 1300);
+      else if (combo % 20 === 0) crabSay(combo + 'コンボ!', 1000);
+    }
+    scoreEl.textContent = score;
+    comboEl.textContent = combo;
+    comboEl.className = combo >= 20 ? 'hot' : '';
+
+    var pop = document.createElement('div');
+    pop.className = 'judgePop ' + popClass;
+    pop.textContent = popText;
+    pop.style.left = laneCenterX(n.lane) + 'px';
+    pop.style.top = (judgeY - 8) + 'px';
+    laneArea.appendChild(pop);
+    setTimeout(function () { pop.parentNode && pop.parentNode.removeChild(pop); }, 500);
+  }
+
+  function pressLane(lane) {
+    if (!playing) return;
+    flashLane(lane);
+    var now = ctx.currentTime;
+    var best = null, bestAbs = 999;
+    for (var i = 0; i < notes.length; i++) {
+      var n = notes[i];
+      if (n.judged || n.lane !== lane) continue;
+      var d = n.hitTime - now;
+      if (d > GOOD_WIN) break;
+      var a = Math.abs(d);
+      if (a <= GOOD_WIN && a < bestAbs) { best = n; bestAbs = a; }
+    }
+    if (best) judge(best, bestAbs <= PERFECT_WIN ? 'perfect' : 'good');
+  }
+
+  function flashLane(lane) {
+    var f = lanes[lane].querySelector('.flash');
+    f.classList.remove('off');
+    f.classList.add('on');
+    receptors[lane] && receptors[lane].classList.add('hit');
+    setTimeout(function () {
+      f.classList.remove('on');
+      f.classList.add('off');
+      receptors[lane] && receptors[lane].classList.remove('hit');
+    }, 90);
+  }
+
+  /* ======================================================
+     入力
+     ====================================================== */
+  var KEYMAP = { KeyD: 0, KeyF: 1, KeyJ: 2, KeyK: 3 };
+  document.addEventListener('keydown', function (e) {
+    if (e.repeat) return;
+    var lane = KEYMAP[e.code];
+    if (lane !== undefined) {
+      e.preventDefault();
+      pressLane(lane);
+    }
+  });
+  for (var li = 0; li < lanes.length; li++) {
+    (function (lane) {
+      lanes[lane].addEventListener('touchstart', function (e) {
+        e.preventDefault();
+        pressLane(lane);
+      }, { passive: false });
+      lanes[lane].addEventListener('mousedown', function (e) {
+        e.preventDefault();
+        pressLane(lane);
+      });
+    })(li);
+  }
+
+  /* ======================================================
+     開始 / 終了
+     ====================================================== */
+  var titleOverlay = document.getElementById('titleOverlay');
+  var resultOverlay = document.getElementById('resultOverlay');
+
+  function startGame() {
+    initAudio();
+    var begin = function () {
+      // リセット
+      var olds = laneArea.querySelectorAll('.note, .judgePop');
+      for (var i = 0; i < olds.length; i++) olds[i].parentNode.removeChild(olds[i]);
+      score = 0; combo = 0; maxCombo = 0;
+      cntPerfect = 0; cntGood = 0; cntMiss = 0;
+      scoreEl.textContent = '0';
+      comboEl.textContent = '0';
+      comboEl.className = '';
+      progressEl.style.width = '0%';
+
+      titleOverlay.classList.add('hidden');
+      resultOverlay.classList.add('hidden');
+      layoutField();
+
+      songStart = ctx.currentTime + 0.35;
+      schedTick = 0;
+      buildChart();
+      playing = true;
+      if (schedTimer) clearInterval(schedTimer);
+      schedTimer = setInterval(schedulerLoop, 25);
+      schedulerLoop();
+      crabSay('いくぞ〜!', 1400);
+      rafId = requestAnimationFrame(frame);
+    };
+    if (ctx.state === 'suspended') {
+      ctx.resume().then(begin);
+    } else {
+      begin();
+    }
+  }
+
+  function endGame() {
+    playing = false;
+    if (schedTimer) { clearInterval(schedTimer); schedTimer = null; }
+    if (rafId) cancelAnimationFrame(rafId);
+
+    var total = cntPerfect + cntGood + cntMiss;
+    var acc = total > 0 ? (cntPerfect + cntGood * 0.6) / total : 0;
+    var rank = acc >= 0.95 ? 'S' : acc >= 0.85 ? 'A' : acc >= 0.7 ? 'B' : 'C';
+    document.getElementById('rank').textContent = rank;
+    document.getElementById('rScore').textContent = score;
+    document.getElementById('rCombo').textContent = maxCombo;
+    document.getElementById('rPerfect').textContent = cntPerfect;
+    document.getElementById('rGood').textContent = cntGood;
+    document.getElementById('rMiss').textContent = cntMiss;
+    resultOverlay.classList.remove('hidden');
+
+    crabBanzai();
+    burstSparkles(7);
+    crabSay(rank === 'S' ? 'さいこう!' : rank === 'C' ? 'つぎがんばろ' : 'やったね!', 2500);
+  }
+
+  var songCards = document.querySelectorAll('.songCard');
+  for (var ci = 0; ci < songCards.length; ci++) {
+    (function (btn) {
+      btn.addEventListener('click', function () {
+        setSong(parseInt(btn.getAttribute('data-song'), 10));
+        startGame();
+      });
+    })(songCards[ci]);
+  }
+  document.getElementById('retryBtn').addEventListener('click', function () {
+    if (curSong) startGame();
+  });
+  document.getElementById('selectBtn').addEventListener('click', function () {
+    resultOverlay.classList.add('hidden');
+    titleOverlay.classList.remove('hidden');
+  });
+
+  window.addEventListener('resize', function () { if (playing) layoutField(); });
+})();
+</script>
+</body>
+</html>
