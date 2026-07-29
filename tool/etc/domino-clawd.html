@@ -1,0 +1,1428 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ドミノ工房 ― Clawdといっしょに</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F5EEE2;
+    --paper-2:#EDE3D2;
+    --ink:#2E2A26;
+    --ink-soft:#6B6259;
+    --terra:#C67D5F;
+    --terra-deep:#A45B3E;
+    --teal:#1F6F6B;
+    --teal-deep:#14514E;
+    --mustard:#DFA02B;
+    --rule:#DCCDB6;
+    --shadow:rgba(46,42,38,.14);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(900px 520px at 78% -8%, #FFF6E6 0%, rgba(255,246,230,0) 62%),
+      repeating-linear-gradient(0deg, transparent 0 33px, rgba(220,205,182,.45) 33px 34px),
+      var(--paper);
+    color:var(--ink);
+    font-family:"Zen Maru Gothic","Hiragino Maru Gothic ProN","UD デジタル 教科書体 NK-R","Yu Gothic Medium","Yu Gothic",sans-serif;
+    font-weight:500;
+    -webkit-font-smoothing:antialiased;
+    padding:22px 16px 60px;
+  }
+  .shell{max-width:1000px;margin:0 auto;}
+
+  header.top{display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;margin-bottom:14px;}
+  h1{
+    font-size:clamp(20px,3.4vw,30px);font-weight:900;margin:0;letter-spacing:.04em;
+    color:var(--ink);
+  }
+  h1 .dot{color:var(--terra-deep);}
+  .subtitle{font-size:12.5px;color:var(--ink-soft);letter-spacing:.06em;padding-bottom:4px;}
+
+  .stagebar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px;}
+  .chip{
+    border:1.5px solid var(--rule);background:#FBF6EC;color:var(--ink-soft);
+    font-family:inherit;font-weight:700;font-size:12.5px;letter-spacing:.04em;
+    padding:5px 11px;border-radius:999px;cursor:pointer;transition:.15s;
+  }
+  .chip:hover{border-color:var(--terra);color:var(--terra-deep);}
+  .chip.on{background:var(--ink);border-color:var(--ink);color:var(--paper);}
+  .chip.done::after{content:" ✓";color:var(--mustard);}
+  .chip.on.done::after{color:var(--mustard);}
+
+  .stagewrap{position:relative;width:100%;aspect-ratio:1000/540;
+    border:2px solid var(--ink);border-radius:14px;overflow:hidden;
+    background:#FBF5EA;box-shadow:0 10px 0 -4px var(--shadow), 0 18px 40px -22px rgba(46,42,38,.5);
+    touch-action:manipulation;}
+  canvas{display:block;width:100%;height:100%;}
+  .stagewrap.build{cursor:crosshair;}
+
+  /* ---- Clawd ---- */
+  #crabWrap{position:absolute;left:0;top:0;width:9.4%;
+    transform:translate(-50%,-100%) translateY(12.7%);
+    transition:left .4s linear, top .4s linear;pointer-events:none;z-index:5;}
+  #crab{width:100%;height:auto;overflow:visible;display:block;
+    filter:drop-shadow(0 3px 0 rgba(46,42,38,.16));}
+  #crabAll{transform-box:fill-box;transform-origin:center;transition:transform .12s ease-out;}
+  #armL{transform-box:fill-box;transform-origin:100% 50%;transition:transform .13s ease-out;}
+  #armR{transform-box:fill-box;transform-origin:0% 50%;transition:transform .13s ease-out;}
+  #legs rect{transform-box:fill-box;transform-origin:center;transition:transform .08s ease-out;}
+  #eyes rect{transform-box:fill-box;transform-origin:center;transition:transform .18s;}
+  #crabWrap.walk #legs .legA{animation:stepA .26s linear infinite;}
+  #crabWrap.walk #legs .legB{animation:stepB .26s linear infinite;}
+  @keyframes stepA{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+  @keyframes stepB{0%,100%{transform:translateY(-5px)}50%{transform:translateY(0)}}
+
+  #bubble{position:absolute;left:0;top:0;z-index:6;pointer-events:none;
+    transform:translate(-50%,-100%);
+    background:#FFFDF7;border:2px solid var(--ink);border-radius:11px;
+    padding:5px 11px;font-size:14px;font-weight:700;white-space:nowrap;
+    opacity:0;transition:opacity .16s, left .4s linear, top .4s linear;}
+  #bubble::after{content:"";position:absolute;left:50%;bottom:-8px;margin-left:-6px;
+    width:0;height:0;border:6px solid transparent;border-top-color:var(--ink);}
+  #bubble.show{opacity:1;}
+  #bubble.oops{background:#FFF0DE;border-color:var(--terra-deep);color:var(--terra-deep);}
+  #bubble.oops::after{border-top-color:var(--terra-deep);}
+
+  /* ---- overlay panels ---- */
+  .panel{position:absolute;top:0;left:0;right:0;bottom:0;inset:0;
+    display:flex;align-items:center;justify-content:center;
+    background:rgba(245,238,226,.86);z-index:9;opacity:0;pointer-events:none;transition:opacity .25s;}
+  .panel.show{opacity:1;pointer-events:auto;}
+  .panel .card{background:#FFFDF7;border:2.5px solid var(--ink);border-radius:16px;
+    padding:22px 30px;text-align:center;box-shadow:0 8px 0 -2px var(--shadow);}
+  .panel h2{margin:0 0 6px;font-size:26px;font-weight:900;letter-spacing:.08em;color:var(--teal-deep);}
+  .panel p{margin:0 0 14px;font-size:13.5px;color:var(--ink-soft);}
+
+  /* ---- controls ---- */
+  .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px;}
+  .btn{font-family:inherit;font-weight:700;font-size:14px;letter-spacing:.06em;
+    border:2px solid var(--ink);border-radius:10px;padding:9px 18px;cursor:pointer;
+    background:#FFFDF7;color:var(--ink);box-shadow:0 4px 0 -1px var(--shadow);transition:.12s;}
+  .btn:hover{transform:translateY(-1px);}
+  .btn:active{transform:translateY(2px);box-shadow:none;}
+  .btn:disabled{opacity:.34;cursor:not-allowed;transform:none;}
+  .btn.go{background:var(--teal);border-color:var(--teal-deep);color:#FFFDF7;}
+  .btn.ghost{border-color:var(--rule);color:var(--ink-soft);box-shadow:none;}
+
+  .picker{display:flex;gap:8px;align-items:center;margin-left:auto;}
+  .pick{display:flex;align-items:center;gap:7px;font-family:inherit;font-weight:700;font-size:13px;
+    border:2px solid var(--rule);background:#FFFDF7;border-radius:10px;padding:6px 12px 6px 8px;cursor:pointer;transition:.12s;}
+  .pick .sw{width:11px;height:26px;border-radius:2px;border:1.5px solid rgba(46,42,38,.5);}
+  .pick.tall .sw{height:34px;width:12px;}
+  .pick.on{border-color:var(--ink);background:#F3EADA;}
+  .pick:disabled{opacity:.3;cursor:not-allowed;}
+  .pick .n{font-variant-numeric:tabular-nums;color:var(--ink-soft);}
+
+  .hint{margin-top:12px;font-size:13px;line-height:1.85;color:var(--ink-soft);
+    border-left:3px solid var(--terra);padding-left:12px;}
+  .hint b{color:var(--ink);}
+  footer{margin-top:26px;font-size:11.5px;color:#9C9186;line-height:1.9;}
+  .snd{margin-left:6px;}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <header class="top">
+    <h1>ドミノ工房<span class="dot">.</span></h1>
+    <div class="subtitle">Clawd が並べます。たまに、倒します。</div>
+  </header>
+
+  <div class="stagebar" id="stagebar"></div>
+
+  <div class="stagewrap build" id="stagewrap">
+    <canvas id="cv"></canvas>
+
+    <div id="crabWrap">
+      <svg id="crab" viewBox="0 0 150 110" xmlns="http://www.w3.org/2000/svg">
+        <g id="crabAll">
+          <g id="armL"><rect x="12" y="35" width="24" height="22" fill="#C67D5F"/></g>
+          <g id="armR"><rect x="114" y="35" width="24" height="22" fill="#C67D5F"/></g>
+          <rect x="32" y="8" width="86" height="66" fill="#C67D5F"/>
+          <g id="legs">
+            <rect class="legA" x="44" y="74" width="9" height="22" fill="#C67D5F"/>
+            <rect class="legB" x="60" y="74" width="9" height="22" fill="#C67D5F"/>
+            <rect class="legA" x="82" y="74" width="9" height="22" fill="#C67D5F"/>
+            <rect class="legB" x="98" y="74" width="9" height="22" fill="#C67D5F"/>
+          </g>
+          <g id="eyes">
+            <rect id="eyeL" x="50" y="22" width="13" height="13" fill="#141414"/>
+            <rect id="eyeR" x="88" y="22" width="13" height="13" fill="#141414"/>
+          </g>
+          <text id="zzz" x="118" y="14" font-size="13" fill="#8A96C9" opacity="0">z z z</text>
+        </g>
+      </svg>
+    </div>
+
+    <div id="bubble"></div>
+
+    <div class="panel" id="panel">
+      <div class="card">
+        <h2 id="panelTitle">クリア！</h2>
+        <p id="panelText"></p>
+        <button class="btn go" id="panelBtn">つぎへ</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="btn go" id="btnRun">倒す</button>
+    <button class="btn" id="btnReset">やりなおし</button>
+    <button class="btn ghost snd" id="btnSnd">♪ 音 ON</button>
+    <div class="picker" id="picker"></div>
+  </div>
+
+  <div class="hint" id="hint"></div>
+
+  <footer>
+    キャラクターの Clawd は Anthropic の Claude Code 公式マスコットで、ここに登場するのはそれを SVG で描き起こした二次創作版です。<br>
+    物理は簡易剛体（接地角を軸にした回転＋位置ベース衝突解決）。実物のドミノとは挙動が異なります。
+  </footer>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============================================================
+   世界の定数
+   ============================================================ */
+var W = 1000, H = 540;
+// ドミノの高さ76pxを実物約4.8cmとみなすと 1px ≒ 0.63mm。
+// 実スケールの重力 9.8m/s^2 はこの世界では約 15000px/s^2 になる。
+var G = 12000;                // 重力 px/s^2
+var DT = 1/480;               // 物理ステップ
+var DEG = Math.PI/180;
+var MAXTH = 90*DEG;
+
+var SIZES = {
+  std : {w:15, h:76,  label:"標準",  fill:"#C67D5F", edge:"#8F513A"},
+  tall: {w:17, h:118, label:"ノッポ", fill:"#2E6E6A", edge:"#183E3C"}
+};
+
+var GOAL_W = 30, GOAL_H = 48;
+
+/* ============================================================
+   ステージ
+   ground: [x0, x1, y] の板。y はその板の天面。
+   ============================================================ */
+var STAGES = [
+  {
+    name:"1. まっすぐ倒す",
+    tip:"床をクリックするとClawdがドミノを置きます。<b>点線より手前</b>に次を置けば届きます。並べ終わったら「倒す」。",
+    ground:[[20,980,470]],
+    start:{x:80,size:"std"},
+    goal:{x:915},
+    budget:{std:14, tall:0}
+  },
+  {
+    name:"2. 段を下りる",
+    tip:"段差の下りは、<b>崖のふちギリギリ</b>に置くのがコツ。点線の弧が下のドミノの<b>頭あたりを通る</b>ように調整してください。",
+    ground:[[20,500,444],[500,980,472]],
+    start:{x:80,size:"std"},
+    goal:{x:915},
+    budget:{std:14, tall:0}
+  },
+  {
+    name:"3. 谷をわたる",
+    tip:"床のない谷は置けません。<b>ノッポのドミノ</b>なら、向こう岸のノッポまで届きます。谷の両側に1本ずつ。",
+    ground:[[20,575,470],[655,980,470]],
+    start:{x:80,size:"std"},
+    goal:{x:915},
+    budget:{std:12, tall:3}
+  },
+  {
+    name:"4. 段をのぼる",
+    tip:"のぼりは、倒れた先端が上の段のドミノの<b>足もと</b>に当たる必要があります。段の手前に<b>ノッポ</b>を置くと、ぐっと届きやすくなります。",
+    ground:[[20,500,495],[500,980,467]],
+    start:{x:80,size:"std"},
+    goal:{x:915},
+    budget:{std:15, tall:2}
+  },
+  {
+    name:"5. 総仕上げ",
+    tip:"下って、わたって、まっすぐ。段差は<b>ふちギリギリ</b>、谷は<b>ノッポ2本</b>。ここまでの復習です。",
+    ground:[[20,430,444],[430,600,472],[680,980,472]],
+    start:{x:80,size:"std"},
+    goal:{x:915},
+    budget:{std:14, tall:4}
+  }
+];
+
+/* ============================================================
+   状態
+   ============================================================ */
+var cv = document.getElementById("cv");
+var ctx = cv.getContext("2d");
+var stagewrap = document.getElementById("stagewrap");
+var crabWrap = document.getElementById("crabWrap");
+var crabAll = document.getElementById("crabAll");
+var armL = document.getElementById("armL");
+var armR = document.getElementById("armR");
+var eyeL = document.getElementById("eyeL");
+var eyeR = document.getElementById("eyeR");
+var bubble = document.getElementById("bubble");
+var panel = document.getElementById("panel");
+var panelTitle = document.getElementById("panelTitle");
+var panelText = document.getElementById("panelText");
+var panelBtn = document.getElementById("panelBtn");
+var btnRun = document.getElementById("btnRun");
+var btnReset = document.getElementById("btnReset");
+var btnSnd = document.getElementById("btnSnd");
+var picker = document.getElementById("picker");
+var hintEl = document.getElementById("hint");
+var stagebar = document.getElementById("stagebar");
+
+var stageIdx = 0;
+var stage = null;
+var dominoes = [];
+var statics = [];      // {x0,y0,x1,y1,kind}
+var goalBox = null;
+var goalHit = false;
+var budget = {std:0, tall:0};
+var pick = "std";
+var phase = "build";   // build | run | clear
+var cleared = [false,false,false,false,false];
+var hoverX = null, hoverOk = false, hoverY = 0;
+var runSnapshot = null;
+var sparks = [];
+var soundOn = true;
+var runStartedAt = 0;
+
+/* Clawd */
+var clawd = { x:60, y:470, busy:false, queue:[], home:60 };
+var accidentPending = null;
+
+/* ============================================================
+   幾何・SAT
+   ============================================================ */
+function dominoCorners(d){
+  var s = d.th >= 0 ? 1 : -1;
+  var px = d.x + s*d.w/2, py = d.gy;
+  var c = Math.cos(d.th), sn = Math.sin(d.th);
+  var xa = s > 0 ? -d.w : 0, xb = xa + d.w;
+  var pts = [[xa,0],[xb,0],[xb,-d.h],[xa,-d.h]];
+  var out = [];
+  for(var i=0;i<4;i++){
+    var lx = pts[i][0], ly = pts[i][1];
+    out.push([px + c*lx - sn*ly, py + sn*lx + c*ly]);
+  }
+  return out;
+}
+function rectCorners(r){
+  return [[r.x0,r.y0],[r.x1,r.y0],[r.x1,r.y1],[r.x0,r.y1]];
+}
+function project(poly, ax, ay){
+  var mn = Infinity, mx = -Infinity;
+  for(var i=0;i<poly.length;i++){
+    var p = poly[i][0]*ax + poly[i][1]*ay;
+    if(p<mn) mn=p; if(p>mx) mx=p;
+  }
+  return [mn,mx];
+}
+function polyOverlap(A, B, eps){
+  eps = eps || 0.6;
+  var polys = [A,B];
+  for(var k=0;k<2;k++){
+    var P = polys[k];
+    for(var i=0;i<P.length;i++){
+      var j = (i+1)%P.length;
+      var ex = P[j][0]-P[i][0], ey = P[j][1]-P[i][1];
+      var len = Math.sqrt(ex*ex+ey*ey); if(len < 1e-9) continue;
+      var ax = -ey/len, ay = ex/len;
+      var a = project(A,ax,ay), b = project(B,ax,ay);
+      if(a[1] - b[0] < eps || b[1] - a[0] < eps) return false;
+    }
+  }
+  return true;
+}
+function aabbOf(poly){
+  var x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;
+  for(var i=0;i<poly.length;i++){
+    var p=poly[i];
+    if(p[0]<x0)x0=p[0]; if(p[0]>x1)x1=p[0];
+    if(p[1]<y0)y0=p[1]; if(p[1]>y1)y1=p[1];
+  }
+  return [x0,y0,x1,y1];
+}
+function aabbHit(a,b){
+  return !(a[2] < b[0] || b[2] < a[0] || a[3] < b[1] || b[3] < a[1]);
+}
+
+/* ============================================================
+   ステージ構築
+   ============================================================ */
+function groundSegAt(x){
+  for(var i=0;i<stage.ground.length;i++){
+    var g = stage.ground[i];
+    if(x >= g[0] && x <= g[1]) return g;
+  }
+  return null;
+}
+function groundYAt(x){
+  var g = groundSegAt(x);
+  return g ? g[2] : null;
+}
+function canPlaceAt(x, sz){
+  var a = groundSegAt(x - sz.w/2 - 1);
+  var b = groundSegAt(x + sz.w/2 + 1);
+  if(!a || !b || a !== b) return null;
+  return a[2];
+}
+
+function buildStatics(){
+  statics = [];
+  for(var i=0;i<stage.ground.length;i++){
+    var g = stage.ground[i];
+    statics.push({x0:g[0], y0:g[2], x1:g[1], y1:H+80, kind:"ground"});
+  }
+}
+
+function makeDomino(x, gy, key, isStart){
+  var sz = SIZES[key];
+  return {
+    x:x, gy:gy, w:sz.w, h:sz.h, key:key,
+    th:0, om:0, prevTh:0, rest:true, start:!!isStart,
+    hue:(Math.random()*10-5), knocked:false, id:(Math.random()+"").slice(2)
+  };
+}
+
+function loadStage(i){
+  stageIdx = i;
+  stage = STAGES[i];
+  dominoes = [];
+  buildStatics();
+  var sy = groundYAt(stage.start.x);
+  var s = makeDomino(stage.start.x, sy, stage.start.size, true);
+  dominoes.push(s);
+  var gy = groundYAt(stage.goal.x);
+  goalBox = {x0:stage.goal.x-GOAL_W/2, y0:gy-GOAL_H, x1:stage.goal.x+GOAL_W/2, y1:gy, kind:"goal"};
+  goalHit = false;
+  budget = {std:stage.budget.std, tall:stage.budget.tall};
+  pick = budget.std > 0 ? "std" : "tall";
+  phase = "build";
+  sparks = [];
+  runSnapshot = null;
+  clawd.queue = [];
+  clawd.busy = false;
+  clawd.home = 55;
+  clawd.x = 55;
+  clawd.y = groundYAt(55) || 470;
+  accidentPending = null;
+  setBubble("", false);
+  setPose("idle");
+  moveCrab(clawd.x, clawd.y, 0);
+  panel.classList.remove("show");
+  hintEl.innerHTML = stage.tip;
+  syncUI();
+}
+
+/* ============================================================
+   物理
+   ============================================================ */
+function integrate(d, dt){
+  if(d.rest) return;
+  var s = d.th >= 0 ? 1 : -1;
+  if(d.th === 0) s = d.om >= 0 ? 1 : -1;
+  var c = Math.cos(d.th), sn = Math.sin(d.th);
+  // 重心の、支点まわりの水平オフセット
+  var cx = -s*d.w/2*c + d.h/2*sn;
+  var alpha = 3*G*cx/(d.w*d.w + d.h*d.h);
+  d.om += alpha*dt;
+  d.om *= (1 - 0.55*dt);
+  if(d.om > 60) d.om = 60; else if(d.om < -60) d.om = -60;
+  var nth = d.th + d.om*dt;
+
+  // 直立をまたいだら跳ね返り（ぐらついて戻る）
+  if(d.th !== 0 && nth*d.th < 0){
+    nth = 0; d.om *= -0.28;
+    if(Math.abs(d.om) < 1.3){ d.om = 0; d.rest = true; }
+  }
+  if(nth > MAXTH){ nth = MAXTH; d.om = 0; d.rest = true; }
+  if(nth < -MAXTH){ nth = -MAXTH; d.om = 0; d.rest = true; }
+  d.th = nth;
+  if(d.th === 0 && Math.abs(d.om) < 0.05){ d.om = 0; d.rest = true; }
+}
+
+function overlapsAnyStatic(d){
+  var poly = dominoCorners(d);
+  var bb = aabbOf(poly);
+  for(var i=0;i<statics.length;i++){
+    var r = statics[i];
+    if(!aabbHit(bb,[r.x0,r.y0,r.x1,r.y1])) continue;
+    if(polyOverlap(poly, rectCorners(r), 0.9)) return true;
+  }
+  return false;
+}
+
+/* target を dir 方向へ回して pusher から抜け出す角度を二分探索（静的物は別で処理） */
+function findSeparation(target, pusherPoly, dir){
+  var lo = target.th;
+  var hi = dir*MAXTH;
+  if(dir > 0 ? lo >= hi : lo <= hi) return null;
+  var save = target.th;
+  target.th = hi;
+  var free = !polyOverlap(dominoCorners(target), pusherPoly, 0.6);
+  if(!free){ target.th = save; return null; }
+  for(var k=0;k<14;k++){
+    var mid = (lo+hi)/2;
+    target.th = mid;
+    if(polyOverlap(dominoCorners(target), pusherPoly, 0.6)) lo = mid; else hi = mid;
+  }
+  target.th = save;
+  return hi;
+}
+
+/* target を upto まで回したいが、床や段差にぶつかる場合の到達限界 */
+function staticLimit(target, upto){
+  var save = target.th;
+  target.th = upto;
+  if(!overlapsAnyStatic(target)){ target.th = save; return upto; }
+  var lo = save, hi = upto;   // lo は自由、hi は衝突
+  for(var k=0;k<12;k++){
+    var mid = (lo+hi)/2;
+    target.th = mid;
+    if(overlapsAnyStatic(target)) hi = mid; else lo = mid;
+  }
+  target.th = save;
+  return lo;
+}
+
+/* pusher を prevTh 方向へ戻して抜け出す角度 */
+function findRetreat(pusher, otherPoly){
+  var lo = pusher.th, hi = pusher.prevTh;
+  var save = pusher.th;
+  pusher.th = hi;
+  if(polyOverlap(dominoCorners(pusher), otherPoly, 0.6)){ pusher.th = save; return null; }
+  for(var k=0;k<12;k++){
+    var mid = (lo+hi)/2;
+    pusher.th = mid;
+    if(polyOverlap(dominoCorners(pusher), otherPoly, 0.6)) lo = mid; else hi = mid;
+  }
+  pusher.th = save;
+  return hi;
+}
+
+/* 接触点でのインパルス。押す側の先端を接触点、法線は水平とみなす。
+   角速度しか自由度がないので、支点まわりの実効質量から力積を解く。 */
+function pivotOf(d){
+  var s = d.th >= 0 ? 1 : -1;
+  return [d.x + s*d.w/2, d.gy];
+}
+function inertiaOf(d){            // 密度1、支点まわり
+  var m = d.w*d.h;
+  return m*(d.w*d.w + d.h*d.h)/3;
+}
+function contactGeom(pusher, target, dir){
+  var pc = dominoCorners(pusher);
+  var c = dir > 0 ? pc[2] : pc[3];          // 進行方向の先端
+  var Pp = pivotOf(pusher), Pt = pivotOf(target);
+  var rpy = c[1] - Pp[1], rty = c[1] - Pt[1];
+  // 接触点の水平速度（ω が時計回り正のとき v = ω(-ry, rx)）
+  var vrel = pusher.om*(-rpy)*dir - target.om*(-rty)*dir;
+  return {rpy:rpy, rty:rty, vrel:vrel};
+}
+function applyImpulse(pusher, target, dir, scale, g){
+  if(g.vrel <= 0) return;
+  var Ip = inertiaOf(pusher), It = inertiaOf(target);
+  var denom = g.rpy*g.rpy/Ip + g.rty*g.rty/It;
+  if(denom < 1e-9) return;
+  var j = g.vrel/denom * (scale === undefined ? 1 : scale);
+  target.om += (-g.rty * j * dir)/It;
+  pusher.om += ( g.rpy * j * dir)/Ip;
+}
+/* 重なりを解消する。倒れる向きで「後ろ側」＝ rear が前のドミノに寄りかかっている
+   ケースがほとんどなので、まず rear を戻す。前を押し戻すと連鎖が死ぬ。 */
+function separateByRetreat(rear, front){
+  var r = findRetreat(rear, dominoCorners(front));
+  if(r !== null){
+    rear.th = r; rear.om *= 0.3;
+    if(Math.abs(rear.om) < 1.2){ rear.om = 0; rear.rest = true; }
+    return true;
+  }
+  r = findRetreat(front, dominoCorners(rear));
+  if(r !== null){
+    front.th = r; front.om *= 0.6;
+    return true;
+  }
+  rear.om = 0; rear.rest = true;
+  return false;
+}
+
+var POS_BIAS = 0.42;
+function resolveCollisions(){
+  for(var iter=0; iter<5; iter++){
+    var any = false;
+    var polys = [], bbs = [];
+    for(var i=0;i<dominoes.length;i++){ polys[i]=dominoCorners(dominoes[i]); bbs[i]=aabbOf(polys[i]); }
+
+    for(var a=0;a<dominoes.length;a++){
+      for(var b=a+1;b<dominoes.length;b++){
+        // ブロードフェーズ：土台が離れすぎている組は見ない
+        if(Math.abs(dominoes[a].x - dominoes[b].x) > 260) continue;
+        if(!aabbHit(bbs[a],bbs[b])) continue;
+        if(!polyOverlap(polys[a], polys[b], 0.6)) continue;
+        var A = dominoes[a], B = dominoes[b];
+        // 押している側 = 角速度が大きいほう。同点なら傾きが大きいほう
+        var pusher, target;
+        if(Math.abs(A.om) > Math.abs(B.om) + 1e-6) { pusher=A; target=B; }
+        else if(Math.abs(B.om) > Math.abs(A.om) + 1e-6) { pusher=B; target=A; }
+        else if(Math.abs(A.th) >= Math.abs(B.th)) { pusher=A; target=B; }
+        else { pusher=B; target=A; }
+
+        var dir = pusher.th !== 0 ? (pusher.th>0?1:-1) : (pusher.om>=0?1:-1);
+        // 押される側が押す側の「先」にいるか
+        if((target.x - pusher.x)*dir < 0){ var t=pusher; pusher=target; target=t;
+          dir = pusher.th !== 0 ? (pusher.th>0?1:-1) : (pusher.om>=0?1:-1); }
+
+        var geom = contactGeom(pusher, target, dir);
+        any = true;
+
+        if(geom.vrel <= 0.05){
+          // 押していない＝もう乗りかかっているだけ。動いてきたほうを戻す
+          separateByRetreat(pusher, target);
+          continue;
+        }
+
+        var pPoly = dominoCorners(pusher);
+        var nth = findSeparation(target, pPoly, dir);
+        if(nth !== null){
+          var lim = staticLimit(target, nth);
+          var wedged = Math.abs(lim - nth) > 0.002;
+          var want = wedged ? lim : (nth + dir*0.0012);
+
+          // 速度の解決が主役。位置の補正はめり込みを少しずつ押し返すだけにする。
+          // 一気に完全分離させると、ドミノが「瞬間移動」して見える。
+          applyImpulse(pusher, target, dir, wedged ? 0.3 : 1, geom);
+          target.th = target.th + POS_BIAS*(want - target.th);
+          target.rest = false;
+
+          if(!target.knocked && Math.abs(target.om) > 1.2){
+            target.knocked = true;
+            playKnock(Math.min(1, Math.abs(target.om)/14));
+          }
+          if(wedged){
+            var rth2 = findRetreat(pusher, dominoCorners(target));
+            if(rth2 !== null) pusher.th = rth2;
+            pusher.om *= 0.5;
+            if(Math.abs(pusher.om) < 0.8){ pusher.om = 0; pusher.rest = true; }
+          }
+        } else {
+          if(Math.abs(pusher.om) > 3) playKnock(0.35);
+          separateByRetreat(pusher, target);
+          pusher.om *= 0.3;
+          if(Math.abs(pusher.om) < 0.3){ pusher.om = 0; pusher.rest = true; }
+        }
+      }
+    }
+
+    // 静的（床・段差の側面）
+    for(var i2=0;i2<dominoes.length;i2++){
+      var d = dominoes[i2];
+      if(d.rest && Math.abs(d.om) < 1e-6) continue;
+      if(overlapsAnyStatic(d)){
+        var lo = d.th, hi = d.prevTh, save = d.th;
+        d.th = hi;
+        if(!overlapsAnyStatic(d)){
+          for(var k2=0;k2<12;k2++){
+            var mid = (lo+hi)/2; d.th = mid;
+            if(overlapsAnyStatic(d)) lo = mid; else hi = mid;
+          }
+          d.th = hi;
+        } else { d.th = save; }
+        if(Math.abs(d.om) > 3) playKnock(0.3);
+        d.om = 0; d.rest = true;
+        any = true;
+      }
+    }
+    if(!any) break;
+  }
+}
+
+function checkGoal(){
+  if(goalHit || !goalBox) return;
+  if(phase !== "run" && phase !== "settling") return;
+  var gpoly = rectCorners(goalBox);
+  var gbb = [goalBox.x0,goalBox.y0,goalBox.x1,goalBox.y1];
+  for(var i=0;i<dominoes.length;i++){
+    var poly = dominoCorners(dominoes[i]);
+    if(!aabbHit(aabbOf(poly), gbb)) continue;
+    if(polyOverlap(poly, gpoly, 1.2)){
+      goalHit = true;
+      playChime();
+      for(var s=0;s<26;s++) sparks.push(makeSpark(stage.goal.x, goalBox.y0-6));
+      return;
+    }
+  }
+}
+
+function physicsStep(dt){
+  for(var i=0;i<dominoes.length;i++) dominoes[i].prevTh = dominoes[i].th;
+  for(i=0;i<dominoes.length;i++) integrate(dominoes[i], dt);
+  resolveCollisions();
+  checkGoal();
+}
+
+function allSettled(){
+  for(var i=0;i<dominoes.length;i++){
+    var d = dominoes[i];
+    if(!d.rest && Math.abs(d.om) > 0.15) return false;
+  }
+  return true;
+}
+
+/* ============================================================
+   Clawd の振る舞い
+   ============================================================ */
+function moveCrab(x, y, dur){
+  crabWrap.style.transitionDuration = dur + "s, " + dur + "s";
+  crabWrap.style.left = (x/W*100) + "%";
+  crabWrap.style.top  = (y/H*100) + "%";
+  bubble.style.transitionDuration = ".16s, " + dur + "s, " + dur + "s";
+  bubble.style.left = (x/W*100) + "%";
+  bubble.style.top  = ((y - 92)/H*100) + "%";
+}
+function setBubble(text, oops){
+  if(!text){ bubble.classList.remove("show"); return; }
+  bubble.textContent = text;
+  bubble.classList.toggle("oops", !!oops);
+  bubble.classList.add("show");
+}
+function setPose(p){
+  crabWrap.classList.remove("walk");
+  if(p === "walk"){
+    crabWrap.classList.add("walk");
+    crabAll.style.transform = "";
+    armL.style.transform = "rotate(-10deg)";
+    armR.style.transform = "rotate(10deg)";
+    eyeL.style.transform = ""; eyeR.style.transform = "";
+  } else if(p === "place"){
+    armL.style.transform = "rotate(-34deg)";
+    armR.style.transform = "rotate(34deg)";
+    crabAll.style.transform = "translateY(4px)";
+    eyeL.style.transform = ""; eyeR.style.transform = "";
+  } else if(p === "oops"){
+    armL.style.transform = "rotate(34deg)";
+    armR.style.transform = "rotate(-34deg)";
+    crabAll.style.transform = "translateY(-9px)";
+    eyeL.style.transform = "scale(1.3)"; eyeR.style.transform = "scale(1.3)";
+  } else if(p === "joy"){
+    armL.style.transform = "rotate(32deg)";
+    armR.style.transform = "rotate(-32deg)";
+    crabAll.style.transform = "translateY(-7px)";
+    eyeL.style.transform = ""; eyeR.style.transform = "";
+  } else if(p === "watch"){
+    armL.style.transform = "rotate(12deg)";
+    armR.style.transform = "rotate(-12deg)";
+    crabAll.style.transform = "";
+    eyeL.style.transform = ""; eyeR.style.transform = "";
+  } else {
+    armL.style.transform = "";
+    armR.style.transform = "";
+    crabAll.style.transform = "";
+    eyeL.style.transform = ""; eyeR.style.transform = "";
+  }
+}
+function walkTo(x, then){
+  var dist = Math.abs(x - clawd.x);
+  var dur = Math.max(0.16, Math.min(0.62, dist/900));
+  var gy = groundYAt(x);
+  if(gy === null) gy = clawd.y;
+  clawd.x = x; clawd.y = gy;
+  setPose("walk");
+  moveCrab(x, gy, dur);
+  setTimeout(function(){ setPose("idle"); if(then) then(); }, dur*1000 + 40);
+}
+function enqueue(job){
+  if(clawd.queue.length > 6) return;
+  clawd.queue.push(job);
+  pumpQueue();
+}
+function pumpQueue(){
+  if(clawd.busy) return;
+  var job = clawd.queue.shift();
+  if(!job){
+    if(phase === "build"){
+      walkTo(clawd.home, function(){ setPose("idle"); });
+    }
+    return;
+  }
+  clawd.busy = true;
+  job(function(){ clawd.busy = false; pumpQueue(); });
+}
+
+function nearestStanding(x, exclude){
+  var best = null, bd = 1e9;
+  for(var i=0;i<dominoes.length;i++){
+    var d = dominoes[i];
+    if(d === exclude) continue;
+    if(Math.abs(d.th) > 0.02) continue;
+    var dist = Math.abs(d.x - x);
+    if(dist < bd){ bd = dist; best = d; }
+  }
+  return bd < 240 ? best : null;
+}
+
+function jobPlace(x, key){
+  return function(done){
+    walkTo(Math.max(30, Math.min(W-30, x)), function(){
+      setPose("place");
+      setTimeout(function(){
+        var gy = canPlaceAt(x, SIZES[key]);
+        if(gy === null || !spotFree(x, SIZES[key])){
+          budget[key]++;              // 予約していた分を返す
+          setPose("idle"); syncUI(); done(); return;
+        }
+        var d = makeDomino(x, gy, key, false);
+        dominoes.push(d);
+        playPlace();
+        syncUI();
+        setPose("idle");
+        maybeAccident(d, done);
+      }, 150);
+    });
+  };
+}
+function jobRemove(target){
+  return function(done){
+    walkTo(Math.max(30, Math.min(W-30, target.x)), function(){
+      setPose("place");
+      setTimeout(function(){
+        var k = dominoes.indexOf(target);
+        if(k >= 0){ dominoes.splice(k,1); budget[target.key]++; playPlace(); syncUI(); }
+        setPose("idle");
+        done();
+      }, 140);
+    });
+  };
+}
+
+/* 低確率の「あっ」 → 事故 → 救済 */
+function maybeAccident(justPlaced, done){
+  if(phase !== "build" || Math.random() > 0.085){ done(); return; }
+  var victim = nearestStanding(clawd.x, justPlaced);
+  if(!victim){ done(); return; }
+
+  // 事故前のスナップショット（救済で戻す）
+  var snap = [];
+  for(var i=0;i<dominoes.length;i++){
+    if(Math.abs(dominoes[i].th) < 0.02) snap.push(dominoes[i]);
+  }
+  setPose("oops");
+  setBubble("あっ", true);
+  playKnock(0.8);
+  var dir = victim.x >= clawd.x ? 1 : -1;
+  victim.th = dir*0.02; victim.om = dir*7.5; victim.rest = false; victim.knocked = true;
+
+  var t0 = performance.now();
+  (function wait(){
+    var elapsed = performance.now() - t0;
+    if(allSettled() || elapsed > 2600){
+      setBubble("ごめんごめん", true);
+      rescueSequence(snap, function(){
+        setBubble("", false);
+        setPose("idle");
+        done();
+      });
+    } else {
+      requestAnimationFrame(wait);
+    }
+  })();
+}
+function rescueSequence(snap, done){
+  var fallen = [];
+  for(var i=0;i<snap.length;i++){
+    if(Math.abs(snap[i].th) > 0.02 && dominoes.indexOf(snap[i]) >= 0) fallen.push(snap[i]);
+  }
+  fallen.sort(function(a,b){ return Math.abs(a.x-clawd.x) - Math.abs(b.x-clawd.x); });
+  var idx = 0;
+  function next(){
+    if(idx >= fallen.length){ done(); return; }
+    var d = fallen[idx++];
+    walkTo(Math.max(30, Math.min(W-30, d.x)), function(){
+      setPose("place");
+      setTimeout(function(){
+        d.th = 0; d.om = 0; d.rest = true; d.knocked = false;
+        playPlace();
+        setPose("idle");
+        next();
+      }, 190);
+    });
+  }
+  next();
+}
+
+/* ============================================================
+   音
+   ============================================================ */
+var actx = null, noiseBuf = null;
+function audio(){
+  if(actx) return actx;
+  var AC = window.AudioContext || window.webkitAudioContext;
+  if(!AC) return null;
+  actx = new AC();
+  var len = Math.floor(actx.sampleRate * 0.12);
+  noiseBuf = actx.createBuffer(1, len, actx.sampleRate);
+  var ch = noiseBuf.getChannelData(0);
+  for(var i=0;i<len;i++) ch[i] = (Math.random()*2-1) * Math.pow(1 - i/len, 3);
+  return actx;
+}
+var lastKnock = 0;
+function playKnock(v){
+  if(!soundOn) return;
+  var a = audio(); if(!a) return;
+  if(a.state === "suspended") a.resume();
+  var now = a.currentTime;
+  if(now - lastKnock < 0.012) return;
+  lastKnock = now;
+  var src = a.createBufferSource(); src.buffer = noiseBuf;
+  var bp = a.createBiquadFilter(); bp.type = "bandpass";
+  bp.frequency.value = 900 + Math.random()*700; bp.Q.value = 2.2;
+  var g = a.createGain();
+  g.gain.setValueAtTime(Math.min(0.34, 0.1 + v*0.3), now);
+  g.gain.exponentialRampToValueAtTime(0.0005, now + 0.09);
+  src.connect(bp); bp.connect(g); g.connect(a.destination);
+  src.start(now); src.stop(now + 0.13);
+}
+function playPlace(){
+  if(!soundOn) return;
+  var a = audio(); if(!a) return;
+  if(a.state === "suspended") a.resume();
+  var now = a.currentTime;
+  var o = a.createOscillator(); o.type = "triangle"; o.frequency.value = 520;
+  var g = a.createGain();
+  g.gain.setValueAtTime(0.09, now);
+  g.gain.exponentialRampToValueAtTime(0.0005, now + 0.10);
+  o.connect(g); g.connect(a.destination);
+  o.start(now); o.stop(now + 0.12);
+}
+function playChime(){
+  if(!soundOn) return;
+  var a = audio(); if(!a) return;
+  if(a.state === "suspended") a.resume();
+  var now = a.currentTime;
+  [880, 1174.7, 1567.98].forEach(function(f, i){
+    var o = a.createOscillator(); o.type = "sine"; o.frequency.value = f;
+    var g = a.createGain();
+    g.gain.setValueAtTime(0, now + i*0.07);
+    g.gain.linearRampToValueAtTime(0.13, now + i*0.07 + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0004, now + i*0.07 + 1.1);
+    o.connect(g); g.connect(a.destination);
+    o.start(now + i*0.07); o.stop(now + i*0.07 + 1.2);
+  });
+}
+
+/* ============================================================
+   きらきら
+   ============================================================ */
+function makeSpark(x,y){
+  var a = Math.random()*Math.PI*2, sp = 60 + Math.random()*180;
+  return {x:x, y:y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp - 90, life:1, sz:3+Math.random()*4};
+}
+function updateSparks(dt){
+  for(var i=sparks.length-1;i>=0;i--){
+    var s = sparks[i];
+    s.x += s.vx*dt; s.y += s.vy*dt; s.vy += 420*dt;
+    s.life -= dt*0.85;
+    if(s.life <= 0) sparks.splice(i,1);
+  }
+}
+
+/* ============================================================
+   描画
+   ============================================================ */
+function setupCanvas(){
+  var dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = Math.round(W*dpr);
+  cv.height = Math.round(H*dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+
+  // 背景：紙 + 光
+  var bg = ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0, "#FDF8ED");
+  bg.addColorStop(1, "#F2E8D7");
+  ctx.fillStyle = bg; ctx.fillRect(0,0,W,H);
+
+  var glow = ctx.createRadialGradient(760, 40, 20, 760, 40, 420);
+  glow.addColorStop(0, "rgba(255,236,196,.95)");
+  glow.addColorStop(1, "rgba(255,236,196,0)");
+  ctx.fillStyle = glow; ctx.fillRect(0,0,W,H);
+
+  // 方眼
+  ctx.strokeStyle = "rgba(196,175,146,.30)"; ctx.lineWidth = 1;
+  ctx.beginPath();
+  for(var gx=0; gx<=W; gx+=40){ ctx.moveTo(gx+.5,0); ctx.lineTo(gx+.5,H); }
+  for(var gy2=0; gy2<=H; gy2+=40){ ctx.moveTo(0,gy2+.5); ctx.lineTo(W,gy2+.5); }
+  ctx.stroke();
+
+  drawGround();
+  drawGoal();
+  drawGhost();
+  for(var i=0;i<dominoes.length;i++) drawDomino(dominoes[i]);
+  drawSparks();
+  drawHUD();
+}
+
+function drawGround(){
+  for(var i=0;i<stage.ground.length;i++){
+    var g = stage.ground[i], x0=g[0], x1=g[1], y=g[2];
+    // 板の側面
+    var side = ctx.createLinearGradient(0,y,0,H);
+    side.addColorStop(0, "#B9906B");
+    side.addColorStop(1, "#8B674A");
+    ctx.fillStyle = side;
+    ctx.fillRect(x0, y, x1-x0, H-y);
+    // 天面のハイライト
+    ctx.fillStyle = "#D8B48A";
+    ctx.fillRect(x0, y, x1-x0, 6);
+    ctx.fillStyle = "rgba(46,42,38,.55)";
+    ctx.fillRect(x0, y, x1-x0, 2.5);
+    // 木目
+    ctx.save();
+    ctx.beginPath(); ctx.rect(x0, y, x1-x0, H-y); ctx.clip();
+    ctx.strokeStyle = "rgba(80,56,38,.16)"; ctx.lineWidth = 1.4;
+    for(var k=1;k<7;k++){
+      var yy = y + 12 + k*13;
+      ctx.beginPath();
+      ctx.moveTo(x0, yy);
+      for(var xx=x0; xx<=x1; xx+=26) ctx.lineTo(xx, yy + Math.sin((xx+k*40)*0.045)*2.4);
+      ctx.stroke();
+    }
+    ctx.restore();
+    // 端の縁取り
+    ctx.strokeStyle = "rgba(46,42,38,.45)"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x0+1, y); ctx.lineTo(x0+1, H); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x1-1, y); ctx.lineTo(x1-1, H); ctx.stroke();
+  }
+}
+
+function drawGoal(){
+  var g = goalBox;
+  var cx = (g.x0+g.x1)/2;
+  ctx.save();
+  // 支柱
+  ctx.fillStyle = goalHit ? "#DFA02B" : "#FFFDF7";
+  ctx.strokeStyle = "#2E2A26"; ctx.lineWidth = 2.5;
+  var tilt = goalHit ? 0.5 : 0;
+  ctx.translate(g.x1, g.y1);
+  ctx.rotate(tilt);
+  ctx.beginPath();
+  ctx.rect(-(g.x1-g.x0), -(g.y1-g.y0), g.x1-g.x0, g.y1-g.y0);
+  ctx.fill(); ctx.stroke();
+  // 缶のライン
+  ctx.strokeStyle = "rgba(46,42,38,.35)"; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(-(g.x1-g.x0), -(g.y1-g.y0)+11); ctx.lineTo(0, -(g.y1-g.y0)+11);
+  ctx.moveTo(-(g.x1-g.x0), -11); ctx.lineTo(0, -11);
+  ctx.stroke();
+  ctx.restore();
+
+  // 旗
+  ctx.save();
+  var fy = g.y0 - 8;
+  ctx.strokeStyle = "#2E2A26"; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.moveTo(cx, fy); ctx.lineTo(cx, fy-58); ctx.stroke();
+  ctx.fillStyle = goalHit ? "#DFA02B" : "#1F6F6B";
+  ctx.beginPath();
+  ctx.moveTo(cx, fy-58); ctx.lineTo(cx+46, fy-48); ctx.lineTo(cx, fy-38); ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = "#2E2A26"; ctx.lineWidth = 2; ctx.stroke();
+  ctx.fillStyle = "#FFFDF7";
+  ctx.font = "700 13px 'Zen Maru Gothic',sans-serif";
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText("ゴール", cx+21, fy-48);
+  ctx.restore();
+}
+
+function drawDomino(d){
+  var pts = dominoCorners(d);
+  var sz = SIZES[d.key];
+  ctx.save();
+  // 影
+  ctx.fillStyle = "rgba(46,42,38,.13)";
+  ctx.beginPath();
+  ctx.ellipse(d.x + Math.sin(d.th)*d.h*0.4, d.gy+3, d.w*0.9 + Math.abs(Math.sin(d.th))*d.h*0.42, 4.5, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.moveTo(pts[0][0], pts[0][1]);
+  for(var i=1;i<4;i++) ctx.lineTo(pts[i][0], pts[i][1]);
+  ctx.closePath();
+
+  var mid = [(pts[0][0]+pts[2][0])/2, (pts[0][1]+pts[2][1])/2];
+  var gr = ctx.createLinearGradient(pts[0][0],pts[0][1],pts[1][0],pts[1][1]);
+  var base = sz.fill;
+  gr.addColorStop(0, shade(base, -0.14 + d.hue*0.004));
+  gr.addColorStop(0.45, shade(base, 0.10 + d.hue*0.004));
+  gr.addColorStop(1, shade(base, -0.06 + d.hue*0.004));
+  ctx.fillStyle = gr;
+  ctx.fill();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = d.start ? "#DFA02B" : sz.edge;
+  if(d.start) ctx.lineWidth = 3;
+  ctx.stroke();
+
+  // 面の中央ライン（ドミノらしさ）
+  ctx.save();
+  ctx.translate(mid[0], mid[1]);
+  ctx.rotate(d.th);
+  ctx.strokeStyle = "rgba(255,253,247,.42)"; ctx.lineWidth = 1.6;
+  ctx.beginPath(); ctx.moveTo(-d.w*0.28, 0); ctx.lineTo(d.w*0.28, 0); ctx.stroke();
+  ctx.fillStyle = "rgba(255,253,247,.55)";
+  ctx.beginPath(); ctx.arc(0, -d.h*0.26, 2.1, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(0,  d.h*0.26, 2.1, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  if(d.start){
+    ctx.fillStyle = "#8F6A18";
+    ctx.font = "700 11px 'Zen Maru Gothic',sans-serif";
+    ctx.textAlign = "center"; ctx.textBaseline = "bottom";
+    ctx.fillText("スタート", d.x, d.gy - d.h - 9);
+    if(phase === "build"){
+      ctx.strokeStyle = "#DFA02B"; ctx.lineWidth = 2.5;
+      var ax = d.x + d.w/2 + 8, ay = d.gy - d.h*0.72;
+      ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(ax+18, ay);
+      ctx.moveTo(ax+12, ay-5); ctx.lineTo(ax+18, ay); ctx.lineTo(ax+12, ay+5);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
+function drawGhost(){
+  if(phase !== "build" || hoverX === null) return;
+  var sz = SIZES[pick];
+
+  // 直前の立ちドミノの到達範囲
+  var src = null, bd = 1e9;
+  for(var i=0;i<dominoes.length;i++){
+    var d = dominoes[i];
+    if(Math.abs(d.th) > 0.02) continue;
+    if(d.x >= hoverX) continue;
+    var dist = hoverX - d.x;
+    if(dist < bd){ bd = dist; src = d; }
+  }
+  if(src){
+    var px = src.x + src.w/2, py = src.gy;
+    ctx.save();
+    ctx.strokeStyle = "rgba(31,111,107,.55)";
+    ctx.lineWidth = 1.6;
+    if(ctx.setLineDash) ctx.setLineDash([4,5]);
+    ctx.beginPath();
+    for(var t=0;t<=24;t++){
+      var th = t/24*MAXTH;
+      var tx = px + Math.sin(th)*src.h, ty = py - Math.cos(th)*src.h;
+      if(t===0) ctx.moveTo(tx,ty); else ctx.lineTo(tx,ty);
+    }
+    ctx.stroke();
+    var reach = px + src.h;
+    ctx.strokeStyle = "rgba(31,111,107,.75)";
+    ctx.beginPath(); ctx.moveTo(reach, py-src.h-14); ctx.lineTo(reach, py+3); ctx.stroke();
+    if(ctx.setLineDash) ctx.setLineDash([]);
+    ctx.fillStyle = "rgba(20,81,78,.85)";
+    ctx.font = "700 11px 'Zen Maru Gothic',sans-serif";
+    ctx.textAlign = "left"; ctx.textBaseline = "bottom";
+    ctx.fillText("ここまで届く", reach+4, py-4);
+    ctx.restore();
+  }
+
+  if(!hoverOk) {
+    ctx.save();
+    ctx.strokeStyle = "rgba(164,91,62,.75)"; ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(hoverX-11, (hoverY||H-70)-11); ctx.lineTo(hoverX+11, (hoverY||H-70)+11);
+    ctx.moveTo(hoverX+11, (hoverY||H-70)-11); ctx.lineTo(hoverX-11, (hoverY||H-70)+11);
+    ctx.stroke();
+    ctx.restore();
+    return;
+  }
+
+  ctx.save();
+  ctx.globalAlpha = 0.42;
+  ctx.fillStyle = sz.fill;
+  ctx.strokeStyle = sz.edge; ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.rect(hoverX - sz.w/2, hoverY - sz.h, sz.w, sz.h);
+  ctx.fill(); ctx.stroke();
+  ctx.restore();
+}
+
+function drawSparks(){
+  for(var i=0;i<sparks.length;i++){
+    var s = sparks[i];
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, s.life);
+    ctx.fillStyle = i%3===0 ? "#DFA02B" : (i%3===1 ? "#C67D5F" : "#1F6F6B");
+    ctx.fillRect(s.x-s.sz/2, s.y-s.sz/2, s.sz, s.sz);
+    ctx.restore();
+  }
+}
+
+function drawHUD(){
+  ctx.save();
+  ctx.font = "900 15px 'Zen Maru Gothic',sans-serif";
+  ctx.fillStyle = "rgba(46,42,38,.72)";
+  ctx.textAlign = "left"; ctx.textBaseline = "top";
+  ctx.fillText(stage.name, 16, 14);
+  ctx.font = "700 12.5px 'Zen Maru Gothic',sans-serif";
+  ctx.fillStyle = "rgba(107,98,89,.9)";
+  var txt = "のこり  標準 " + budget.std;
+  if(stage.budget.tall > 0) txt += " / ノッポ " + budget.tall;
+  ctx.fillText(txt, 16, 36);
+  if(phase === "run"){
+    ctx.textAlign = "right";
+    ctx.fillStyle = "rgba(31,111,107,.9)";
+    ctx.font = "900 15px 'Zen Maru Gothic',sans-serif";
+    ctx.fillText("倒れています…", W-16, 14);
+  }
+  ctx.restore();
+}
+
+function shade(hex, amt){
+  var r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  function f(v){ return Math.max(0, Math.min(255, Math.round(amt >= 0 ? v + (255-v)*amt : v*(1+amt)))); }
+  return "rgb(" + f(r) + "," + f(g) + "," + f(b) + ")";
+}
+
+/* ============================================================
+   入力
+   ============================================================ */
+function evtWorld(e){
+  var r = stagewrap.getBoundingClientRect();
+  var cxp = (e.clientX - r.left)/r.width * W;
+  var cyp = (e.clientY - r.top)/r.height * H;
+  return [cxp, cyp];
+}
+function spotFree(x, sz){
+  var probe = {x:x, gy:canPlaceAt(x,sz), w:sz.w, h:sz.h, th:0};
+  if(probe.gy === null) return false;
+  // 少し太らせる
+  var pad = 5;
+  var fat = [[x-sz.w/2-pad, probe.gy+1],[x+sz.w/2+pad, probe.gy+1],
+             [x+sz.w/2+pad, probe.gy-sz.h],[x-sz.w/2-pad, probe.gy-sz.h]];
+  for(var i=0;i<dominoes.length;i++){
+    if(polyOverlap(fat, dominoCorners(dominoes[i]), 0.5)) return false;
+  }
+  if(goalBox && polyOverlap(fat, rectCorners(goalBox), 0.5)) return false;
+  return true;
+}
+function hitDomino(x, y){
+  for(var i=dominoes.length-1;i>=0;i--){
+    var d = dominoes[i];
+    var poly = dominoCorners(d);
+    var fat = [[poly[0][0],poly[0][1]],[poly[1][0],poly[1][1]],[poly[2][0],poly[2][1]],[poly[3][0],poly[3][1]]];
+    if(polyOverlap([[x-5,y-5],[x+5,y-5],[x+5,y+5],[x-5,y+5]], fat, 0.1)) return d;
+  }
+  return null;
+}
+
+stagewrap.addEventListener("mousemove", function(e){
+  if(phase !== "build"){ hoverX = null; return; }
+  var p = evtWorld(e);
+  var x = Math.round(p[0]/5)*5;
+  hoverX = x;
+  var sz = SIZES[pick];
+  var gy = canPlaceAt(x, sz);
+  hoverY = gy === null ? p[1] : gy;
+  hoverOk = gy !== null && spotFree(x, sz) && budget[pick] > 0;
+});
+stagewrap.addEventListener("mouseleave", function(){ hoverX = null; });
+
+stagewrap.addEventListener("click", function(e){
+  if(phase !== "build") return;
+  // 盤面（canvas）以外から上がってきたクリックは配置に使わない（保険）
+  if(e && e.target && e.target !== cv && e.target !== stagewrap) return;
+  audio();
+  var p = evtWorld(e);
+  var hit = hitDomino(p[0], p[1]);
+  if(hit && !hit.start && Math.abs(hit.th) < 0.02){
+    enqueue(jobRemove(hit));
+    return;
+  }
+  var x = Math.round(p[0]/5)*5;
+  var sz = SIZES[pick];
+  if(budget[pick] <= 0) return;
+  if(canPlaceAt(x, sz) === null || !spotFree(x, sz)) return;
+  if(clawd.queue.length > 6) return;
+  budget[pick]--;                 // 連打対策に先に確保しておく
+  syncUI();
+  enqueue(jobPlace(x, pick));
+});
+
+btnRun.addEventListener("click", function(){
+  if(phase !== "build") return;
+  audio();
+  clawd.queue = [];
+  phase = "run";
+  runStartedAt = performance.now();
+  hoverX = null;
+  stagewrap.classList.remove("build");
+  var s = dominoes[0];
+  for(var i=0;i<dominoes.length;i++) if(dominoes[i].start) s = dominoes[i];
+  runSnapshot = [];
+  for(var j=0;j<dominoes.length;j++){
+    var q = dominoes[j];
+    runSnapshot.push({x:q.x, gy:q.gy, key:q.key, start:q.start});
+  }
+  s.th = 0.02; s.om = 6.5; s.rest = false; s.knocked = true;
+  playKnock(0.7);
+  var wx = Math.max(30, s.x - 70);
+  walkTo(wx, function(){ setPose("watch"); });
+  syncUI();
+});
+btnReset.addEventListener("click", function(){ loadStage(stageIdx); });
+btnSnd.addEventListener("click", function(){
+  soundOn = !soundOn;
+  btnSnd.textContent = soundOn ? "♪ 音 ON" : "♪ 音 OFF";
+  if(soundOn) audio();
+});
+/* 失敗したときは、並べたものを立て直すだけにする。全部消すのは酷なので。 */
+function restoreLayout(){
+  if(!runSnapshot) { loadStage(stageIdx); return; }
+  dominoes = [];
+  for(var i=0;i<runSnapshot.length;i++){
+    var q = runSnapshot[i];
+    var d = makeDomino(q.x, q.gy, q.key, q.start);
+    dominoes.push(d);
+  }
+  goalHit = false;
+  sparks = [];
+  phase = "build";
+  clawd.queue = []; clawd.busy = false;
+  setBubble("", false); setPose("idle");
+  walkTo(clawd.home);
+  panel.classList.remove("show");
+  syncUI();
+}
+/* パネルは stagewrap の内側にあるので、止めないとクリックが親に伝わって
+   ボタンを押した位置にドミノが置かれてしまう */
+panel.addEventListener("click", function(e){ e.stopPropagation(); });
+panelBtn.addEventListener("click", function(e){
+  if(e && e.stopPropagation) e.stopPropagation();
+  panel.classList.remove("show");
+  if(goalHit){
+    if(stageIdx < STAGES.length-1) loadStage(stageIdx+1);
+    else loadStage(stageIdx);
+  } else {
+    restoreLayout();
+  }
+});
+
+/* ============================================================
+   UI 同期
+   ============================================================ */
+function syncUI(){
+  btnRun.disabled = (phase !== "build");
+  // サイズピッカー
+  picker.innerHTML = "";
+  var keys = ["std"];
+  if(stage.budget.tall > 0) keys.push("tall");
+  keys.forEach(function(k){
+    var b = document.createElement("button");
+    b.className = "pick" + (k==="tall"?" tall":"") + (pick===k?" on":"");
+    b.disabled = (budget[k] <= 0) || phase !== "build";
+    b.innerHTML = '<span class="sw" style="background:'+SIZES[k].fill+'"></span>'
+                + SIZES[k].label + ' <span class="n">×' + budget[k] + '</span>';
+    b.addEventListener("click", function(){ pick = k; syncUI(); });
+    picker.appendChild(b);
+  });
+  // ステージバー
+  stagebar.innerHTML = "";
+  STAGES.forEach(function(s, i){
+    var b = document.createElement("button");
+    b.className = "chip" + (i===stageIdx?" on":"") + (cleared[i]?" done":"");
+    b.textContent = s.name;
+    b.addEventListener("click", function(){ loadStage(i); });
+    stagebar.appendChild(b);
+  });
+  stagewrap.classList.toggle("build", phase === "build");
+}
+
+function showPanel(ok){
+  if(ok){
+    cleared[stageIdx] = true;
+    var used = 0;
+    for(var i=0;i<dominoes.length;i++) if(!dominoes[i].start) used++;
+    panelTitle.textContent = "クリア！";
+    panelTitle.style.color = "var(--teal-deep)";
+    panelText.innerHTML = "使ったドミノ <b>" + used + "</b> 本。<br>Clawdも喜んでいます。";
+    panelBtn.textContent = stageIdx < STAGES.length-1 ? "つぎのステージへ" : "もう一度";
+    setPose("joy");
+    setBubble("やった！", false);
+  } else {
+    panelTitle.textContent = "とちゅうで止まりました";
+    panelTitle.style.color = "var(--terra-deep)";
+    panelText.innerHTML = "間隔が空きすぎているか、段差でうまく当たっていません。<br>点線の到達範囲を目安に置き直してみてください。";
+    panelBtn.textContent = "並べ直す";
+    setPose("idle");
+    setBubble("うーん", false);
+  }
+  panel.classList.add("show");
+  phase = "clear";
+  syncUI();
+}
+
+/* ============================================================
+   メインループ
+   ============================================================ */
+var acc = 0, last = performance.now();
+function loop(now){
+  var dt = Math.min(0.05, (now - last)/1000);
+  last = now;
+  acc += dt;
+  var guard = 0;
+  while(acc >= DT && guard < 600){ physicsStep(DT); acc -= DT; guard++; }
+  if(guard >= 600) acc = 0;
+  updateSparks(dt);
+
+  if(phase === "run"){
+    if(goalHit && now - runStartedAt > 400){
+      phase = "settling";
+      setTimeout(function(){ if(phase==="settling") showPanel(true); }, 750);
+    } else if(allSettled() && now - runStartedAt > 900){
+      phase = "settling";
+      setTimeout(function(){ if(phase==="settling") showPanel(goalHit); }, 600);
+    }
+  }
+  draw();
+  requestAnimationFrame(loop);
+}
+
+/* ============================================================
+   起動
+   ============================================================ */
+setupCanvas();
+window.addEventListener("resize", setupCanvas);
+loadStage(0);
+requestAnimationFrame(loop);
+
+/* 物理の自動検証用フック（通常のプレイには影響しない） */
+window.__DOMINO_DEBUG = {
+  STAGES:STAGES, SIZES:SIZES, DT:DT,
+  loadStage:loadStage, physicsStep:physicsStep, allSettled:allSettled,
+  makeDomino:makeDomino, canPlaceAt:canPlaceAt, groundYAt:groundYAt, spotFree:spotFree,
+  push:function(d){ dominoes.push(d); },
+  list:function(){ return dominoes; },
+  setPhase:function(p){ phase = p; },
+  goal:function(){ return goalHit; },
+  kick:function(){
+    for(var i=0;i<dominoes.length;i++) if(dominoes[i].start){
+      dominoes[i].th = 0.02; dominoes[i].om = 6.5; dominoes[i].rest = false; return;
+    }
+  }
+};
+
+})();
+</script>
+</body>
+</html>
