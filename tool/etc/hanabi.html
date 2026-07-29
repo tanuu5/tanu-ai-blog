@@ -36,7 +36,7 @@
     box-shadow:0 10px 40px rgba(0,0,0,.55);
     transition:opacity .35s, transform .35s;
   }
-  #ui.hidden{opacity:0;transform:translateY(8px);pointer-events:none}
+  #ui.hidden{opacity:0;transform:translateY(10px);pointer-events:none}
   #ui h1{
     margin:0 0 11px;font-size:16px;font-weight:700;letter-spacing:.34em;
     color:var(--gold);text-indent:.34em;
@@ -76,7 +76,8 @@
     flex:none;padding:13px 40px;font-size:14px;letter-spacing:.3em;text-indent:.3em;
     border-color:rgba(224,184,113,.55);background:rgba(224,184,113,.08);
   }
-  #note{position:fixed;right:16px;bottom:16px;z-index:10;font-size:10px;letter-spacing:.12em;color:rgba(242,236,224,.26)}
+  #note{position:fixed;right:16px;bottom:16px;z-index:10;font-size:10px;letter-spacing:.12em;color:rgba(242,236,224,.26);transition:opacity .35s}
+  #note.hidden{opacity:0}
   @media (max-width:640px){
     #ui{left:10px;right:10px;bottom:10px;width:auto}
     #note{display:none}
@@ -1126,7 +1127,33 @@ function updateShow(dt){
    10. 入力
    ========================================================= */
 var dragging = false, lastX = 0, lastY = 0, idle = 0;
-function onDown(x,y){ dragging = true; lastX = x; lastY = y; idle = 0; }
+
+/* --- 操作パネルの自動フェード --- */
+var UI_FADE = 4.0; // 秒
+var uiEl = document.getElementById('ui'), noteEl = document.getElementById('note');
+var uiIdle = 0, uiHidden = true, uiForced = false, uiHover = false, gateOpen = true;
+function setUI(show){
+  uiHidden = !show;
+  uiEl.classList.toggle('hidden', !show);
+  noteEl.classList.toggle('hidden', !show);
+}
+function wake(){
+  uiIdle = 0;
+  if (uiHidden && !uiForced && !gateOpen) setUI(true);
+}
+// ボタンはクリック後にフォーカスを外す（フォーカス残りで消えなくなるのを防ぐ）
+uiEl.addEventListener('click', function(e){
+  if (e.target && e.target.tagName === 'BUTTON') e.target.blur();
+});
+uiEl.addEventListener('change', function(e){ if (e.target) e.target.blur(); });
+uiEl.addEventListener('mouseenter', function(){ uiHover = true; wake(); });
+uiEl.addEventListener('mouseleave', function(){ uiHover = false; });
+window.addEventListener('mousemove', wake);
+window.addEventListener('mousedown', wake);
+window.addEventListener('touchstart', wake, {passive:true});
+window.addEventListener('keydown', wake);
+
+function onDown(x,y){ dragging = true; lastX = x; lastY = y; idle = 0; wake(); }
 function onMove(x,y){
   if (!dragging) return;
   orbit.tTheta -= (x - lastX) * 0.0042;
@@ -1163,7 +1190,7 @@ function pinchMove(e){
 }
 canvas.addEventListener('wheel', function(e){
   orbit.tDist = Math.max(180, Math.min(1800, orbit.tDist + e.deltaY * 0.8));
-  idle = 0;
+  idle = 0; wake();
   e.preventDefault();
 }, {passive:false});
 
@@ -1171,7 +1198,7 @@ window.addEventListener('keydown', function(e){
   if (e.code === 'Space'){ e.preventDefault(); volley(); idle = 0; }
   else if (e.key === 'f' || e.key === 'F'){ finale(); }
   else if (e.key === 'c' || e.key === 'C'){ launchClawd(); }
-  else if (e.key === 'h' || e.key === 'H'){ document.getElementById('ui').classList.toggle('hidden'); }
+  else if (e.key === 'h' || e.key === 'H'){ uiForced = !uiForced; setUI(!uiForced); }
 });
 
 document.getElementById('btnFire').addEventListener('click', function(){ launch(currentKind(), {}); idle = 0; });
@@ -1199,7 +1226,9 @@ document.getElementById('start').addEventListener('click', function(){
   initAudio();
   if (actx && actx.state === 'suspended') actx.resume();
   document.getElementById('gate').classList.add('off');
-  document.getElementById('ui').classList.remove('hidden');
+  gateOpen = false;
+  setUI(true);
+  uiIdle = 0;
   // 開幕
   later(0.6, function(){ launch('kiku', {x:-120, top:340, scale:1.15}); });
   later(1.4, function(){ launch('kamuro', {x:180, top:300, scale:1.1}); });
@@ -1258,6 +1287,11 @@ function tick(){
     window.__shimmer.offset.x += dt * 0.008;
     window.__shimmer.offset.y += dt * 0.013;
   }
+
+  // 操作パネルの自動フェード
+  uiIdle += dt;
+  if (uiHover || uiEl.contains(document.activeElement)) uiIdle = 0;
+  if (!uiHidden && !uiForced && uiIdle > UI_FADE) setUI(false);
 
   // 放置したらゆっくり流す
   idle += dt;
